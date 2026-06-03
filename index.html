@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>王国防衛 v2.4.0</title>
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+  <div class="mobile-topbar" aria-label="スマホ用クイック操作">
+    <button id="mobileMenuButton" type="button" aria-controls="sidePanel" aria-expanded="false">☰ メニュー</button>
+    <button id="mobilePauseButton" type="button">一時停止</button>
+    <button id="mobileSpeedButton" type="button">1x</button>
+  </div>
+  <div class="mobile-panel-backdrop" id="mobilePanelBackdrop" aria-hidden="true"></div>
+
+  <main class="app">
+    <section class="panel" id="sidePanel" aria-label="ゲーム操作パネル">
+      <div class="title-row">
+        <div>
+          <h1>王国防衛</h1>
+          <p>v2.4.0 / スマホUI対応版</p>
+        </div>
+        <div class="panel-actions">
+          <button id="mobilePanelCloseButton" class="panel-close" type="button" aria-label="メニューを閉じる">閉じる</button>
+          <button id="restartButton" type="button">やり直し</button>
+        </div>
+      </div>
+
+      <div class="hud-grid">
+        <div><span>城HP</span><strong id="hpText">-</strong></div>
+        <div><span>所持金</span><strong id="coinText">-</strong></div>
+        <div><span>王HP</span><strong id="kingHpText">-</strong></div>
+        <div><span>ウェーブ</span><strong id="waveText">-</strong></div>
+        <div><span>人口</span><strong id="popText">-</strong></div>
+        <div><span>領土</span><strong id="territoryText">-</strong></div>
+        <div><span>経済</span><strong id="economyText">-</strong></div>
+        <div><span>スコア</span><strong id="scoreText">-</strong></div>
+        <div class="wide"><span>次の襲撃</span><strong id="nextWaveText">-</strong></div>
+      </div>
+
+      <div class="status-grid">
+        <button id="pauseButton" type="button">一時停止</button>
+        <button id="speedButton" type="button">1x</button>
+        <button id="audioButton" type="button">効果音 ON</button>
+        <button id="bgmButton" type="button">BGM ON</button>
+      </div>
+      <div class="sound-row">
+        <label>音量
+          <input id="volumeRange" type="range" min="0" max="100" value="45">
+        </label>
+      </div>
+
+      <div class="setup-box">
+        <h2>ステージ設定</h2>
+        <label>ステージ
+          <select id="stageSelect"></select>
+        </label>
+        <label>難易度
+          <select id="difficultySelect"></select>
+        </label>
+        <div class="save-row"><span>クラウン</span><strong id="crownText">0</strong></div>
+        <div class="save-row"><span>ベスト</span><strong id="bestText">-</strong></div>
+        <div class="save-row wide"><span>地形</span><strong id="stageRuleText">-</strong></div>
+        <button id="resetSaveButton" type="button" class="danger">セーブ初期化</button>
+      </div>
+
+      <div class="upgrade-box">
+        <h2>恒久強化</h2>
+        <div id="metaUpgradeList" class="meta-upgrades"></div>
+      </div>
+
+      <div class="legend-box">
+        <h2>基本ルール</h2>
+        <p>直接動かせるのは王だけ。敵を倒して落ちたコインを拾い、建設床に乗って施設へ投資します。</p>
+        <p class="tip-line">音はブラウザ制約により、開始ボタンを押した後に鳴ります。</p>
+      </div>
+
+      <div class="legend-box small">
+        <p><b>v2.4.0:</b> スマホでは右上メニューから設定を開きます。</p>
+        <p><b>移動:</b> WASD / 矢印キー / クリック / タップ</p>
+        <p><b>一時停止:</b> Space</p>
+        <p><b>速度変更:</b> F</p>
+        <p><b>コツ:</b> 次の襲撃を見て、金鉱・弓塔・柵・大砲の優先順位を変える。</p>
+      </div>
+
+      <p class="guide" id="guideText">開始を押してください。</p>
+    </section>
+
+    <section class="game-wrap" aria-label="ゲーム画面">
+      <canvas id="gameCanvas" width="480" height="800" aria-label="ゲームキャンバス"></canvas>
+
+      <div class="overlay" id="overlay">
+        <div class="overlay-card">
+          <h2 id="overlayTitle">王国防衛</h2>
+          <p id="overlayText">王を動かしてコインを集め、建設床に投資して城を守ります。</p>
+          <div class="tutorial-list">
+            <p><b>操作:</b> 王だけを動かします。WASD / 矢印キー / クリック / タップ。</p>
+            <p><b>お金:</b> 敵を倒すとコインが落ちます。王で近づくと回収します。</p>
+            <p><b>建設:</b> 建設床に王を乗せると、自動でコインを投入します。</p>
+            <p><b>強化:</b> 完成した施設にもう一度投資すると、2択強化を選べます。</p>
+            <p><b>判断:</b> 次の襲撃表示を見て、守る道と投資先を決めてください。</p>
+            <p><b>音:</b> BGMと効果音はメニューから切り替えできます。</p>
+          </div>
+          <button id="startButton" type="button">開始</button>
+        </div>
+      </div>
+
+      <div class="upgrade-overlay is-hidden" id="upgradeOverlay">
+        <div class="upgrade-card">
+          <h2 id="upgradeTitle">強化を選択</h2>
+          <p id="upgradeText">どちらか1つを選んでください。</p>
+          <div class="upgrade-actions">
+            <button id="upgradeChoiceA" type="button"></button>
+            <button id="upgradeChoiceB" type="button"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="src/config/game-data.js"></script>
+  <script src="src/config/assets.js"></script>
+  <script src="src/utils/helpers.js"></script>
+  <script src="src/core/save.js"></script>
+  <script src="src/render/renderers.js"></script>
+  <script src="src/systems/effect-system.js"></script>
+  <script src="src/systems/king-system.js"></script>
+  <script src="src/systems/wave-system.js"></script>
+  <script src="src/systems/enemy-system.js"></script>
+  <script src="src/systems/facility-system.js"></script>
+  <script src="src/systems/soldier-system.js"></script>
+  <script src="src/systems/projectile-system.js"></script>
+  <script src="src/systems/build-system.js"></script>
+  <script src="src/systems/end-system.js"></script>
+  <script src="src/game.js"></script>
+</body>
+</html>

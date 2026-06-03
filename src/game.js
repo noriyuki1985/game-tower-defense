@@ -53,6 +53,8 @@
         stunned: 0,
         attackTimer: 0,
         payBuffer: 0,
+        buildHoldPadId: null,
+        buildHoldTime: 0,
         targetX: C.kingStart.x,
         targetY: C.kingStart.y,
         face: 1,
@@ -84,7 +86,7 @@
       this.deathSprites = [];
       this.facilities = [];
       this.soldiers = [];
-      this.pads = this.stagePads().map((p) => ({ ...p, invested: 0, upgradeInvested: 0, facilityId: null, pulse: rand(0, 1000) }));
+      this.pads = this.stagePads().map((p) => ({ ...p, invested: 0, upgradeInvested: 0, facilityId: null, pulse: rand(0, 1000), holdTime: 0 }));
       this.waves = this.buildStageWaves();
       this.wave = { index: -1, groupIndex: 0, spawnedInGroup: 0, timer: 0, rest: 1800, active: false, done: false, banner: 0 };
       this.score = 0;
@@ -97,6 +99,7 @@
       this.upgradeChoice = null;
       this.wasPausedBeforeChoice = false;
       this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
+      this.minimapExpanded = false;
       this.updateCamera(true);
       this.message = '王を動かし、コインを拾って建設床に投資してください。';
       this.updateHud();
@@ -166,6 +169,9 @@
       });
       window.addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()));
 
+      const suppressGameTouch = (e) => {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      };
       const setTarget = (e) => {
         if (this.status !== 'playing') return;
         const p = this.screenToCanvas(e.clientX, e.clientY);
@@ -173,14 +179,38 @@
         this.king.targetX = p.x;
         this.king.targetY = p.y;
       };
+      const canvasPointFromEvent = (e) => {
+        const r = this.canvas.getBoundingClientRect();
+        return {
+          x: (e.clientX - r.left) * (this.canvas.width / r.width),
+          y: (e.clientY - r.top) * (this.canvas.height / r.height)
+        };
+      };
+      this.canvas.addEventListener('contextmenu', suppressGameTouch);
+      this.canvas.addEventListener('selectstart', suppressGameTouch);
+      this.canvas.addEventListener('dragstart', suppressGameTouch);
+      this.canvas.addEventListener('touchstart', suppressGameTouch, { passive: false });
+      this.canvas.addEventListener('touchmove', suppressGameTouch, { passive: false });
       this.canvas.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'touch' || e.pointerType === 'pen') e.preventDefault();
+        const screen = canvasPointFromEvent(e);
+        if (this.isMiniMapHit && this.isMiniMapHit(screen.x, screen.y)) {
+          this.minimapExpanded = !this.minimapExpanded;
+          this.pointerTarget = null;
+          return;
+        }
         this.canvas.setPointerCapture(e.pointerId);
         setTarget(e);
       });
       this.canvas.addEventListener('pointermove', (e) => {
+        if (e.pointerType === 'touch' || e.pointerType === 'pen') e.preventDefault();
         if (e.buttons) setTarget(e);
       });
-      this.canvas.addEventListener('pointerup', () => {
+      this.canvas.addEventListener('pointerup', (e) => {
+        if (e.pointerType === 'touch' || e.pointerType === 'pen') e.preventDefault();
+        this.pointerTarget = null;
+      });
+      this.canvas.addEventListener('pointercancel', () => {
         this.pointerTarget = null;
       });
     }
@@ -578,6 +608,53 @@
         const living = this.enemies.length;
         if (living >= 12) this.message = `敵が${living}体います。王を危険地帯に置きすぎず、防衛床へ投資してください。`;
       }
+    }
+
+    isMobileView() {
+      return !!(window.matchMedia && window.matchMedia('(max-width: 860px)').matches);
+    }
+
+    miniMapBounds() {
+      const expanded = !!this.minimapExpanded;
+      if (expanded) {
+        const mapW = 350;
+        const mapH = 430;
+        return { x: Math.round((C.w - mapW) / 2), y: 176, w: mapW, h: mapH, expanded: true };
+      }
+      const compact = this.isMobileView();
+      const mapW = compact ? 118 : 128;
+      const mapH = compact ? 154 : 188;
+      const margin = compact ? 10 : 12;
+      return { x: C.w - mapW - margin, y: C.h - mapH - (compact ? 16 : 18), w: mapW, h: mapH, expanded: false };
+    }
+
+    isMiniMapHit(x, y) {
+      const worldW = this.worldWidth ? this.worldWidth() : C.w;
+      const worldH = this.worldHeight ? this.worldHeight() : C.h;
+      if (worldW <= C.w && worldH <= C.h) return false;
+      const b = this.miniMapBounds();
+      return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+    }
+
+    nextWaveShortSummary() {
+      if (!this.waves || !this.waves.length) return '-';
+      if (this.wave.done) return '襲撃完了';
+      const nextIndex = this.wave.active ? this.wave.index : this.wave.index + 1;
+      const wave = this.waves[nextIndex];
+      if (!wave) return '最終確認中';
+      const counts = {};
+      for (const group of wave.groups) {
+        const name = C.enemyTypes[group.type] ? C.enemyTypes[group.type].name : group.type;
+        counts[name] = (counts[name] || 0) + group.count;
+      }
+      const main = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      const major = main ? `${main[0]}多め` : wave.title;
+      const labels = C.routeLabels[this.stageKey()] || C.routeLabels.meadow;
+      const hasMain = wave.groups.some((g) => (g.route || 'main') === 'main');
+      const hasSide = wave.groups.some((g) => g.route === 'side');
+      const routeText = hasMain && hasSide ? '二方向' : hasSide ? labels.side : labels.main;
+      const rest = this.wave.active ? '進行中' : `${Math.ceil(Math.max(0, this.wave.rest) / 1000)}秒`;
+      return `次:${major} / ${routeText} / ${rest}`;
     }
 
     nextWaveSummary() {

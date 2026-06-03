@@ -201,6 +201,7 @@
       this.drawEffects(ctx);
       ctx.restore();
       this.drawOffscreenMarkers(ctx);
+      this.drawMiniMap(ctx);
       this.drawHudOnCanvas(ctx);
       this.drawResultFx(ctx);
       ctx.restore();
@@ -442,12 +443,14 @@
     }
 
     drawPads(ctx) {
+      const compact = this.isMobileView && this.isMobileView();
       for (const pad of this.pads) {
         const def = C.facilityTypes[pad.type];
         const existing = pad.facilityId ? this.facilities.find((f) => f.id === pad.facilityId) : null;
         if (existing) continue;
         const locked = !this.isPadUnlocked(pad);
         const progress = locked ? 0 : pad.invested / def.cost;
+        const nearKing = distXY(this.king.x, this.king.y, pad.x, pad.y) < 42;
         const pulse = Math.sin(pad.pulse * 0.004) * 0.08 + 1 + (progress > 0 ? Math.sin(this.time * 0.018) * 0.025 : 0);
         ctx.save();
         ctx.translate(pad.x, pad.y);
@@ -462,32 +465,52 @@
           rounded(ctx, -36, -24, 72, 48, 10);
           ctx.fill();
         }
-        ctx.strokeStyle = locked ? 'rgba(220,220,220,0.28)' : def.accent;
-        ctx.lineWidth = 2;
-        ctx.setLineDash(locked ? [3, 5] : [6, 4]);
-        rounded(ctx, -34, -22, 68, 44, 9);
+        ctx.strokeStyle = locked ? 'rgba(220,220,220,0.28)' : nearKing ? 'rgba(255,246,170,0.95)' : def.accent;
+        ctx.lineWidth = nearKing ? 4 : 2;
+        ctx.setLineDash(locked ? [3, 5] : nearKing ? [] : [6, 4]);
+        rounded(ctx, nearKing ? -40 : -34, nearKing ? -28 : -22, nearKing ? 80 : 68, nearKing ? 56 : 44, 10);
         ctx.stroke();
         ctx.setLineDash([]);
-        const nearKing = distXY(this.king.x, this.king.y, pad.x, pad.y) < 42;
-        if (nearKing) {
-          ctx.strokeStyle = 'rgba(255, 246, 170, 0.95)';
-          ctx.lineWidth = 4;
-          ctx.setLineDash([]);
-          rounded(ctx, -39, -27, 78, 54, 12);
-          ctx.stroke();
-        }
+
         if (!locked) {
           ctx.fillStyle = 'rgba(245, 211, 107, 0.24)';
           rounded(ctx, -32, 15, 64 * progress, 6, 3);
           ctx.fill();
+          const holdNeed = C.buildHoldTime || 620;
+          const holdProgress = Math.max(0, Math.min(1, (pad.holdTime || 0) / holdNeed));
+          if (nearKing && holdProgress > 0 && holdProgress < 1) {
+            ctx.fillStyle = 'rgba(255, 246, 170, 0.32)';
+            rounded(ctx, -32, 23, 64 * holdProgress, 6, 3);
+            ctx.fill();
+            ctx.fillStyle = '#fff0bb';
+            ctx.font = compact ? '900 12px system-ui' : '800 9px system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText(compact ? '待機で建設' : '待機', 0, compact ? 38 : 34);
+          }
         }
-        ctx.fillStyle = locked ? '#c3c7bd' : '#fff0bb';
-        ctx.font = '700 10px system-ui';
+
         ctx.textAlign = 'center';
-        ctx.fillText(locked ? '未解放' : def.name, 0, -5);
-        ctx.fillStyle = locked ? '#d8d8d8' : '#ffd35b';
-        ctx.font = '800 12px system-ui';
-        ctx.fillText(locked ? `領土 ${pad.territory}` : `${Math.ceil(def.cost - pad.invested)}`, 0, 14);
+        if (compact) {
+          ctx.fillStyle = locked ? '#d8d8d8' : '#ffd35b';
+          ctx.font = '900 18px system-ui';
+          ctx.fillText(locked ? `領${pad.territory}` : `${Math.ceil(def.cost - pad.invested)}`, 0, 8);
+          if (nearKing) {
+            ctx.fillStyle = '#fff0bb';
+            ctx.font = '900 15px system-ui';
+            ctx.strokeStyle = 'rgba(0,0,0,0.60)';
+            ctx.lineWidth = 4;
+            const label = locked ? `${def.name} 未解放` : def.name;
+            ctx.strokeText(label, 0, -33);
+            ctx.fillText(label, 0, -33);
+          }
+        } else {
+          ctx.fillStyle = locked ? '#c3c7bd' : '#fff0bb';
+          ctx.font = '700 10px system-ui';
+          ctx.fillText(locked ? '未解放' : def.name, 0, -5);
+          ctx.fillStyle = locked ? '#d8d8d8' : '#ffd35b';
+          ctx.font = '800 12px system-ui';
+          ctx.fillText(locked ? `領土 ${pad.territory}` : `${Math.ceil(def.cost - pad.invested)}`, 0, 14);
+        }
         ctx.restore();
       }
     }
@@ -1397,7 +1420,137 @@
       return true;
     }
 
+    drawMiniMap(ctx) {
+      const worldW = this.worldWidth ? this.worldWidth() : C.w;
+      const worldH = this.worldHeight ? this.worldHeight() : C.h;
+      if (worldW <= C.w && worldH <= C.h) return;
+
+      const bounds = this.miniMapBounds ? this.miniMapBounds() : { x: C.w - 140, y: C.h - 206, w: 128, h: 188, expanded: false };
+      const mapW = bounds.w;
+      const mapH = bounds.h;
+      const x = bounds.x;
+      const y = bounds.y;
+      const expanded = !!bounds.expanded;
+      const compact = this.isMobileView && this.isMobileView();
+      const pad = expanded ? 12 : 8;
+      const titleH = expanded ? 30 : 24;
+      const legendH = expanded ? 24 : 22;
+      const innerX = x + pad;
+      const innerY = y + titleH;
+      const innerW = mapW - pad * 2;
+      const innerH = mapH - titleH - legendH;
+      const sx = innerW / worldW;
+      const sy = innerH / worldH;
+      const mx = (wx) => innerX + wx * sx;
+      const my = (wy) => innerY + wy * sy;
+
+      ctx.save();
+      ctx.fillStyle = expanded ? 'rgba(8, 13, 15, 0.88)' : 'rgba(10, 16, 18, 0.76)';
+      rounded(ctx, x, y, mapW, mapH, expanded ? 18 : 14);
+      ctx.fill();
+      ctx.strokeStyle = expanded ? 'rgba(255, 240, 188, 0.70)' : 'rgba(255, 240, 188, 0.40)';
+      ctx.lineWidth = expanded ? 2 : 1.5;
+      rounded(ctx, x + 0.5, y + 0.5, mapW - 1, mapH - 1, expanded ? 18 : 14);
+      ctx.stroke();
+
+      ctx.fillStyle = '#fff0bb';
+      ctx.font = expanded ? '900 18px system-ui' : compact ? '900 12px system-ui' : '900 11px system-ui';
+      ctx.textAlign = 'left';
+      ctx.fillText(expanded ? '全体マップ' : '地図', x + 10, y + (expanded ? 21 : 16));
+      ctx.textAlign = 'right';
+      ctx.fillStyle = 'rgba(255, 244, 214, 0.78)';
+      ctx.font = expanded ? '800 12px system-ui' : '800 9px system-ui';
+      ctx.fillText(expanded ? 'タップで閉じる' : 'タップで拡大', x + mapW - 10, y + (expanded ? 21 : 16));
+
+      ctx.save();
+      rounded(ctx, innerX, innerY, innerW, innerH, expanded ? 10 : 8);
+      ctx.clip();
+      ctx.fillStyle = 'rgba(58, 119, 77, 0.62)';
+      ctx.fillRect(innerX, innerY, innerW, innerH);
+
+      const theme = this.stageTheme ? this.stageTheme() : null;
+      ctx.strokeStyle = theme ? theme.roadInner : 'rgba(210, 170, 105, 0.8)';
+      ctx.lineWidth = expanded ? 3 : 2;
+      for (const route of ['main', 'side']) {
+        const path = this.routePath ? this.routePath(route) : [];
+        if (!path || path.length < 2) continue;
+        ctx.beginPath();
+        ctx.moveTo(mx(path[0].x), my(path[0].y));
+        for (let i = 1; i < path.length; i += 1) ctx.lineTo(mx(path[i].x), my(path[i].y));
+        ctx.stroke();
+      }
+
+      const cam = this.camera || { x: 0, y: 0 };
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.10)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.78)';
+      ctx.lineWidth = expanded ? 2 : 1;
+      ctx.fillRect(mx(cam.x), my(cam.y), C.w * sx, C.h * sy);
+      ctx.strokeRect(mx(cam.x), my(cam.y), C.w * sx, C.h * sy);
+
+      if (expanded && this.pads) {
+        for (const p of this.pads) {
+          const built = p.facilityId;
+          const unlocked = !this.isPadUnlocked || this.isPadUnlocked(p);
+          ctx.fillStyle = built ? '#9ee1bb' : unlocked ? '#ffd35b' : 'rgba(200, 200, 200, 0.45)';
+          ctx.beginPath();
+          ctx.arc(mx(p.x), my(p.y), built ? 3.2 : 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      if (this.facilities) {
+        ctx.fillStyle = '#9ee1bb';
+        for (const f of this.facilities) {
+          if (f.hp <= 0) continue;
+          ctx.beginPath();
+          ctx.arc(mx(f.x), my(f.y), expanded ? 3.4 : 2.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      if (this.enemies) {
+        ctx.fillStyle = '#ff6b5e';
+        for (const e of this.enemies.slice(0, expanded ? 120 : 70)) {
+          if (e.hp <= 0) continue;
+          ctx.beginPath();
+          ctx.arc(mx(e.x), my(e.y), e.def && e.def.boss ? (expanded ? 5 : 3.4) : (expanded ? 3.2 : 2.1), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      if (this.castle) {
+        ctx.fillStyle = '#86e3a0';
+        ctx.beginPath();
+        ctx.rect(mx(this.castle.x) - (expanded ? 5 : 3), my(this.castle.y) - (expanded ? 5 : 3), expanded ? 10 : 6, expanded ? 10 : 6);
+        ctx.fill();
+      }
+
+      if (this.king) {
+        ctx.fillStyle = '#4aa3ff';
+        ctx.strokeStyle = 'rgba(255,255,255,0.96)';
+        ctx.lineWidth = expanded ? 2.5 : 1.6;
+        ctx.beginPath();
+        ctx.arc(mx(this.king.x), my(this.king.y), expanded ? 6.5 : 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      ctx.restore();
+
+      ctx.fillStyle = 'rgba(255, 244, 214, 0.88)';
+      ctx.font = expanded ? '800 12px system-ui' : '800 9px system-ui';
+      ctx.textAlign = 'left';
+      const legend = expanded ? '青:王  緑:城/施設  赤:敵  黄:建設床' : '青:王  赤:敵  緑:城';
+      ctx.fillText(legend, x + 9, y + mapH - (expanded ? 8 : 9));
+      ctx.restore();
+    }
+
     drawHudOnCanvas(ctx) {
+      const compact = this.isMobileView && this.isMobileView();
+      if (compact) {
+        this.drawMobileHudOnCanvas(ctx);
+        return;
+      }
       ctx.fillStyle = 'rgba(18, 24, 20, 0.64)';
       rounded(ctx, 14, 14, 452, 52, 16);
       ctx.fill();
@@ -1427,28 +1580,114 @@
       ctx.fillStyle = '#86e3a0';
       rounded(ctx, 28, 64, 160 * Math.max(0, this.castle.hp / this.castle.maxHp), 8, 5);
       ctx.fill();
+      this.drawAlertBanners(ctx);
+    }
+
+    drawMobileHudOnCanvas(ctx) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(12, 18, 15, 0.78)';
+      rounded(ctx, 12, 12, 456, 86, 18);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.lineWidth = 1.5;
+      rounded(ctx, 12.5, 12.5, 455, 85, 18);
+      ctx.stroke();
+
+      const cards = [
+        { icon: 'uiCoin', label: '金', value: Math.floor(this.king.coins), x: 22 },
+        { icon: 'uiHeart', label: '王', value: `${Math.ceil(this.king.hp)}`, x: 128 },
+        { icon: 'uiCastleHp', label: '城', value: `${Math.max(0, Math.ceil(this.castle.hp))}`, x: 234 },
+        { icon: 'uiWave', label: '波', value: `${this.wave.index < 0 ? 0 : this.wave.index + 1}/${this.waves.length}`, x: 340 }
+      ];
+      for (const card of cards) {
+        ctx.fillStyle = 'rgba(255,255,255,0.065)';
+        rounded(ctx, card.x, 22, 94, 42, 12);
+        ctx.fill();
+        this.drawAsset(ctx, card.icon, card.x + 18, 43, 24, 24);
+        ctx.fillStyle = '#fff0bb';
+        ctx.font = '900 20px system-ui';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${card.value}`, card.x + 34, 47);
+        ctx.fillStyle = 'rgba(214,242,163,0.86)';
+        ctx.font = '800 10px system-ui';
+        ctx.fillText(card.label, card.x + 35, 59);
+      }
+
+      ctx.fillStyle = '#d6f2a3';
+      ctx.font = '900 13px system-ui';
+      ctx.textAlign = 'left';
+      const short = this.nextWaveShortSummary ? this.nextWaveShortSummary() : this.nextWaveSummary().slice(0, 28);
+      ctx.fillText(short.slice(0, 40), 24, 84);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#fff0bb';
+      ctx.fillText(`${this.speed}x${this.paused ? ' 停止' : ''}`, 456, 84);
+
+      ctx.fillStyle = '#ff6b5e';
+      rounded(ctx, 22, 100, 190, 10, 5);
+      ctx.fill();
+      ctx.fillStyle = '#86e3a0';
+      rounded(ctx, 22, 100, 190 * Math.max(0, this.castle.hp / this.castle.maxHp), 10, 5);
+      ctx.fill();
+
+      this.drawMobileMessageBar(ctx);
+      this.drawAlertBanners(ctx);
+      ctx.restore();
+    }
+
+    drawMobileMessageBar(ctx) {
+      if (this.minimapExpanded) return;
+      const b = this.miniMapBounds ? this.miniMapBounds() : { x: 344, y: 628, w: 126, h: 156 };
+      const x = 14;
+      const y = 706;
+      const w = Math.max(260, b.x - 24);
+      const h = 78;
+      ctx.save();
+      ctx.fillStyle = 'rgba(12, 18, 15, 0.80)';
+      rounded(ctx, x, y, w, h, 17);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.lineWidth = 1.5;
+      rounded(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 17);
+      ctx.stroke();
+      ctx.fillStyle = '#ffd35b';
+      ctx.font = '900 14px system-ui';
+      ctx.textAlign = 'left';
+      ctx.fillText('状況', x + 14, y + 23);
+      ctx.fillStyle = '#fff0bb';
+      ctx.font = '900 16px system-ui';
+      const msg = (this.message || '').replace(/。/g, '。 ');
+      const first = msg.slice(0, 16);
+      const second = msg.slice(16, 32);
+      ctx.fillText(first, x + 14, y + 47);
+      if (second) ctx.fillText(second, x + 14, y + 68);
+      ctx.restore();
+    }
+
+    drawAlertBanners(ctx) {
       if (this.routeAlert.life > 0) {
         ctx.globalAlpha = Math.min(1, this.routeAlert.life / 300);
-        ctx.fillStyle = this.routeAlert.route === 'side' ? 'rgba(110, 39, 32, 0.78)' : 'rgba(93, 62, 24, 0.78)';
-        rounded(ctx, 72, 82, 336, 42, 14);
+        ctx.fillStyle = this.routeAlert.route === 'side' ? 'rgba(110, 39, 32, 0.82)' : 'rgba(93, 62, 24, 0.82)';
+        rounded(ctx, 56, 112, 368, 54, 16);
         ctx.fill();
         ctx.fillStyle = '#ffe7a8';
-        ctx.font = '900 19px system-ui';
+        ctx.font = '900 22px system-ui';
         ctx.textAlign = 'center';
-        this.drawAsset(ctx, 'uiWarning', 93, 103, 30, 30);
-        ctx.fillText(this.routeAlert.text, C.w / 2 + 8, 109);
+        this.drawAsset(ctx, 'uiWarning', 82, 139, 34, 34);
+        ctx.fillText(this.routeAlert.text, C.w / 2 + 8, 146);
         ctx.globalAlpha = 1;
       }
       if (this.wave.banner > 0 && this.wave.index >= 0) {
         ctx.globalAlpha = Math.min(1, this.wave.banner / 300);
-        ctx.fillStyle = 'rgba(20, 22, 18, 0.72)';
-        rounded(ctx, 76, 102, 328, 58, 18);
+        ctx.fillStyle = 'rgba(20, 22, 18, 0.76)';
+        rounded(ctx, 58, 176, 364, 66, 18);
         ctx.fill();
         ctx.fillStyle = '#ffd35b';
-        ctx.font = '900 25px system-ui';
+        ctx.font = '900 26px system-ui';
         ctx.textAlign = 'center';
-        this.drawAsset(ctx, 'uiWave', 95, 132, 34, 34);
-        ctx.fillText(`ウェーブ ${this.wave.index + 1}: ${this.waves[this.wave.index].title}`, C.w / 2 + 8, 139);
+        this.drawAsset(ctx, 'uiWave', 84, 209, 38, 38);
+        ctx.fillText(`ウェーブ ${this.wave.index + 1}`, 168, 203);
+        ctx.font = '900 18px system-ui';
+        ctx.fillText(this.waves[this.wave.index].title, 260, 226);
         ctx.globalAlpha = 1;
       }
     }

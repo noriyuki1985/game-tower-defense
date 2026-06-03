@@ -38,15 +38,32 @@
   }
   if (!activePad) {
     this.king.payBuffer = 0;
+    this.king.buildHoldPadId = null;
+    this.king.buildHoldTime = 0;
+    for (const pad of this.pads) pad.holdTime = 0;
     return;
   }
+  const holdNeed = C.buildHoldTime || 620;
+  if (this.king.buildHoldPadId !== activePad.id) {
+    this.king.buildHoldPadId = activePad.id;
+    this.king.buildHoldTime = 0;
+    for (const pad of this.pads) pad.holdTime = 0;
+  }
+  activePad.holdTime = Math.min(holdNeed, (activePad.holdTime || 0) + dt);
+  this.king.buildHoldTime = activePad.holdTime;
+
   if (!this.isPadUnlocked(activePad)) {
     this.king.payBuffer = 0;
     this.message = `${C.facilityTypes[activePad.type].name}は未解放です。領土${activePad.territory}が必要。前哨基地を建ててください。`;
-    this.addFloater('領土不足', activePad.x, activePad.y - 34, '#d7d7d7');
+    if (this.time % 480 < dt) this.addFloater('領土不足', activePad.x, activePad.y - 34, '#d7d7d7');
     return;
   }
   const def = C.facilityTypes[activePad.type];
+  if (activePad.holdTime < holdNeed) {
+    const wait = Math.max(0, Math.ceil((holdNeed - activePad.holdTime) / 100) / 10);
+    this.message = `${def.name}: ${wait.toFixed(1)}秒その場にいると投資開始。通過するだけならコインは使いません。`;
+    return;
+  }
   const existing = activePad.facilityId ? this.facilities.find((f) => f.id === activePad.facilityId) : null;
   if (!existing) {
     if (activePad.invested >= def.cost) return;

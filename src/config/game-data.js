@@ -10,6 +10,7 @@
     coinPickupRange: 42,
     kingSpeed: 202,
     payRate: 98,
+    buildHoldTime: 620,
     maxCoinsOnGround: 95,
     saveKey: 'game-tower-defense-v250-save',
     audioKey: 'game-tower-defense-v250-audio',

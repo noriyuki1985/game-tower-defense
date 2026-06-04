@@ -132,6 +132,7 @@
     }
 
     enemyWalkFrameKey(enemy) {
+      if (enemy.hit > 0) return this.enemyAssetKey(enemy.type);
       const base = this.enemyWalkBaseKey(enemy.type);
       const stride = enemy.def.siege || enemy.def.boss ? 22 : enemy.type === 'runner' ? 12 : 15;
       const frame = enemy.isWalking === false ? 1 : (Math.floor(((enemy.walkDistance || 0) / stride) + (enemy.animSeed || 0)) % 4) + 1;

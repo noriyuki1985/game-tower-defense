@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  const ASSET_VERSION = 'v2.9.1';
+
   const ASSET_MANIFEST = {
     kingIdle: 'assets/images/king/king_idle.png',
     kingRun1: 'assets/images/king/king_run_1.png',
@@ -190,16 +192,22 @@
     fxWarning3: 'assets/images/effects/frames/fx_warning_3.png'
   };
 
+  function versionedAssetSrc(src) {
+    if (!src || src.includes('?')) return src;
+    return `${src}?asset=${ASSET_VERSION}`;
+  }
+
   function loadGameImages() {
     const images = {};
     for (const [key, src] of Object.entries(ASSET_MANIFEST)) {
       const img = new Image();
-      img.src = src;
+      img.src = versionedAssetSrc(src);
       images[key] = img;
     }
     return images;
   }
 
+  window.KBD_ASSET_VERSION = ASSET_VERSION;
   window.KBD_ASSET_MANIFEST = ASSET_MANIFEST;
   window.KBD_LOAD_IMAGES = loadGameImages;
 })();

@@ -23,6 +23,8 @@
           f.fire = f.type === 'cannon' ? 260 : 170;
           f.fireAngle = Math.atan2(target.y - f.y, target.x - f.x);
           this.addSpriteEffect(f.type === 'cannon' ? 'explosion' : 'hit', f.x + Math.cos(f.fireAngle) * 18, f.y - 18 + Math.sin(f.fireAngle) * 10, f.type === 'cannon' ? 46 : 34, 250);
+          if (this.addAuraRipple) this.addAuraRipple(f.x, f.y - 12, f.type === 'cannon' ? '#ffb25c' : '#fff0bb', f.type === 'cannon' ? 46 : 32, f.type === 'cannon' ? 3 : 2, 260);
+          this.playSfx(f.type === 'cannon' ? 'cannonShot' : 'arrowShot', f.type === 'cannon' ? 180 : 80);
           this.projectiles.push({
             x: f.x, y: f.y - 12, target, speed: f.projectileSpeed, damage: f.damage,
             color: f.projectile, splash: f.splash || 0, slow: f.slow || 0, from: f.type,
@@ -39,6 +41,7 @@
         this.coins.push({ x: f.x + rand(-14, 14), y: f.y + rand(-14, 14), value: coin, r: 8, life: 22000, animSeed: rand(0, Math.PI * 2) });
         f.work = 420;
         this.addBurst(f.x, f.y - 20, '#ffd35b', 5, 'coinPickup');
+        if (this.addSparkShower) this.addSparkShower(f.x, f.y - 18, '#ffd35b', 7, 55);
         this.addFloater(`+${coin}`, f.x, f.y - 30, '#ffd35b');
       }
     }
@@ -58,6 +61,8 @@
             }
           }
           this.addBurst(f.x, f.y, f.branch === 'frost' ? '#bdeeff' : '#f08b59', 16, f.branch === 'frost' ? 'hit' : 'explosion');
+          if (this.addAuraRipple) this.addAuraRipple(f.x, f.y, f.branch === 'frost' ? '#bdeeff' : '#f08b59', f.range + 22, 4, 480);
+          this.playSfx('trap', 180);
         }
       }
     }
@@ -76,7 +81,9 @@
         });
         f.spawnFlash = 520;
         this.addBurst(f.x, f.y + 6, '#d6bf82', 6, 'build');
+        if (this.addAuraRipple) this.addAuraRipple(f.x, f.y + 8, '#d6bf82', 42, 2, 420);
         this.addFloater('兵士', f.x, f.y - 28, '#d6bf82');
+        this.playSfx('spawn', 220);
       }
     }
     if (f.repair) {

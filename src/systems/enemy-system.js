@@ -6,6 +6,40 @@
 
   window.KBD_SYSTEMS = window.KBD_SYSTEMS || {};
   window.KBD_SYSTEMS.enemy = {
+    chooseRaidTarget(type, route = 'main', forceRaid = false) {
+  const sites = this.activeDiscoverySites ? this.activeDiscoverySites().filter((d) => !d.siteDisabled && (d.siteHp || 0) > 0) : [];
+  if (!sites.length) return null;
+  const raidChance = {
+    runner: 0.05,
+    saboteur: 0.28,
+    bomber: 0.12,
+    siege: 0.18,
+    brute: 0.03,
+    shield: 0.02
+  }[type] || 0;
+  if (!forceRaid && rand(0, 1) > raidChance) return null;
+  const start = (this.routePath(route) || [])[0] || { x: this.castle.x, y: this.castle.y };
+  const weighted = sites.map((s) => {
+    const hpRatio = (s.siteHp || 1) / Math.max(1, s.siteMaxHp || 1);
+    const kindWeight = s.kind === 'outpost' ? 0.85 : s.kind === 'resource' || s.kind === 'market' ? 1.05 : 1;
+    const d = distXY(start.x, start.y, s.x, s.y);
+    return { site: s, score: d / kindWeight + hpRatio * 60 + rand(-18, 18) };
+  }).sort((a, b) => a.score - b.score);
+  return weighted[0] ? weighted[0].site : null;
+},
+
+    buildRaidPath(route, site) {
+  if (this.raidTrailPathForSite) return this.raidTrailPathForSite(site, route);
+  const base = this.routePath(route) || [];
+  const start = base[0] || { x: 0, y: 0 };
+  const mid = base[Math.min(base.length - 1, Math.max(1, Math.floor(base.length * 0.42)))] || start;
+  return [
+    { x: start.x, y: start.y },
+    { x: Math.round((mid.x * 0.7 + site.x * 0.3)), y: Math.round((mid.y * 0.7 + site.y * 0.3)) },
+    { x: site.x, y: site.y }
+  ];
+},
+
     updateEnemies(dt) {
   for (const e of this.enemies) {
     e.hit = Math.max(0, e.hit - dt);
@@ -38,6 +72,16 @@
     }
     const target = e.path[e.pathIndex];
     if (!target) {
+      if (e.raidTargetId) {
+        const site = (this.discoveries || []).find((d) => d.id === e.raidTargetId);
+        if (site && site.discovered) {
+          if (e.def.explode && !e.exploded) this.explodeEnemy(e, site.x, site.y, 'site');
+          this.damageDiscoverySite(site, e.def.damage * (e.def.siege ? 1.10 : 0.86), e);
+          e.reachedSite = true;
+          e.hp = 0;
+          continue;
+        }
+      }
       if (e.def.explode && !e.exploded) this.explodeEnemy(e, this.castle.x, this.castle.y + 18, 'castle');
       this.castle.hp -= e.def.damage;
       this.castle.hit = 240;
@@ -76,7 +120,7 @@
   }
   this.enemies = this.enemies.filter((e) => {
     if (e.hp <= 0) {
-      if (!e.reachedCastle) this.onEnemyKilled(e);
+      if (!e.reachedCastle && !e.reachedSite) this.onEnemyKilled(e);
       return false;
     }
     return true;
@@ -104,7 +148,10 @@
         healed = true;
       }
     }
-    if (healed) this.addBurst(enemy.x, enemy.y, '#b58cff', 8);
+    if (healed) {
+      this.addBurst(enemy.x, enemy.y, '#b58cff', 8);
+      if (this.addAuraRipple) this.addAuraRipple(enemy.x, enemy.y, '#b58cff', enemy.def.healAura || 58, 2, 520);
+    }
   }
   if (enemy.def.targetFacility && enemy.specialTimer <= 0) {
     const target = this.nearestFacility(enemy.x, enemy.y, 46);
@@ -113,6 +160,7 @@
       target.hit = 150;
       enemy.specialTimer = 850;
       this.addBurst(target.x, target.y, '#ff9b4f', 4);
+      if (this.addSparkShower) this.addSparkShower(target.x, target.y - 12, '#ff9b4f', 5, 48);
       if (target.hp <= 0) this.destroyFacility(target);
     }
   }
@@ -153,6 +201,7 @@
     this.castle.hit = 240;
   }
   this.addBurst(x, y, '#ff8b45', 28, 'explosion');
+  this.playSfx('explosion', 180);
   this.shake = Math.max(this.shake, 190);
   this.addFloater('爆発', x, y - 22, '#ffb45c');
 },
@@ -188,6 +237,7 @@
   enemy.hp -= dmg;
   enemy.hit = 140;
   if (strongHit) this.addSpriteEffect('hit', enemy.x, enemy.y - enemy.r * 0.25, enemy.def.boss ? 64 : 42, 250);
+  if (enemy.def.armor && source !== 'king' && this.addSparkShower) this.addSparkShower(enemy.x, enemy.y - enemy.r * 0.1, '#dce5ff', 3, 40);
 },
 
     nearestEnemy(x, y, range) {

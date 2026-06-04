@@ -192,6 +192,7 @@
       this.drawWorld(ctx);
       this.drawCastle(ctx);
       this.drawPads(ctx);
+      this.drawDiscoveries(ctx);
       this.drawFacilities(ctx);
       this.drawSoldiers(ctx);
       this.drawKing(ctx);
@@ -203,6 +204,9 @@
       this.drawOffscreenMarkers(ctx);
       this.drawMiniMap(ctx);
       this.drawHudOnCanvas(ctx);
+      this.drawDiscoveryToast(ctx);
+      this.drawBuildInfoPanel(ctx);
+      this.drawStrategicHint(ctx);
       this.drawResultFx(ctx);
       ctx.restore();
     }
@@ -287,6 +291,7 @@
       ctx.lineWidth = 2;
       this.drawPathLine(ctx, main);
       this.drawPathLine(ctx, side);
+      this.drawRaidTrails(ctx, theme);
 
       if (key === 'river') {
         ctx.fillStyle = 'rgba(110, 76, 44, 0.82)';
@@ -330,6 +335,29 @@
       ctx.moveTo(pts[0].x, pts[0].y);
       for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i].x, pts[i].y);
       ctx.stroke();
+    }
+
+    drawRaidTrails(ctx, theme) {
+      const sites = (this.discoveries || []).filter((d) => d.discovered && this.isRaidableDiscovery && this.isRaidableDiscovery(d));
+      if (!sites.length || !this.raidTrailPathForSite) return;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const site of sites) {
+        const path = this.raidTrailPathForSite(site, site.x > this.castle.x ? 'side' : 'main');
+        if (!path || path.length < 2) continue;
+        const danger = (site.siteUnderRaid || 0) > 0;
+        ctx.strokeStyle = danger ? 'rgba(163, 79, 48, 0.82)' : 'rgba(171, 126, 76, 0.38)';
+        ctx.lineWidth = danger ? 25 : 18;
+        this.drawPathLine(ctx, path);
+        ctx.strokeStyle = danger ? 'rgba(224, 151, 92, 0.90)' : (theme ? theme.roadInner : 'rgba(189, 143, 92, 0.55)');
+        ctx.lineWidth = danger ? 13 : 9;
+        this.drawPathLine(ctx, path);
+        ctx.strokeStyle = 'rgba(74, 46, 27, 0.28)';
+        ctx.lineWidth = 1.5;
+        this.drawPathLine(ctx, path);
+      }
+      ctx.restore();
     }
 
     blob(ctx, x, y, w, h) {
@@ -442,16 +470,80 @@
       ctx.restore();
     }
 
+    drawDiscoveries(ctx) {
+      if (!this.discoveries || !this.discoveries.length) return;
+      const compact = this.isMobileView && this.isMobileView();
+      for (const d of this.discoveries) {
+        const near = distXY(this.king.x, this.king.y, d.x, d.y) < (C.discoveryRevealRadius || 76) + 40;
+        const screen = this.worldToScreen ? this.worldToScreen(d.x, d.y) : { x: d.x, y: d.y };
+        const onScreen = screen.x > -80 && screen.x < C.w + 80 && screen.y > -80 && screen.y < C.h + 80;
+        if (!onScreen && !near) continue;
+        const pulse = 1 + Math.sin((d.pulse || this.time) * 0.006) * 0.08;
+        const flash = Math.max(0, (d.flash || 0) / 1200);
+        ctx.save();
+        ctx.translate(d.x, d.y);
+        ctx.scale(pulse + flash * 0.16, pulse + flash * 0.16);
+        ctx.fillStyle = d.discovered ? 'rgba(255, 243, 163, 0.20)' : 'rgba(6, 10, 12, 0.40)';
+        ctx.beginPath();
+        ctx.arc(0, 0, d.discovered ? 34 : 28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = d.discovered ? 'rgba(255, 243, 163, 0.78)' : 'rgba(255, 240, 188, 0.58)';
+        ctx.lineWidth = d.discovered ? 3 : 2;
+        ctx.setLineDash(d.discovered ? [] : [5, 5]);
+        ctx.beginPath();
+        ctx.arc(0, 0, d.discovered ? 28 : 24, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const raidable = this.isRaidableDiscovery && this.isRaidableDiscovery(d);
+        const damaged = raidable && (d.siteHp || 0) < (d.siteMaxHp || 1) * 0.55;
+        const underRaid = raidable && (d.siteUnderRaid || 0) > 0;
+        ctx.fillStyle = underRaid ? '#ffb08a' : damaged ? '#ffd35b' : d.discovered ? '#fff3a3' : '#fff0bb';
+        ctx.font = d.discovered ? '900 18px system-ui' : '900 22px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const symbol = d.discovered ? (this.discoverySiteLabel ? this.discoverySiteLabel(d) : '発見') : '?';
+        ctx.fillText(symbol.length > 2 ? symbol.slice(0, 2) : symbol, 0, 0);
+        if (d.discovered || near) {
+          const label = d.discovered ? d.name : '未発見地点';
+          ctx.textBaseline = 'alphabetic';
+          ctx.font = compact ? '900 14px system-ui' : '900 12px system-ui';
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = 'rgba(0,0,0,0.60)';
+          ctx.strokeText(label, 0, -34);
+          ctx.fillText(label, 0, -34);
+        }
+        if (raidable) {
+          const ratio = clamp((d.siteHp || 0) / Math.max(1, d.siteMaxHp || 1), 0, 1);
+          ctx.fillStyle = 'rgba(0,0,0,0.48)';
+          rounded(ctx, -24, 31, 48, 5, 3);
+          ctx.fill();
+          ctx.fillStyle = underRaid ? '#ff8b5e' : damaged ? '#ffd35b' : '#86e3a0';
+          rounded(ctx, -24, 31, 48 * ratio, 5, 3);
+          ctx.fill();
+          if (underRaid) {
+            ctx.strokeStyle = 'rgba(255,107,94,0.72)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, 40 + Math.sin(this.time * 0.02) * 4, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
+    }
+
     drawPads(ctx) {
       const compact = this.isMobileView && this.isMobileView();
       for (const pad of this.pads) {
+        if (this.isPadVisible && !this.isPadVisible(pad)) continue;
         const def = C.facilityTypes[pad.type];
         const existing = pad.facilityId ? this.facilities.find((f) => f.id === pad.facilityId) : null;
         if (existing) continue;
         const locked = !this.isPadUnlocked(pad);
         const progress = locked ? 0 : pad.invested / def.cost;
         const nearKing = distXY(this.king.x, this.king.y, pad.x, pad.y) < 42;
-        const pulse = Math.sin(pad.pulse * 0.004) * 0.08 + 1 + (progress > 0 ? Math.sin(this.time * 0.018) * 0.025 : 0);
+        const revealFlash = Math.max(0, (pad.revealFlash || 0) / 1200);
+        const pulse = Math.sin(pad.pulse * 0.004) * 0.08 + 1 + (progress > 0 ? Math.sin(this.time * 0.018) * 0.025 : 0) + revealFlash * 0.10;
         ctx.save();
         ctx.translate(pad.x, pad.y);
         ctx.scale(pulse, pulse);
@@ -465,7 +557,33 @@
           rounded(ctx, -36, -24, 72, 48, 10);
           ctx.fill();
         }
-        ctx.strokeStyle = locked ? 'rgba(220,220,220,0.28)' : nearKing ? 'rgba(255,246,170,0.95)' : def.accent;
+        const category = this.facilityCategory ? this.facilityCategory(pad.type) : 'defense';
+        const categoryColor = this.facilityCategoryColor ? this.facilityCategoryColor(pad.type) : def.accent;
+        ctx.fillStyle = locked ? 'rgba(80, 86, 82, 0.58)' : categoryColor;
+        ctx.globalAlpha = locked ? 0.38 : 0.22;
+        ctx.beginPath();
+        ctx.arc(0, -2, nearKing ? 27 : 23, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = locked ? 'rgba(220,220,220,0.28)' : categoryColor;
+        ctx.lineWidth = nearKing ? 3 : 2;
+        ctx.beginPath();
+        ctx.arc(0, -2, nearKing ? 27 : 23, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = locked ? '#c3c7bd' : '#fff4c8';
+        ctx.font = nearKing ? '900 18px system-ui' : '900 15px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.facilityIcon ? this.facilityIcon(pad.type) : (def.name || '?').slice(0, 1), 0, 3);
+        if (!locked && this.padStrategicScore) {
+          const rec = this.padStrategicScore(pad);
+          if (rec && rec.grade) {
+            ctx.fillStyle = rec.score >= 72 ? '#9ee1bb' : rec.score >= 55 ? '#ffd35b' : 'rgba(255,240,188,0.78)';
+            ctx.font = nearKing ? '900 15px system-ui' : '900 12px system-ui';
+            ctx.fillText(rec.grade, nearKing ? 29 : 24, nearKing ? -20 : -17);
+          }
+        }
+
+        ctx.strokeStyle = locked ? 'rgba(220,220,220,0.28)' : nearKing ? 'rgba(255,246,170,0.95)' : categoryColor;
         ctx.lineWidth = nearKing ? 4 : 2;
         ctx.setLineDash(locked ? [3, 5] : nearKing ? [] : [6, 4]);
         rounded(ctx, nearKing ? -40 : -34, nearKing ? -28 : -22, nearKing ? 80 : 68, nearKing ? 56 : 44, 10);
@@ -482,6 +600,18 @@
             ctx.fillStyle = 'rgba(255, 246, 170, 0.32)';
             rounded(ctx, -32, 23, 64 * holdProgress, 6, 3);
             ctx.fill();
+            ctx.strokeStyle = `rgba(255, 246, 170, ${0.30 + holdProgress * 0.45})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, -2, 30 + holdProgress * 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * holdProgress);
+            ctx.stroke();
+            for (let i = 0; i < 4; i += 1) {
+              const a = this.time * 0.006 + i * Math.PI * 0.5;
+              ctx.fillStyle = `rgba(255, 240, 188, ${0.20 + holdProgress * 0.30})`;
+              ctx.beginPath();
+              ctx.arc(Math.cos(a) * (30 + holdProgress * 10), -2 + Math.sin(a) * (22 + holdProgress * 7), 2.2, 0, Math.PI * 2);
+              ctx.fill();
+            }
             ctx.fillStyle = '#fff0bb';
             ctx.font = compact ? '900 12px system-ui' : '800 9px system-ui';
             ctx.textAlign = 'center';
@@ -502,6 +632,10 @@
             const label = locked ? `${def.name} 未解放` : def.name;
             ctx.strokeText(label, 0, -33);
             ctx.fillText(label, 0, -33);
+            ctx.font = '900 11px system-ui';
+            const role = this.facilityShortText ? this.facilityShortText(pad.type).slice(0, 12) : '';
+            ctx.strokeText(role, 0, -48);
+            ctx.fillText(role, 0, -48);
           }
         } else {
           ctx.fillStyle = locked ? '#c3c7bd' : '#fff0bb';
@@ -533,6 +667,17 @@
           ctx.beginPath();
           ctx.arc(f.x, f.y, 34 + (1 - t) * 36, 0, Math.PI * 2);
           ctx.stroke();
+          ctx.fillStyle = `rgba(255, 239, 160, ${0.08 + t * 0.18})`;
+          ctx.beginPath();
+          ctx.ellipse(f.x, f.y + 20, 42 + (1 - t) * 18, 12 + (1 - t) * 5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          for (let i = 0; i < 6; i += 1) {
+            const a = this.time * 0.008 + i * 1.047;
+            ctx.fillStyle = `rgba(255, 230, 148, ${0.16 + t * 0.24})`;
+            ctx.beginPath();
+            ctx.arc(f.x + Math.cos(a) * (30 + (1 - t) * 24), f.y - 5 + Math.sin(a) * (20 + (1 - t) * 12), 2.4, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
         if (f.aura && f.range) {
           const pulse = 0.15 + Math.sin(this.time * 0.004 + f.x) * 0.05;
@@ -610,11 +755,17 @@
       const my = f.y - 12 + Math.sin(angle) * muzzleDist;
       if (f.type === 'archer' && fireT > 0) {
         ctx.save();
+        const drawT = 1 - fireT;
         ctx.strokeStyle = `rgba(255, 240, 185, ${0.28 + fireT * 0.55})`;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(f.x, f.y - 8);
         ctx.lineTo(mx, my);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(255, 246, 202, ${0.45 + fireT * 0.40})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y - 21, 14 + drawT * 3, angle - 0.85, angle + 0.85);
         ctx.stroke();
         ctx.fillStyle = `rgba(255, 226, 140, ${0.30 + fireT * 0.45})`;
         ctx.beginPath();
@@ -641,6 +792,12 @@
           ctx.arc(px, py, 6 + i * 2, 0, Math.PI * 2);
           ctx.fill();
         }
+        ctx.strokeStyle = `rgba(255, 229, 168, ${0.35 + fireT * 0.32})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(f.x, f.y - 8);
+        ctx.lineTo(mx + Math.cos(angle) * 18, my + Math.sin(angle) * 18);
+        ctx.stroke();
         ctx.restore();
       }
       if (f.type === 'trap' && fireT > 0) {
@@ -654,6 +811,10 @@
           ctx.lineTo(f.x + Math.cos(a) * (18 + (1 - fireT) * 10), f.y + Math.sin(a) * (18 + (1 - fireT) * 10));
           ctx.stroke();
         }
+        ctx.fillStyle = f.branch === 'frost' ? 'rgba(189, 238, 255, 0.18)' : 'rgba(255, 168, 96, 0.18)';
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.range * (0.55 + (1 - fireT) * 0.45), 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
       }
       if (f.type === 'barracks' && spawnT > 0) {
@@ -683,6 +844,12 @@
         ctx.arc(f.x - 6, f.y - 10 - rise * 0.7, 5, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(255, 236, 158, 0.60)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(f.x - 16, f.y - 18);
+        ctx.lineTo(f.x + 4 + Math.sin(this.time * 0.02) * 8, f.y - 30);
+        ctx.stroke();
         ctx.restore();
       }
       if (f.type === 'repair' && workT > 0) {
@@ -1202,6 +1369,43 @@
           ctx.arc(e.x, e.y, e.r + 6 + Math.sin(this.time * 0.012) * 2, 0, Math.PI * 2);
           ctx.stroke();
         }
+        if (e.raidTargetId) {
+          ctx.fillStyle = 'rgba(88, 43, 110, 0.78)';
+          rounded(ctx, e.x - 19, e.y - e.r - 27, 38, 14, 7);
+          ctx.fill();
+          ctx.fillStyle = '#fff0ff';
+          ctx.font = '800 9px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText('略奪', e.x, e.y - e.r - 17);
+          ctx.strokeStyle = `rgba(215, 190, 255, ${0.24 + Math.sin(this.time * 0.014 + e.animSeed) * 0.10})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, e.r + 10 + Math.sin(this.time * 0.01 + e.animSeed) * 3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (e.def.explode) {
+          const blink = 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(this.time * 0.030 + e.animSeed));
+          ctx.fillStyle = `rgba(255, 219, 107, ${blink})`;
+          ctx.beginPath();
+          ctx.arc(e.x + e.r * 0.62, e.y - e.r * 0.62, 4 + blink * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (e.def.armor) {
+          ctx.strokeStyle = `rgba(220, 229, 255, ${0.18 + hitT * 0.42})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, e.r + 7, Math.PI * 1.08, Math.PI * 1.92);
+          ctx.stroke();
+        }
+        if (e.slow > 0) {
+          for (let i = 0; i < 4; i += 1) {
+            const a = this.time * 0.006 + e.animSeed + i * Math.PI * 0.5;
+            ctx.fillStyle = 'rgba(189,238,255,0.35)';
+            ctx.beginPath();
+            ctx.arc(e.x + Math.cos(a) * (e.r + 7), e.y + Math.sin(a) * (e.r + 4), 2.4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
         this.drawBar(ctx, e.x - e.r, e.y - e.r - 9, e.r * 2, 4, e.hp / e.maxHp, '#73e184');
       }
     }
@@ -1310,6 +1514,36 @@
         const scale = 0.75 + alpha * 0.35;
         this.drawAssetAnimated(ctx, d.assetKey, d.x, d.y + (1 - alpha) * 18, d.size * scale, d.size * scale, { alpha: alpha * 0.85, rotation: (1 - alpha) * d.spin, scaleY: 0.86 + alpha * 0.14 });
       }
+      for (const p of this.motionParticles || []) {
+        const t = clamp(1 - p.life / p.max, 0, 1);
+        const alpha = clamp(p.life / p.max, 0, 1);
+        if (p.kind === 'stream') {
+          const tt = clamp((t * p.max - (p.delay || 0)) / Math.max(1, p.max - (p.delay || 0)), 0, 1);
+          const cx = (p.fromX + p.toX) / 2;
+          const cy = (p.fromY + p.toY) / 2 + (p.arc || -18) + Math.sin((p.seed || 0) + tt * Math.PI) * 8;
+          const x = (1 - tt) * (1 - tt) * p.fromX + 2 * (1 - tt) * tt * cx + tt * tt * p.toX;
+          const y = (1 - tt) * (1 - tt) * p.fromY + 2 * (1 - tt) * tt * cy + tt * tt * p.toY;
+          ctx.globalAlpha = alpha * 0.85;
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x - (p.toX - p.fromX) * 0.035, y - (p.toY - p.fromY) * 0.035);
+          ctx.stroke();
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(x, y, p.r || 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        } else if (p.kind === 'spark') {
+          ctx.globalAlpha = alpha * 0.9;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, (p.r || 2) * (0.6 + alpha * 0.6), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
       for (const s of this.spriteEffects || []) {
         const alpha = clamp(s.life / s.max, 0, 1);
         const frameKey = this.effectFrameKey(s.type, s.life, s.max);
@@ -1320,6 +1554,16 @@
           this.drawAssetAnimated(ctx, frameKey, s.x, s.y, s.size * growth, s.size * growth, { rotation: wobble });
           ctx.globalAlpha = 1;
         }
+      }
+      for (const r of this.impactRings || []) {
+        const t = clamp(r.life / r.max, 0, 1);
+        ctx.globalAlpha = t * 0.65;
+        ctx.strokeStyle = r.color;
+        ctx.lineWidth = Math.max(1, r.width * t);
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius * (0.35 + (1 - t) * 0.75), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
       }
       for (const b of this.bursts) {
         ctx.globalAlpha = Math.max(0, b.life / b.max);
@@ -1367,13 +1611,22 @@
     drawOffscreenMarkers(ctx) {
       const items = [];
       if (this.castle) items.push({ x: this.castle.x, y: this.castle.y, label: '城', color: '#86e3a0', priority: 1 });
+      for (const d of (this.discoveries || [])) {
+        const far = distXY(this.king.x, this.king.y, d.x, d.y) > 210;
+        if (!d.discovered && far) items.push({ x: d.x, y: d.y, label: '?', color: '#fff0bb', priority: 2 });
+        else if (d.discovered && this.isRaidableDiscovery && this.isRaidableDiscovery(d) && far) {
+          const underRaid = (d.siteUnderRaid || 0) > 0;
+          const damaged = (d.siteHp || 0) < (d.siteMaxHp || 1) * 0.55;
+          if (underRaid || damaged) items.push({ x: d.x, y: d.y, label: underRaid ? '襲撃' : this.discoverySiteLabel(d), color: underRaid ? '#ff6b5e' : '#ffd35b', priority: underRaid ? 0 : 2 });
+        }
+      }
       const visibleEnemies = (this.enemies || []).filter((e) => e.hp > 0).slice(0, 24);
       for (const e of visibleEnemies) {
         const screen = this.worldToScreen(e.x, e.y);
         const offscreen = screen.x < -20 || screen.x > C.w + 20 || screen.y < -20 || screen.y > C.h + 20;
-        if (offscreen || e.def.boss) items.push({ x: e.x, y: e.y, label: e.def.boss ? 'ボス' : '敵', color: e.def.boss ? '#ffd35b' : '#ff6b5e', priority: e.def.boss ? 0 : 3 });
+        if (offscreen || e.def.boss || e.raidTargetId) items.push({ x: e.x, y: e.y, label: e.def.boss ? 'ボス' : e.raidTargetId ? '略奪' : '敵', color: e.def.boss ? '#ffd35b' : e.raidTargetId ? '#d7beff' : '#ff6b5e', priority: e.def.boss ? 0 : e.raidTargetId ? 1 : 3 });
       }
-      const activePads = (this.pads || []).filter((p) => !p.facilityId && this.isPadUnlocked(p)).slice(0, 16);
+      const activePads = (this.pads || []).filter((p) => (!this.isPadVisible || this.isPadVisible(p)) && !p.facilityId && this.isPadUnlocked(p)).slice(0, 16);
       for (const p of activePads) {
         const d = distXY(this.king.x, this.king.y, p.x, p.y);
         if (d > 300) items.push({ x: p.x, y: p.y, label: C.facilityTypes[p.type] ? C.facilityTypes[p.type].name : '床', color: '#ffd35b', priority: 4 });
@@ -1479,6 +1732,19 @@
         for (let i = 1; i < path.length; i += 1) ctx.lineTo(mx(path[i].x), my(path[i].y));
         ctx.stroke();
       }
+      const sitesForTrails = (this.discoveries || []).filter((d) => d.discovered && this.isRaidableDiscovery && this.isRaidableDiscovery(d));
+      if (sitesForTrails.length && this.raidTrailPathForSite) {
+        ctx.strokeStyle = 'rgba(210, 150, 88, 0.64)';
+        ctx.lineWidth = expanded ? 2 : 1;
+        for (const site of sitesForTrails) {
+          const path = this.raidTrailPathForSite(site, site.x > this.castle.x ? 'side' : 'main');
+          if (!path || path.length < 2) continue;
+          ctx.beginPath();
+          ctx.moveTo(mx(path[0].x), my(path[0].y));
+          for (let i = 1; i < path.length; i += 1) ctx.lineTo(mx(path[i].x), my(path[i].y));
+          ctx.stroke();
+        }
+      }
 
       const cam = this.camera || { x: 0, y: 0 };
       ctx.fillStyle = 'rgba(255, 255, 255, 0.10)';
@@ -1489,12 +1755,34 @@
 
       if (expanded && this.pads) {
         for (const p of this.pads) {
+          if (this.isPadVisible && !this.isPadVisible(p)) continue;
           const built = p.facilityId;
           const unlocked = !this.isPadUnlocked || this.isPadUnlocked(p);
           ctx.fillStyle = built ? '#9ee1bb' : unlocked ? '#ffd35b' : 'rgba(200, 200, 200, 0.45)';
           ctx.beginPath();
           ctx.arc(mx(p.x), my(p.y), built ? 3.2 : 2.6, 0, Math.PI * 2);
           ctx.fill();
+        }
+      }
+
+      if (this.discoveries) {
+        for (const d of this.discoveries) {
+          const raidable = this.isRaidableDiscovery && this.isRaidableDiscovery(d);
+          const underRaid = raidable && (d.siteUnderRaid || 0) > 0;
+          const damaged = raidable && (d.siteHp || 0) < (d.siteMaxHp || 1) * 0.55;
+          ctx.fillStyle = underRaid ? '#ff6b5e' : damaged ? '#ffd35b' : d.discovered ? '#fff3a3' : '#fff0bb';
+          ctx.strokeStyle = underRaid ? 'rgba(255,255,255,0.90)' : d.discovered ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)';
+          ctx.lineWidth = expanded ? 1.5 : 1;
+          ctx.beginPath();
+          ctx.arc(mx(d.x), my(d.y), underRaid ? (expanded ? 5.6 : 4) : d.discovered ? (expanded ? 4 : 2.8) : (expanded ? 4.6 : 3.2), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          if (expanded && !d.discovered) {
+            ctx.fillStyle = '#1a1a16';
+            ctx.font = '900 8px system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText('?', mx(d.x), my(d.y) + 3);
+          }
         }
       }
 
@@ -1509,11 +1797,30 @@
       }
 
       if (this.enemies) {
-        ctx.fillStyle = '#ff6b5e';
+        if (expanded) {
+          ctx.lineWidth = 1.2;
+          for (const e of this.enemies.slice(0, 50)) {
+            if (e.hp <= 0) continue;
+            let tx = this.castle ? this.castle.x : null;
+            let ty = this.castle ? this.castle.y : null;
+            if (e.raidTargetId) {
+              const target = (this.discoveries || []).find((d) => d.id === e.raidTargetId);
+              if (target) { tx = target.x; ty = target.y; }
+            }
+            if (tx != null) {
+              ctx.strokeStyle = e.raidTargetId ? 'rgba(215,190,255,0.34)' : 'rgba(255,107,94,0.18)';
+              ctx.beginPath();
+              ctx.moveTo(mx(e.x), my(e.y));
+              ctx.lineTo(mx(tx), my(ty));
+              ctx.stroke();
+            }
+          }
+        }
         for (const e of this.enemies.slice(0, expanded ? 120 : 70)) {
           if (e.hp <= 0) continue;
+          ctx.fillStyle = e.def && e.def.boss ? '#ffd35b' : e.raidTargetId ? '#d7beff' : '#ff6b5e';
           ctx.beginPath();
-          ctx.arc(mx(e.x), my(e.y), e.def && e.def.boss ? (expanded ? 5 : 3.4) : (expanded ? 3.2 : 2.1), 0, Math.PI * 2);
+          ctx.arc(mx(e.x), my(e.y), e.def && e.def.boss ? (expanded ? 5 : 3.4) : e.raidTargetId ? (expanded ? 3.8 : 2.8) : (expanded ? 3.2 : 2.1), 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -1540,8 +1847,198 @@
       ctx.fillStyle = 'rgba(255, 244, 214, 0.88)';
       ctx.font = expanded ? '800 12px system-ui' : '800 9px system-ui';
       ctx.textAlign = 'left';
-      const legend = expanded ? '青:王  緑:城/施設  赤:敵  黄:建設床' : '青:王  赤:敵  緑:城';
+      const legend = expanded ? '青:王  緑:城/施設  赤:敵/襲撃  黄:床/損傷' : '青:王 赤:敵 黄:拠点';
       ctx.fillText(legend, x + 9, y + mapH - (expanded ? 8 : 9));
+      ctx.restore();
+    }
+
+
+    nearestBuildPad(maxDistance = 64) {
+      let best = null;
+      let bestD = maxDistance;
+      for (const pad of this.pads || []) {
+        if (this.isPadVisible && !this.isPadVisible(pad)) continue;
+        const d = distXY(this.king.x, this.king.y, pad.x, pad.y);
+        if (d < bestD) { best = pad; bestD = d; }
+      }
+      return best;
+    }
+
+    facilityMeta(type) {
+      const ui = C.facilityUi || {};
+      return ui[type] || { category: 'defense', icon: (C.facilityTypes[type] && C.facilityTypes[type].name || '?').slice(0, 1), short: '防衛施設', timing: '道・敵・所持金を見て配置を決める。' };
+    }
+
+    facilityCategory(type) {
+      return this.facilityMeta(type).category || 'defense';
+    }
+
+    facilityCategoryColor(type) {
+      const category = this.facilityCategory(type);
+      return (C.categoryColors && C.categoryColors[category]) || '#ffd35b';
+    }
+
+    facilityCategoryLabel(type) {
+      const category = this.facilityCategory(type);
+      return (C.categoryLabels && C.categoryLabels[category]) || '施設';
+    }
+
+    facilityIcon(type) {
+      return this.facilityMeta(type).icon || '?';
+    }
+
+    facilityShortText(type) {
+      return this.facilityMeta(type).short || this.facilityRoleText(type);
+    }
+
+    facilityTimingText(type) {
+      return this.facilityMeta(type).timing || this.facilityRoleText(type);
+    }
+
+    facilityRoleText(type) {
+      return this.facilityShortText(type);
+    }
+
+    drawBuildInfoPanel(ctx) {
+      if (this.minimapExpanded) return;
+      const pad = this.nearestBuildPad ? this.nearestBuildPad(this.isMobileView && this.isMobileView() ? 96 : 72) : null;
+      if (!pad) return;
+      const def = C.facilityTypes[pad.type];
+      if (!def) return;
+      const existing = pad.facilityId ? this.facilities.find((f) => f.id === pad.facilityId) : null;
+      const locked = !this.isPadUnlocked || !this.isPadUnlocked(pad);
+      const compact = this.isMobileView && this.isMobileView();
+      const w = compact ? 344 : 302;
+      const h = compact ? 154 : 134;
+      const x = compact ? 12 : C.w - w - 14;
+      const y = compact ? 536 : C.h - h - 18;
+      const categoryColor = this.facilityCategoryColor(pad.type);
+      const categoryLabel = this.facilityCategoryLabel(pad.type);
+      const icon = this.facilityIcon(pad.type);
+      ctx.save();
+      ctx.fillStyle = 'rgba(8, 14, 13, 0.91)';
+      rounded(ctx, x, y, w, h, 18);
+      ctx.fill();
+      ctx.strokeStyle = locked ? 'rgba(220,220,220,0.36)' : categoryColor;
+      ctx.lineWidth = 2.5;
+      rounded(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 18);
+      ctx.stroke();
+
+      ctx.fillStyle = categoryColor;
+      rounded(ctx, x + 14, y + 14, compact ? 54 : 46, compact ? 54 : 46, 14);
+      ctx.fill();
+      ctx.fillStyle = '#1a1810';
+      ctx.font = compact ? '900 24px system-ui' : '900 20px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(icon, x + (compact ? 41 : 37), y + (compact ? 49 : 43));
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = locked ? '#d7d7d7' : '#ffd35b';
+      ctx.font = compact ? '900 22px system-ui' : '900 18px system-ui';
+      const title = existing ? `${def.name} Lv.${existing.level}` : def.name;
+      ctx.fillText(title, x + (compact ? 78 : 70), y + (compact ? 31 : 28));
+      ctx.fillStyle = categoryColor;
+      ctx.font = compact ? '900 13px system-ui' : '800 12px system-ui';
+      ctx.fillText(`${categoryLabel} / ${this.facilityShortText(pad.type)}`, x + (compact ? 78 : 70), y + (compact ? 54 : 49));
+
+      ctx.fillStyle = '#fff0bb';
+      ctx.font = compact ? '900 18px system-ui' : '800 15px system-ui';
+      const need = existing ? (existing.level >= 3 ? 0 : this.getUpgradeNeed(existing)) : def.cost;
+      const current = existing ? pad.upgradeInvested : pad.invested;
+      const costText = locked ? `領土${pad.territory}が必要` : existing && existing.level >= 3 ? '最大Lv' : `残り ${Math.max(0, Math.ceil(need - current))} コイン`;
+      ctx.fillText(costText, x + 16, y + (compact ? 82 : 72));
+      ctx.fillStyle = '#d6f2a3';
+      ctx.font = compact ? '800 13px system-ui' : '800 12px system-ui';
+      const timing = this.facilityTimingText(pad.type);
+      ctx.fillText(timing.slice(0, compact ? 28 : 34), x + 16, y + (compact ? 108 : 94));
+      if (this.padStrategicAdvice && !locked && !existing) {
+        const advice = this.padStrategicAdvice(pad);
+        if (advice) {
+          ctx.fillStyle = '#fff3a3';
+          ctx.font = compact ? '900 14px system-ui' : '900 12px system-ui';
+          ctx.fillText(`判断: ${advice}`.slice(0, compact ? 30 : 38), x + 16, y + (compact ? 130 : 114));
+        }
+      }
+      if (!locked && !(existing && existing.level >= 3)) {
+        const holdNeed = C.buildHoldTime || 620;
+        const holdProgress = Math.max(0, Math.min(1, (pad.holdTime || 0) / holdNeed));
+        ctx.fillStyle = 'rgba(255,255,255,0.10)';
+        rounded(ctx, x + w - 88, y + 72, 70, 38, 12);
+        ctx.fill();
+        ctx.fillStyle = holdProgress >= 1 ? '#9ee1bb' : '#ffd35b';
+        ctx.font = '900 13px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText(holdProgress >= 1 ? '投資中' : '滞在で投資', x + w - 53, y + 92);
+        ctx.fillStyle = 'rgba(255, 211, 91, 0.32)';
+        rounded(ctx, x + w - 78, y + 99, 50 * holdProgress, 7, 4);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    drawDiscoveryToast(ctx) {
+      const toast = this.discoveryToast;
+      if (!toast || toast.life <= 0) return;
+      const alpha = Math.min(1, toast.life / 360, (toast.max - toast.life) / 220 + 0.15);
+      const compact = this.isMobileView && this.isMobileView();
+      const w = compact ? 356 : 330;
+      const h = compact ? 122 : 116;
+      const x = Math.round((C.w - w) / 2);
+      const y = compact ? 134 : 108;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.fillStyle = 'rgba(10, 16, 15, 0.88)';
+      rounded(ctx, x, y, w, h, 20);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 211, 91, 0.78)';
+      ctx.lineWidth = 2;
+      rounded(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 20);
+      ctx.stroke();
+      ctx.fillStyle = '#ffd35b';
+      ctx.font = compact ? '900 22px system-ui' : '900 20px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(toast.title, C.w / 2, y + 32);
+      ctx.fillStyle = '#fff0bb';
+      ctx.font = compact ? '900 16px system-ui' : '800 14px system-ui';
+      const lines = toast.lines || [];
+      for (let i = 0; i < Math.min(3, lines.length); i += 1) ctx.fillText(lines[i], C.w / 2, y + 58 + i * 20);
+      if (toast.note && lines.length < 3) {
+        ctx.fillStyle = '#d6f2a3';
+        ctx.font = compact ? '800 13px system-ui' : '800 12px system-ui';
+        ctx.fillText(toast.note.slice(0, 24), C.w / 2, y + 104);
+      }
+      ctx.restore();
+    }
+
+
+    drawStrategicHint(ctx) {
+      if (this.minimapExpanded) return;
+      if (this.status !== 'playing') return;
+      const compact = this.isMobileView && this.isMobileView();
+      const elapsed = this.time || 0;
+      let text = '';
+      if (elapsed < 9000 && !(this.facilities || []).length) text = (this.stageGoal && this.stageGoal().opening) || 'まず近くの床へ。弓塔・柵・金鉱のどれを先に作るかが最初の判断です。';
+      else if (elapsed < 17000 && (this.facilities || []).length < 2) text = '建設床は0.6秒滞在で投資。通過だけではコインを使いません。';
+      else if (this.enemyIntentSummary) text = this.enemyIntentSummary();
+      else return;
+      const w = compact ? 356 : 360;
+      const h = compact ? 52 : 44;
+      const x = Math.round((C.w - w) / 2);
+      const y = compact ? C.h - 104 : 94;
+      ctx.save();
+      ctx.globalAlpha = compact ? 0.92 : 0.82;
+      ctx.fillStyle = 'rgba(8, 14, 13, 0.86)';
+      rounded(ctx, x, y, w, h, 16);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 211, 91, 0.42)';
+      ctx.lineWidth = 1.5;
+      rounded(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 16);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff0bb';
+      ctx.font = compact ? '900 14px system-ui' : '800 13px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(text.slice(0, compact ? 28 : 38), C.w / 2, y + (compact ? 31 : 27));
       ctx.restore();
     }
 

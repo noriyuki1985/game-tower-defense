@@ -12,8 +12,8 @@
     payRate: 98,
     buildHoldTime: 620,
     maxCoinsOnGround: 95,
-    saveKey: 'game-tower-defense-v250-save',
-    audioKey: 'game-tower-defense-v250-audio',
+    saveKey: 'game-tower-defense-v286-save',
+    audioKey: 'game-tower-defense-v286-audio',
     path: [
       { x: 24, y: 762 },
       { x: 66, y: 704 },
@@ -219,6 +219,38 @@
   };
 
 
+  C.stageGoals = {
+    meadow: {
+      title: '基礎防衛',
+      intro: '草原は基本ステージ。まず城に近い道を弓塔・柵で固め、余裕が出たら金鉱や村を発見する。',
+      opening: '弓塔・柵・金鉱の3択で迷うのが最初の判断。敵が多い道に火力、金が足りない時は経済。',
+      winTip: '次は、城周辺を固めすぎず外側の開拓も試す。',
+      loseTip: '城近くの足止めが薄い可能性が高い。柵や壁で敵を止めて、弓塔で削る。'
+    },
+    river: {
+      title: '分岐対応',
+      intro: '川辺は左右の道が分かれる。王をどちらへ走らせるか、拠点を守るか城を守るかを早めに決める。',
+      opening: '左右どちらかを過剰防衛しすぎない。橋周辺の修理・壁が中盤で効く。',
+      winTip: '敵の多い側だけでなく、略奪隊が来る側にも最低限の防衛線を置く。',
+      loseTip: '二方向対応が遅れている。片側は施設で自動防衛、もう片側は王で補助する。'
+    },
+    pass: {
+      title: '長期防衛',
+      intro: '峠は長期戦。壁・大砲・修理小屋の組み合わせで防衛線を維持する。',
+      opening: '序盤に経済へ寄せすぎると硬い敵に押し切られる。防衛線を作ってから開拓する。',
+      winTip: '終盤は大砲と修理小屋の位置が勝敗を分ける。',
+      loseTip: '硬い敵と破城槌への対策不足。壁・大砲・修理小屋を同じ前線に集める。'
+    }
+  };
+
+  C.balance = {
+    waveRest: 4300,
+    firstWaveRest: 1100,
+    raidSuppression: 0.88,
+    recommendationRadius: 118
+  };
+
+
   C.stageThemes = {
     meadow: {
       name: '草原', rule: '標準地形。建設床が素直で、基本戦略を試しやすい。',
@@ -301,6 +333,102 @@
   };
 
 
+  C.discoveryRevealRadius = 76;
+  C.discoveryPoints = {
+    meadow: [
+      { id: 'meadow_cache', name: '古い物資庫', kind: 'cache', x: 392, y: 164, rewardCoins: 45, note: '前線用の資材を発見。コインを獲得。' },
+      { id: 'meadow_mine', name: '隠れ金鉱', kind: 'resource', x: 426, y: 704, rewardCoins: 25, note: '周辺の金鉱建設床が使える。' },
+      { id: 'meadow_hamlet', name: '小さな集落', kind: 'village', x: 62, y: 714, rewardPop: 3, note: '人口上限が増え、村の建設床が使える。' },
+      { id: 'meadow_watch', name: '古い見張り台', kind: 'outpost', x: 430, y: 330, rewardCoins: 20, note: '外縁の前哨建設床が使える。' }
+    ],
+    river: [
+      { id: 'river_cache', name: '川辺の物資庫', kind: 'cache', x: 72, y: 676, rewardCoins: 40, note: '川沿いの隠し資材を発見。' },
+      { id: 'river_bridgepost', name: '橋の前哨跡', kind: 'outpost', x: 246, y: 478, rewardCoins: 20, note: '橋周辺の修理・防衛床が使える。' },
+      { id: 'river_market', name: '川商人の市', kind: 'market', x: 430, y: 704, rewardCoins: 30, economyBonus: 0.04, note: '経済効率が少し上がる。' },
+      { id: 'river_shrine', name: '水辺の祠', kind: 'shrine', x: 370, y: 220, rewardPop: 2, note: '人口上限が少し増える。' }
+    ],
+    pass: [
+      { id: 'pass_cache', name: '山道の兵站庫', kind: 'cache', x: 96, y: 702, rewardCoins: 50, note: '峠の物資を発見。' },
+      { id: 'pass_bastion', name: '崩れた砦', kind: 'outpost', x: 260, y: 408, rewardCoins: 25, note: '峠中央の大砲床が使える。' },
+      { id: 'pass_repaircamp', name: '整備小屋跡', kind: 'repair', x: 124, y: 522, rewardPop: 2, note: '修理拠点の建設床が使える。' },
+      { id: 'pass_signal', name: '狼煙の高台', kind: 'beacon', x: 332, y: 540, rewardCoins: 25, note: '軍旗・狼煙台の建設床が使える。' }
+    ]
+  };
+
+  C.discoveryPads = {
+    meadow: [
+      { id: 'dm1', type: 'mine', x: 432, y: 704, territory: 1, requiresDiscovery: 'meadow_mine' },
+      { id: 'dm2', type: 'market', x: 388, y: 742, territory: 1, requiresDiscovery: 'meadow_mine' },
+      { id: 'dm3', type: 'village', x: 62, y: 720, territory: 1, requiresDiscovery: 'meadow_hamlet' },
+      { id: 'dm4', type: 'outpost', x: 432, y: 332, territory: 1, requiresDiscovery: 'meadow_watch' }
+    ],
+    river: [
+      { id: 'dr1', type: 'repair', x: 246, y: 478, territory: 1, requiresDiscovery: 'river_bridgepost' },
+      { id: 'dr2', type: 'wall', x: 350, y: 356, territory: 1, requiresDiscovery: 'river_bridgepost' },
+      { id: 'dr3', type: 'market', x: 430, y: 705, territory: 1, requiresDiscovery: 'river_market' },
+      { id: 'dr4', type: 'beacon', x: 370, y: 220, territory: 1, requiresDiscovery: 'river_shrine' }
+    ],
+    pass: [
+      { id: 'dp1', type: 'cannon', x: 260, y: 408, territory: 1, requiresDiscovery: 'pass_bastion' },
+      { id: 'dp2', type: 'wall', x: 205, y: 337, territory: 1, requiresDiscovery: 'pass_bastion' },
+      { id: 'dp3', type: 'repair', x: 123, y: 522, territory: 1, requiresDiscovery: 'pass_repaircamp' },
+      { id: 'dp4', type: 'banner', x: 332, y: 540, territory: 1, requiresDiscovery: 'pass_signal' }
+    ]
+  };
+
+  for (const key of Object.keys(C.stagePadLayouts)) {
+    C.stagePadLayouts[key] = C.stagePadLayouts[key].concat(C.discoveryPads[key] || []);
+  }
+
+
+
+
+  C.facilityUi = {
+    palisade: { category: 'defense', icon: '柵', short: '安い足止め', timing: '序盤の道止め。弓塔の前に置くと強い。' },
+    wall: { category: 'defense', icon: '壁', short: '高耐久の防衛線', timing: '敵が漏れる道や終盤の前線維持に使う。' },
+    archer: { category: 'attack', icon: '弓', short: '安定遠距離火力', timing: '最初の火力。道を長く撃てる場所が強い。' },
+    cannon: { category: 'attack', icon: '砲', short: '範囲火力', timing: '群れが増える中盤から価値が上がる。' },
+    barracks: { category: 'support', icon: '兵', short: '兵士で足止め', timing: '壁だけで止まらない時に道の脇へ置く。' },
+    mine: { category: 'economy', icon: '金', short: '定期収入', timing: '早いほど得。ただし防衛が薄いと損をする。' },
+    repair: { category: 'support', icon: '修', short: '周辺施設を修理', timing: '壁・砲台が集中する防衛線の後ろへ。' },
+    trap: { category: 'defense', icon: '罠', short: '一撃と鈍足', timing: '敵が密集して通る細い道に置く。' },
+    banner: { category: 'support', icon: '旗', short: '兵士強化', timing: '兵舎を複数使う時に価値が高い。' },
+    beacon: { category: 'support', icon: '火', short: '索敵支援', timing: '広いマップで反応範囲を広げたい時。' },
+    village: { category: 'economy', icon: '村', short: '人口上限と小収入', timing: '兵舎を使う前にあると兵力が伸びる。' },
+    market: { category: 'economy', icon: '市', short: '収入効率を強化', timing: 'コイン回収が安定してから建てる。' },
+    outpost: { category: 'support', icon: '前', short: '領土拡大', timing: '外側の建設床を使いたい時に優先。' },
+    training: { category: 'support', icon: '訓', short: '兵士全体を強化', timing: '兵舎中心のビルドで中盤以降に強い。' },
+    keep: { category: 'defense', icon: '砦', short: '城と王を強化', timing: '城HPが削られる展開の保険。' }
+  };
+
+  C.categoryColors = {
+    attack: '#ffb25c',
+    defense: '#ff6b5e',
+    economy: '#ffd35b',
+    support: '#9ee1bb'
+  };
+
+  C.categoryLabels = {
+    attack: '攻撃',
+    defense: '防衛',
+    economy: '経済',
+    support: '支援'
+  };
+
+  // v2.8.5 balance pass: keep several viable plans alive instead of making one best opening obvious.
+  Object.assign(C.facilityTypes.palisade, { cost: 42, hp: 350 });
+  Object.assign(C.facilityTypes.wall, { cost: 92, hp: 560 });
+  Object.assign(C.facilityTypes.archer, { cost: 82, cooldown: 570, damage: 17 });
+  Object.assign(C.facilityTypes.cannon, { cost: 158, cooldown: 1280, damage: 42, splash: 62 });
+  Object.assign(C.facilityTypes.mine, { cost: 128, incomeTime: 4100, income: 12 });
+  Object.assign(C.facilityTypes.repair, { cost: 88, range: 132, repairRate: 13 });
+  Object.assign(C.facilityTypes.trap, { cost: 56, cooldown: 980, damage: 44 });
+  Object.assign(C.facilityTypes.barracks, { cost: 106, spawnTime: 3800 });
+  Object.assign(C.facilityTypes.village, { cost: 82, popBonus: 4, income: 7 });
+  Object.assign(C.facilityTypes.market, { cost: 116, incomeTime: 5200, income: 8, economyBonus: 0.10 });
+  Object.assign(C.facilityTypes.outpost, { cost: 122, hp: 260 });
+  Object.assign(C.facilityTypes.keep, { cost: 164, castleHpBonus: 70 });
+
   C.worldScaleX = 2;
   C.worldScaleY = 2;
   C.world = {
@@ -339,6 +467,9 @@
     if (seenPadArrays.has(pads)) continue;
     seenPadArrays.add(pads);
     scalePadArrayForWorld(pads);
+  }
+  for (const list of Object.values(C.discoveryPoints || {})) {
+    scalePointArrayForWorld(list);
   }
 
 

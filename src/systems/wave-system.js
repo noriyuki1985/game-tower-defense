@@ -28,6 +28,14 @@
       if (i >= 5) waves[i].groups.push({ type: 'siege', count: 1 + Math.floor(i / 3), gap: 1150, route: i % 2 ? 'side' : 'main' });
     }
   }
+  for (let i = 0; i < waves.length; i += 1) {
+    if (i >= 2) {
+      waves[i].note = `${waves[i].note || ''} 一部の敵は発見済みの資源地や前哨拠点を狙う。`;
+    }
+    if (i === 3) waves[i].groups.push({ type: 'runner', count: 3, gap: 520, route: 'side', raid: true });
+    if (i === 5) waves[i].groups.push({ type: 'saboteur', count: 2, gap: 760, route: 'main', raid: true });
+    if (i >= 6 && i % 2 === 0) waves[i].groups.push({ type: 'runner', count: 3 + Math.floor(i / 2), gap: 430, route: i % 3 ? 'side' : 'main', raid: true });
+  }
   return waves;
 },
 
@@ -57,7 +65,7 @@
   this.wave.timer -= dt;
   if (this.wave.timer <= 0 && group) {
     if (this.wave.spawnedInGroup === 0) this.warnGroup(group);
-    this.spawnEnemy(group.type, group.route || 'main');
+    this.spawnEnemy(group.type, group.route || 'main', !!group.raid);
     this.wave.spawnedInGroup += 1;
     this.wave.timer = group.gap;
     if (this.wave.spawnedInGroup >= group.count) {
@@ -68,7 +76,7 @@
   }
   if (this.wave.groupIndex >= waveDef.groups.length && this.enemies.length === 0) {
     this.wave.active = false;
-    this.wave.rest = 3900;
+    this.wave.rest = (C.balance && C.balance.waveRest) || 4300;
     const bonus = Math.round((30 + this.wave.index * 14) * this.kingdom.economyBonus);
     this.king.coins += bonus;
     this.addFloater(`ウェーブ突破 +${bonus}`, C.w / 2, 170, '#f5d56b');
@@ -79,6 +87,11 @@
 
     warnGroup(group) {
   const def = C.enemyTypes[group.type];
+  if (group.raid) {
+    this.routeAlert = { text: '略奪隊が接近', life: 1900, route: group.route || 'main' };
+    this.message = '略奪隊は紫表示です。拠点を守るか、城防衛を優先するかを選んでください。';
+    return;
+  }
   if (def && def.boss) {
     this.routeAlert = { text: `${def.name}が接近`, life: 2300, route: group.route || 'main' };
     this.message = `${def.name}が接近。柵・壁・大砲を強化してください。`;
@@ -117,7 +130,7 @@
   return route === 'side' ? paths.side : paths.main;
 },
 
-    spawnEnemy(type, route = 'main') {
+    spawnEnemy(type, route = 'main', forceRaid = false) {
   const baseDef = C.enemyTypes[type];
   const hpMult = (this.currentStage.enemyHp || 1) * (this.currentDifficulty.enemyHp || 1);
   const damageMult = (this.currentStage.enemyDamage || 1) * (this.currentDifficulty.enemyDamage || 1);
@@ -131,11 +144,15 @@
     coin: Math.max(1, Math.round(baseDef.coin * (this.currentDifficulty.crownMult > 1 ? 1.08 : 1))),
     score: Math.round(baseDef.score * (this.currentDifficulty.scoreMult || 1))
   };
-  const path = this.routePath(route);
+  let path = this.routePath(route);
+  const raidTarget = this.chooseRaidTarget ? this.chooseRaidTarget(type, route, forceRaid) : null;
+  if (raidTarget && this.buildRaidPath) path = this.buildRaidPath(route, raidTarget);
   const s = path[0];
   const jitter = rand(-9, 9);
   this.enemies.push({
     id: cryptoRandom(), type, def, route,
+    raidTargetId: raidTarget ? raidTarget.id : null,
+    raidTargetName: raidTarget ? raidTarget.name : '',
     path,
     x: s.x + jitter, y: s.y + jitter,
     r: def.r, hp: def.hp, maxHp: def.hp,

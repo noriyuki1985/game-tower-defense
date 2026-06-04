@@ -152,7 +152,7 @@ canvas {
 }
 
 .overlay-card h2 { margin: 0 0 10px; }
-.overlay-card p { margin-bottom: 18px; }
+.overlay-card p { margin-bottom: 18px; white-space: pre-line; }
 
 @media (max-width: 860px) {
   .app {

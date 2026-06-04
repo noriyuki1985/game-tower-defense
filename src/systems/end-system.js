@@ -15,14 +15,14 @@
     this.startResultFx('lose');
     this.stopBgm();
     this.playSfx('defeat');
-    this.showOverlay('敗北', `城が落ちました。スコア: ${this.score}。獲得クラウン: ${reward}`, 'もう一度', 'lose');
+    this.showOverlay('敗北', this.resultText ? this.resultText(false, reward) : `城が落ちました。スコア: ${this.score}。獲得クラウン: ${reward}`, 'もう一度', 'lose');
   } else if (this.wave.done && this.enemies.length === 0) {
     const reward = this.finishRun(true);
     this.status = 'win';
     this.startResultFx('win');
     this.stopBgm();
     this.playSfx('victory');
-    this.showOverlay('勝利', `ステージクリア。スコア: ${this.score}。獲得クラウン: ${reward}`, 'もう一度', 'win');
+    this.showOverlay('勝利', this.resultText ? this.resultText(true, reward) : `ステージクリア。スコア: ${this.score}。獲得クラウン: ${reward}`, 'もう一度', 'win');
   }
 },
 

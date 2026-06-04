@@ -31,6 +31,8 @@
   let activePad = null;
   for (const pad of this.pads) {
     pad.pulse += dt;
+    if (pad.revealFlash) pad.revealFlash = Math.max(0, pad.revealFlash - dt);
+    if (this.isPadVisible && !this.isPadVisible(pad)) continue;
     if (distXY(this.king.x, this.king.y, pad.x, pad.y) < 34) {
       activePad = pad;
       break;
@@ -60,8 +62,9 @@
   }
   const def = C.facilityTypes[activePad.type];
   if (activePad.holdTime < holdNeed) {
+    if (this.time % 260 < dt && this.addSparkShower) this.addSparkShower(activePad.x, activePad.y - 8, '#fff0bb', 2, 24);
     const wait = Math.max(0, Math.ceil((holdNeed - activePad.holdTime) / 100) / 10);
-    this.message = `${def.name}: ${wait.toFixed(1)}秒その場にいると投資開始。通過するだけならコインは使いません。`;
+    this.message = `${def.name}: ${wait.toFixed(1)}秒滞在で投資開始。${this.facilityShortText ? this.facilityShortText(activePad.type) : ''}`;
     return;
   }
   const existing = activePad.facilityId ? this.facilities.find((f) => f.id === activePad.facilityId) : null;
@@ -118,6 +121,8 @@
   pad.upgradeInvested = 0;
   f.buildFlash = 760;
   this.addBurst(f.x, f.y, def.accent, 28, 'upgrade');
+  if (this.addAuraRipple) this.addAuraRipple(f.x, f.y, def.accent, 92, 4, 680);
+  if (this.addSparkShower) this.addSparkShower(f.x, f.y - 20, '#fff3a3', 18, 88);
   this.addFloater(option.name, f.x, f.y - 46, '#fff3a3');
   this.message = `${def.name}を${option.name}に強化しました。`;
   this.playSfx('upgrade');
@@ -167,9 +172,10 @@
   if (this.time % 140 < 34) {
     this.addFloater('-コイン', pad.x, pad.y - 35, '#f7c95e');
     this.addSpriteEffect('coinPickup', pad.x, pad.y - 6, 34, 220);
+    if (this.addInvestStream) this.addInvestStream(this.king.x, this.king.y - 12, pad.x, pad.y - 6, '#ffd35b', 3);
     this.playSfx('pay', 120);
   }
-  this.message = `${C.facilityTypes[pad.type].name}へ投資中: ${Math.ceil(current + amount)}/${need}。離れると投資は止まります。`;
+  this.message = `${C.facilityTypes[pad.type].name}へ投資中: ${Math.ceil(current + amount)}/${need}。離れると止まり、通過だけでは消費しません。`;
   if (current + amount >= need - 0.001) onComplete();
 },
 
@@ -215,11 +221,13 @@
   this.facilities.push(f);
   pad.facilityId = f.id;
   pad.invested = def.cost;
-  this.addBurst(f.x, f.y, def.accent, 22, 'build');
-  this.addFloater('完成', f.x, f.y - 38, '#ffe087');
+  this.addBurst(f.x, f.y, def.accent, 30, 'build');
+  if (this.addAuraRipple) this.addAuraRipple(f.x, f.y, def.accent, 88, 4, 680);
+  if (this.addSparkShower) this.addSparkShower(f.x, f.y - 18, '#ffe087', 18, 92);
+  this.addFloater(`${def.name} 完成`, f.x, f.y - 42, '#ffe087');
   this.playSfx('build');
   if (f.development) this.applyDevelopmentEffect(f, 'build');
-  this.message = f.development ? `${def.name}が完成。王国が発展しました。` : `${def.name}が完成しました。`;
+  this.message = f.development ? `${def.name}が完成。開拓と経済が伸びました。` : `${def.name}が完成。${this.facilityTimingText ? this.facilityTimingText(f.type) : '防衛線を確認してください。'}`;
 },
 
     upgradeFacility(f, pad) {
@@ -236,9 +244,11 @@
   pad.upgradeInvested = 0;
   f.buildFlash = 760;
   this.addBurst(f.x, f.y, '#fff3a3', 24, 'upgrade');
+  if (this.addAuraRipple) this.addAuraRipple(f.x, f.y, '#fff3a3', 78, 4, 620);
+  if (this.addSparkShower) this.addSparkShower(f.x, f.y - 18, '#fff3a3', 14, 78);
   this.addFloater(`Lv.${f.level}`, f.x, f.y - 42, '#fff3a3');
   this.playSfx('upgrade');
-  this.message = `${def.name}をLv.${f.level}に強化しました。`;
+  this.message = `${def.name}をLv.${f.level}に強化。次の襲撃で役割が活きる場所を確認してください。`;
 },
 
     applyDevelopmentEffect(f, phase) {

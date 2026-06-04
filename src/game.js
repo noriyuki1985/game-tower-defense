@@ -82,11 +82,26 @@
       this.coins = [];
       this.floaters = [];
       this.bursts = [];
+      this.impactRings = [];
+      this.motionParticles = [];
       this.spriteEffects = [];
       this.deathSprites = [];
       this.facilities = [];
       this.soldiers = [];
-      this.pads = this.stagePads().map((p) => ({ ...p, invested: 0, upgradeInvested: 0, facilityId: null, pulse: rand(0, 1000), holdTime: 0 }));
+      this.discoveryToast = null;
+      this.discoveries = this.stageDiscoveries().map((d) => ({
+        ...d,
+        discovered: false,
+        pulse: rand(0, 1000),
+        flash: 0,
+        siteHp: this.discoverySiteMaxHp(d),
+        siteMaxHp: this.discoverySiteMaxHp(d),
+        siteUnderRaid: 0,
+        siteDisabled: false,
+        siteDisabledTimer: 0,
+        siteDamageNotice: 0
+      }));
+      this.pads = this.stagePads().map((p) => ({ ...p, invested: 0, upgradeInvested: 0, facilityId: null, pulse: rand(0, 1000), holdTime: 0, discovered: !p.requiresDiscovery }));
       this.waves = this.buildStageWaves();
       this.wave = { index: -1, groupIndex: 0, spawnedInGroup: 0, timer: 0, rest: 1800, active: false, done: false, banner: 0 };
       this.score = 0;
@@ -101,7 +116,7 @@
       this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
       this.minimapExpanded = false;
       this.updateCamera(true);
-      this.message = '王を動かし、コインを拾って建設床に投資してください。';
+      this.message = 'まず近くの弓塔・柵・金鉱を見比べ、0.6秒滞在して投資してください。';
       this.updateHud();
     }
 
@@ -115,6 +130,197 @@
 
     stagePads() {
       return C.stagePadLayouts[this.stageKey()] || C.pads;
+    }
+
+    stageDiscoveries() {
+      return (C.discoveryPoints && C.discoveryPoints[this.stageKey()]) || [];
+    }
+
+    isPadVisible(pad) {
+      return !pad || !pad.requiresDiscovery || !!pad.discovered;
+    }
+
+    discoveryCountText() {
+      const total = this.discoveries ? this.discoveries.length : 0;
+      if (!total) return '探索 0/0';
+      const found = this.discoveries.filter((d) => d.discovered).length;
+      return `探索 ${found}/${total}`;
+    }
+
+    discoverySiteMaxHp(d) {
+      const kind = typeof d === 'string' ? d : (d && d.kind);
+      return {
+        cache: 0,
+        resource: 135,
+        market: 145,
+        village: 165,
+        outpost: 210,
+        repair: 175,
+        beacon: 160,
+        shrine: 150
+      }[kind] || 140;
+    }
+
+    discoverySiteLabel(d) {
+      const kind = typeof d === 'string' ? d : (d && d.kind);
+      return {
+        cache: '物資',
+        resource: '金鉱',
+        market: '市場',
+        village: '村',
+        outpost: '前哨',
+        repair: '修理',
+        beacon: '狼煙',
+        shrine: '祠'
+      }[kind] || '拠点';
+    }
+
+    isRaidableDiscovery(d) {
+      return !!(d && d.discovered && d.kind !== 'cache' && d.siteMaxHp > 0);
+    }
+
+    activeDiscoverySites() {
+      return (this.discoveries || []).filter((d) => this.isRaidableDiscovery(d));
+    }
+
+
+    discoveryRewardLines(d, revealedPads) {
+      const lines = [];
+      if (d.rewardCoins) lines.push(`コイン +${d.rewardCoins}`);
+      if (d.rewardPop) lines.push(`人口上限 +${d.rewardPop}`);
+      if (d.economyBonus) lines.push(`収入効率 +${Math.round(d.economyBonus * 100)}%`);
+      if (revealedPads) lines.push(`建設床 +${revealedPads}`);
+      if (this.isRaidableDiscovery(d)) lines.push(`${this.discoverySiteLabel(d)}を確保`);
+      return lines;
+    }
+
+    showDiscoveryToast(d, lines) {
+      this.discoveryToast = {
+        title: `${d.name}を発見`,
+        note: d.note || '',
+        lines: lines && lines.length ? lines : ['周辺を開拓しました'],
+        life: 4200,
+        max: 4200
+      };
+    }
+
+    raidTrailPathForSite(site, route = 'main') {
+      const base = this.routePath(route) || [];
+      if (!site || !base.length) return [];
+      let nearest = base[0];
+      let nearestIndex = 0;
+      let best = Infinity;
+      for (let i = 0; i < base.length; i += 1) {
+        const d = distXY(site.x, site.y, base[i].x, base[i].y);
+        if (d < best) { best = d; nearest = base[i]; nearestIndex = i; }
+      }
+      const start = base[0];
+      const join = nearest;
+      const bend = {
+        x: Math.round(join.x * 0.70 + site.x * 0.30),
+        y: Math.round(join.y * 0.70 + site.y * 0.30)
+      };
+      return [start, ...base.slice(1, nearestIndex + 1), bend, { x: site.x, y: site.y }];
+    }
+
+    siteStatusText() {
+      const sites = this.activeDiscoverySites();
+      if (!sites.length) return '拠点 0';
+      const damaged = sites.filter((d) => (d.siteHp || 0) < (d.siteMaxHp || 1) * 0.55).length;
+      return damaged ? `拠点 ${sites.length} / 損傷${damaged}` : `拠点 ${sites.length}`;
+    }
+
+    updateDiscoverySites(dt) {
+      for (const d of (this.discoveries || [])) {
+        d.siteUnderRaid = Math.max(0, (d.siteUnderRaid || 0) - dt);
+        d.siteDamageNotice = Math.max(0, (d.siteDamageNotice || 0) - dt);
+        if (!this.isRaidableDiscovery(d)) continue;
+        if (d.siteDisabledTimer > 0) {
+          d.siteDisabledTimer = Math.max(0, d.siteDisabledTimer - dt);
+          if (d.siteDisabledTimer <= 0) {
+            d.siteDisabled = false;
+            d.siteHp = Math.max(d.siteHp || 0, Math.round((d.siteMaxHp || 120) * 0.45));
+            this.addFloater('復旧', d.x, d.y - 48, '#9ee1bb');
+          }
+        }
+        if (d.siteUnderRaid <= 0 && (d.siteHp || 0) < (d.siteMaxHp || 0)) {
+          const regen = (d.siteDisabled ? 3.5 : 7) * dt / 1000;
+          d.siteHp = Math.min(d.siteMaxHp, (d.siteHp || 0) + regen);
+        }
+      }
+    }
+
+    damageDiscoverySite(site, amount, enemy) {
+      if (!site || !this.isRaidableDiscovery(site)) return;
+      const before = site.siteHp || site.siteMaxHp || 1;
+      site.siteHp = Math.max(0, before - amount);
+      site.siteUnderRaid = 1800;
+      site.flash = Math.max(site.flash || 0, 700);
+      this.addBurst(site.x, site.y, '#ff8b5e', 10, 'warning');
+      this.playSfx('raidHit', 260);
+      if (site.siteDamageNotice <= 0) {
+        this.addFloater(`${this.discoverySiteLabel(site)}襲撃`, site.x, site.y - 42, '#ffb08a');
+        site.siteDamageNotice = 1800;
+      }
+      if (site.siteHp <= 0 && !site.siteDisabled) {
+        site.siteDisabled = true;
+        site.siteDisabledTimer = 12000;
+        const lost = Math.min(30, Math.floor(this.king.coins * 0.12));
+        this.king.coins = Math.max(0, this.king.coins - lost);
+        this.message = `${site.name}が襲撃され、一時停止しました。失ったコイン: ${lost}`;
+        this.addFloater(`-${lost}`, site.x, site.y - 60, '#ff6b5e');
+        this.shake = Math.max(this.shake, 110);
+      } else {
+        this.message = `${site.name}が襲撃されています。王や防衛施設で周辺を守ってください。`;
+      }
+    }
+
+    updateDiscoveries(dt) {
+      if (!this.discoveries || !this.discoveries.length) return;
+      const revealRadius = C.discoveryRevealRadius || 76;
+      for (const d of this.discoveries) {
+        d.pulse = (d.pulse || 0) + dt;
+        d.flash = Math.max(0, (d.flash || 0) - dt);
+        if (d.discovered) continue;
+        if (distXY(this.king.x, this.king.y, d.x, d.y) > revealRadius) continue;
+        d.discovered = true;
+        d.flash = 1200;
+        let rewardText = '';
+        if (d.rewardCoins) {
+          this.king.coins += d.rewardCoins;
+          rewardText += ` +${d.rewardCoins}コイン`;
+          this.addFloater(`+${d.rewardCoins}`, d.x, d.y - 34, '#ffd35b');
+        }
+        if (d.rewardPop) {
+          this.kingdom.popCap += d.rewardPop;
+          rewardText += ` 人口+${d.rewardPop}`;
+          this.addFloater(`人口+${d.rewardPop}`, d.x, d.y - 52, '#d6f2a3');
+        }
+        if (d.economyBonus) {
+          this.kingdom.economyBonus += d.economyBonus;
+          rewardText += ` 収入+${Math.round(d.economyBonus * 100)}%`;
+          this.addFloater(`収入+${Math.round(d.economyBonus * 100)}%`, d.x, d.y - 70, '#ffd35b');
+        }
+        let revealedPads = 0;
+        for (const pad of this.pads) {
+          if (pad.requiresDiscovery === d.id) {
+            pad.discovered = true;
+            pad.revealFlash = 1200;
+            revealedPads += 1;
+          }
+        }
+        if (revealedPads) rewardText += ` 建設床+${revealedPads}`;
+        if (this.isRaidableDiscovery(d)) {
+          d.siteHp = d.siteMaxHp;
+          d.siteDisabled = false;
+          rewardText += ` ${this.discoverySiteLabel(d)}確保`;
+        }
+        const rewardLines = this.discoveryRewardLines ? this.discoveryRewardLines(d, revealedPads) : [];
+        this.showDiscoveryToast(d, rewardLines);
+        this.addBurst(d.x, d.y, '#fff3a3', 24, 'upgrade');
+        this.message = `${d.name}を発見。${rewardLines.join(' / ') || rewardText || '周辺を開拓'}`;
+        this.playSfx('discovery', 180);
+      }
     }
 
     start() {
@@ -132,11 +338,11 @@
       this.startBgm();
       this.playSfx('start');
       this.speed = 1;
-      this.wave.rest = 800;
+      this.wave.rest = (C.balance && C.balance.firstWaveRest) || 1100;
       this.hideOverlay();
       this.hideUpgradeOverlay();
       this.closeMobileMenu();
-      this.message = '王だけが操作対象です。次の襲撃を見て、必要な床へ先回りしてください。';
+      this.message = '王だけが操作対象です。次の襲撃と床アイコンを見て、守るか開拓するか選んでください。';
       this.updateHud();
     }
 
@@ -420,28 +626,53 @@
 
     startBgm() {
       if (!this.audio.bgm || this.bgmNodes.length || !this.audioContext || !this.masterGain) return;
-      const now = this.audioContext.currentTime;
-      const gain = this.audioContext.createGain();
+      const ctx = this.audioContext;
+      const now = ctx.currentTime;
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(3600, now);
+      filter.Q.setValueAtTime(0.55, now);
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.055, now + 1.4);
-      gain.connect(this.masterGain);
-      const notes = [82.41, 123.47, 164.81];
-      this.bgmNodes = notes.map((freq, i) => {
-        const osc = this.audioContext.createOscillator();
-        osc.type = i === 0 ? 'sine' : 'triangle';
-        osc.frequency.value = freq;
-        const nodeGain = this.audioContext.createGain();
-        nodeGain.gain.value = i === 0 ? 0.62 : 0.22;
+      gain.gain.exponentialRampToValueAtTime(0.085, now + 1.2);
+      gain.connect(filter);
+      filter.connect(this.masterGain);
+      this.bgmGain = gain;
+      this.bgmFilter = filter;
+
+      const droneNotes = [73.42, 110.00, 146.83, 220.00];
+      this.bgmNodes = droneNotes.map((freq, i) => {
+        const osc = ctx.createOscillator();
+        const nodeGain = ctx.createGain();
+        osc.type = i === 0 ? 'sine' : i === 1 ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        nodeGain.gain.setValueAtTime(i < 2 ? 0.12 : 0.045, now);
         osc.connect(nodeGain);
         nodeGain.connect(gain);
-        osc.start(now + i * 0.05);
+        osc.start(now + i * 0.025);
         return { osc, nodeGain };
       });
-      this.bgmGain = gain;
+
+      this.bgmStep = 0;
+      this.bgmBar = 0;
+      this.bgmNextTick = now + 0.08;
+      this.scheduleBgmStep(this.bgmNextTick);
+      this.bgmTimer = setInterval(() => {
+        if (!this.audio.bgm || !this.audioContext || !this.bgmGain) return;
+        const lookAhead = this.audioContext.currentTime + 0.55;
+        while (this.bgmNextTick < lookAhead) {
+          this.bgmNextTick += 0.255;
+          this.bgmStep = (this.bgmStep + 1) % 16;
+          if (this.bgmStep === 0) this.bgmBar = (this.bgmBar + 1) % 4;
+          this.scheduleBgmStep(this.bgmNextTick);
+        }
+      }, 120);
     }
 
     stopBgm() {
       if (!this.audioContext) return;
+      if (this.bgmTimer) clearInterval(this.bgmTimer);
+      this.bgmTimer = null;
       const now = this.audioContext.currentTime;
       if (this.bgmGain) {
         this.bgmGain.gain.cancelScheduledValues(now);
@@ -452,6 +683,155 @@
       }
       this.bgmNodes = [];
       this.bgmGain = null;
+      this.bgmFilter = null;
+    }
+
+    playBgmToneAt(startTime, freq, duration, volume, type = 'triangle', endFreq = null, pan = 0) {
+      if (!this.audioContext || !this.bgmGain) return;
+      const ctx = this.audioContext;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+      osc.type = type;
+      osc.frequency.setValueAtTime(Math.max(20, freq), startTime);
+      if (endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), startTime + duration);
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), startTime + 0.010);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      osc.connect(gain);
+      if (panner) {
+        panner.pan.setValueAtTime(clamp(pan, -1, 1), startTime);
+        gain.connect(panner);
+        panner.connect(this.bgmGain);
+      } else {
+        gain.connect(this.bgmGain);
+      }
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.05);
+    }
+
+    playBgmNoiseAt(startTime, duration, volume, filterType = 'highpass', frequency = 4200) {
+      if (!this.audioContext || !this.bgmGain) return;
+      const ctx = this.audioContext;
+      const len = Math.max(1, Math.floor(ctx.sampleRate * duration));
+      const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < len; i += 1) {
+        const t = i / Math.max(1, len - 1);
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.2);
+      }
+      const source = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      filter.type = filterType;
+      filter.frequency.setValueAtTime(frequency, startTime);
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), startTime + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.bgmGain);
+      source.start(startTime);
+      source.stop(startTime + duration + 0.03);
+    }
+
+    scheduleBgmStep(t) {
+      const step = this.bgmStep || 0;
+      const bar = this.bgmBar || 0;
+      const chordRoots = [146.83, 130.81, 174.61, 110.00];
+      const root = chordRoots[bar % chordRoots.length];
+      const chord = [root, root * 1.5, root * 2, root * 2.25, root * 3];
+      if (step % 4 === 0) {
+        const bass = root / (step === 8 ? 1 : 2);
+        this.playBgmToneAt(t, bass, 0.46, 0.080, 'sine', bass * 0.995);
+      }
+      if (step === 0 || step === 6 || step === 10) {
+        this.playBgmNoiseAt(t, 0.090, 0.018, 'lowpass', 560);
+      }
+      if (step % 2 === 0) {
+        const idx = (step / 2 + bar) % chord.length;
+        this.playBgmToneAt(t + 0.015, chord[idx], 0.18, 0.030, 'triangle', null, idx % 2 ? 0.18 : -0.18);
+      }
+      if (step === 3 || step === 7 || step === 11 || step === 15) {
+        const hi = chord[(step + bar) % chord.length] * 2;
+        this.playBgmToneAt(t + 0.025, hi, 0.080, 0.013, 'sine', hi * 1.006, 0.22);
+      }
+      if ((bar === 1 && step === 12) || (bar === 3 && (step === 4 || step === 12))) {
+        const lead = bar === 3 && step === 12 ? root * 4.5 : root * 3;
+        this.playBgmToneAt(t + 0.030, lead, 0.28, 0.036, 'triangle', lead * 1.125, -0.12);
+      }
+      if (this.wave && this.wave.active && (step === 2 || step === 10)) {
+        this.playBgmToneAt(t, root / 1.5, 0.18, 0.028, 'sawtooth', root / 1.55);
+      }
+    }
+
+    playToneAt(startTime, freq, endFreq, duration, volume, type = 'sine', attack = 0.006) {
+      if (!this.audioContext || !this.masterGain) return;
+      const ctx = this.audioContext;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const end = Math.max(20, endFreq == null ? freq : endFreq);
+      osc.type = type;
+      osc.frequency.setValueAtTime(Math.max(20, freq), startTime);
+      osc.frequency.exponentialRampToValueAtTime(end, startTime + duration);
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), startTime + attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.03);
+    }
+
+    playNoiseAt(startTime, duration, volume, filterType = 'highpass', frequency = 5200, q = 0.8) {
+      if (!this.audioContext || !this.masterGain) return;
+      const ctx = this.audioContext;
+      const len = Math.max(1, Math.floor(ctx.sampleRate * duration));
+      const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < len; i += 1) {
+        const t = i / Math.max(1, len - 1);
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 1.65);
+      }
+      const source = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      filter.type = filterType;
+      filter.frequency.setValueAtTime(frequency, startTime);
+      filter.Q.setValueAtTime(q, startTime);
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), startTime + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      source.start(startTime);
+      source.stop(startTime + duration + 0.03);
+    }
+
+    playTactileClick(now, power = 1) {
+      this.playNoiseAt(now, 0.030, 0.070 * power, 'highpass', 5600, 1.1);
+      this.playNoiseAt(now + 0.010, 0.026, 0.036 * power, 'bandpass', 2600, 4.2);
+      this.playToneAt(now, 1180, 1860, 0.038, 0.030 * power, 'square', 0.003);
+      this.playToneAt(now + 0.014, 2450, 1880, 0.030, 0.018 * power, 'triangle', 0.002);
+    }
+
+    playSparkle(now, base = 760, volume = 0.045) {
+      this.playToneAt(now, base, base * 1.55, 0.070, volume, 'triangle', 0.004);
+      this.playToneAt(now + 0.045, base * 1.5, base * 2.1, 0.090, volume * 0.75, 'sine', 0.004);
+      this.playToneAt(now + 0.105, base * 2.2, base * 2.8, 0.105, volume * 0.55, 'sine', 0.004);
+    }
+
+    playThump(now, freq = 130, volume = 0.10, duration = 0.18) {
+      this.playToneAt(now, freq, Math.max(35, freq * 0.45), duration, volume, 'sine', 0.006);
+      this.playNoiseAt(now, Math.min(0.09, duration * 0.55), volume * 0.35, 'lowpass', 900, 0.7);
+    }
+
+    vibrate(pattern) {
+      if (!this.audio.sfx || !navigator.vibrate) return;
+      try { navigator.vibrate(pattern); } catch (_) {}
     }
 
     playSfx(name, cooldown = 0, force = false) {
@@ -461,40 +841,142 @@
       const nowMs = performance.now();
       if (cooldown && this.sfxCooldown[name] && nowMs - this.sfxCooldown[name] < cooldown) return;
       this.sfxCooldown[name] = nowMs;
-      const presets = {
-        click: [520, 680, 0.055, 0.05, 'sine'],
-        start: [220, 420, 0.10, 0.18, 'triangle'],
-        pause: [320, 240, 0.07, 0.12, 'sine'],
-        resume: [240, 360, 0.07, 0.12, 'sine'],
-        wave: [170, 260, 0.12, 0.30, 'sawtooth'],
-        boss: [95, 58, 0.18, 0.45, 'sawtooth'],
-        clear: [450, 760, 0.12, 0.28, 'triangle'],
-        coin: [740, 1120, 0.06, 0.08, 'sine'],
-        pay: [310, 250, 0.035, 0.045, 'square'],
-        build: [360, 620, 0.13, 0.22, 'triangle'],
-        upgrade: [520, 900, 0.14, 0.25, 'triangle'],
-        castleHit: [110, 70, 0.16, 0.20, 'sawtooth'],
-        kingHit: [180, 110, 0.13, 0.15, 'square'],
-        stun: [120, 55, 0.18, 0.45, 'sawtooth'],
-        enemyDown: [280, 160, 0.05, 0.06, 'triangle'],
-        bossDown: [260, 90, 0.20, 0.55, 'sawtooth'],
-        victory: [420, 880, 0.18, 0.75, 'triangle'],
-        defeat: [155, 58, 0.20, 0.90, 'sawtooth']
-      };
-      const p = presets[name] || presets.click;
       const now = this.audioContext.currentTime;
-      const osc = this.audioContext.createOscillator();
-      const gain = this.audioContext.createGain();
-      osc.type = p[4];
-      osc.frequency.setValueAtTime(p[0], now);
-      osc.frequency.exponentialRampToValueAtTime(Math.max(20, p[1]), now + p[3]);
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(p[2], now + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + p[3]);
-      osc.connect(gain);
-      gain.connect(this.masterGain);
-      osc.start(now);
-      osc.stop(now + p[3] + 0.05);
+
+      if (name === 'click') {
+        this.playTactileClick(now, 0.95);
+        this.vibrate(8);
+        return;
+      }
+      if (name === 'start') {
+        this.playTactileClick(now, 0.85);
+        this.playSparkle(now + 0.035, 520, 0.060);
+        return;
+      }
+      if (name === 'pause') {
+        this.playToneAt(now, 360, 240, 0.090, 0.052, 'sine');
+        return;
+      }
+      if (name === 'resume') {
+        this.playToneAt(now, 260, 420, 0.090, 0.055, 'sine');
+        return;
+      }
+      if (name === 'coin') {
+        this.playToneAt(now, 920, 1320, 0.055, 0.038, 'triangle', 0.003);
+        this.playToneAt(now + 0.040, 1320, 1760, 0.060, 0.026, 'sine', 0.003);
+        return;
+      }
+      if (name === 'pay') {
+        this.playTactileClick(now, 0.45);
+        return;
+      }
+      if (name === 'build') {
+        this.playThump(now, 150, 0.090, 0.150);
+        this.playSparkle(now + 0.055, 560, 0.045);
+        this.vibrate([12, 18, 12]);
+        return;
+      }
+      if (name === 'upgrade' || name === 'discovery') {
+        this.playTactileClick(now, 0.65);
+        this.playSparkle(now + 0.020, name === 'discovery' ? 680 : 760, name === 'discovery' ? 0.065 : 0.072);
+        this.playToneAt(now + 0.120, 420, 840, 0.160, 0.040, 'triangle');
+        this.vibrate([10, 20, 14]);
+        return;
+      }
+      if (name === 'wave') {
+        this.playThump(now, 120, 0.080, 0.240);
+        this.playToneAt(now + 0.070, 300, 520, 0.180, 0.045, 'sawtooth');
+        return;
+      }
+      if (name === 'boss') {
+        this.playThump(now, 90, 0.145, 0.420);
+        this.playNoiseAt(now + 0.040, 0.220, 0.052, 'lowpass', 620, 0.9);
+        this.vibrate([24, 24, 32]);
+        return;
+      }
+      if (name === 'clear') {
+        this.playSparkle(now, 620, 0.070);
+        this.playToneAt(now + 0.110, 700, 1120, 0.180, 0.052, 'triangle');
+        return;
+      }
+      if (name === 'victory') {
+        this.playSparkle(now, 520, 0.080);
+        this.playSparkle(now + 0.140, 700, 0.070);
+        this.playToneAt(now + 0.280, 520, 1040, 0.420, 0.068, 'triangle');
+        this.vibrate([30, 40, 30]);
+        return;
+      }
+      if (name === 'defeat') {
+        this.playThump(now, 120, 0.120, 0.360);
+        this.playToneAt(now + 0.070, 160, 58, 0.650, 0.085, 'sawtooth');
+        this.vibrate(60);
+        return;
+      }
+      if (name === 'castleHit') {
+        this.playThump(now, 95, 0.120, 0.180);
+        this.playNoiseAt(now, 0.090, 0.055, 'lowpass', 900, 0.8);
+        this.vibrate(28);
+        return;
+      }
+      if (name === 'kingHit') {
+        this.playNoiseAt(now, 0.050, 0.070, 'bandpass', 1600, 1.8);
+        this.playToneAt(now, 220, 95, 0.120, 0.065, 'square');
+        this.vibrate(24);
+        return;
+      }
+      if (name === 'stun') {
+        this.playThump(now, 100, 0.150, 0.330);
+        this.playToneAt(now + 0.060, 180, 54, 0.480, 0.085, 'sawtooth');
+        this.vibrate([32, 30, 32]);
+        return;
+      }
+      if (name === 'enemyDown') {
+        this.playNoiseAt(now, 0.040, 0.032, 'bandpass', 1100, 1.5);
+        this.playToneAt(now, 260, 150, 0.055, 0.026, 'triangle');
+        return;
+      }
+      if (name === 'bossDown') {
+        this.playThump(now, 150, 0.130, 0.280);
+        this.playNoiseAt(now + 0.030, 0.180, 0.075, 'lowpass', 780, 0.8);
+        this.playSparkle(now + 0.170, 420, 0.060);
+        this.vibrate([35, 40, 35]);
+        return;
+      }
+      if (name === 'arrowShot') {
+        this.playNoiseAt(now, 0.035, 0.026, 'highpass', 3200, 0.9);
+        this.playToneAt(now, 1650, 980, 0.040, 0.014, 'triangle', 0.002);
+        return;
+      }
+      if (name === 'cannonShot') {
+        this.playThump(now, 92, 0.115, 0.190);
+        this.playNoiseAt(now, 0.075, 0.070, 'lowpass', 700, 0.7);
+        this.vibrate(18);
+        return;
+      }
+      if (name === 'trap') {
+        this.playTactileClick(now, 0.70);
+        this.playNoiseAt(now + 0.018, 0.055, 0.045, 'bandpass', 2100, 3.2);
+        return;
+      }
+      if (name === 'spawn') {
+        this.playToneAt(now, 340, 510, 0.070, 0.030, 'triangle');
+        this.playTactileClick(now + 0.018, 0.40);
+        return;
+      }
+      if (name === 'raidHit') {
+        this.playNoiseAt(now, 0.050, 0.060, 'bandpass', 1450, 1.3);
+        this.playToneAt(now, 190, 120, 0.090, 0.040, 'square');
+        this.vibrate(16);
+        return;
+      }
+      if (name === 'explosion') {
+        this.playThump(now, 105, 0.125, 0.250);
+        this.playNoiseAt(now, 0.150, 0.090, 'lowpass', 680, 0.7);
+        this.vibrate(22);
+        return;
+      }
+
+      this.playTactileClick(now, 0.65);
     }
 
     startResultFx(type) {
@@ -581,6 +1063,8 @@
 
       this.updateKing(dt);
       this.updateCamera();
+      this.updateDiscoveries(dt);
+      this.updateDiscoverySites(dt);
       this.updateWave(dt);
       this.updateEnemies(dt);
       this.updateFacilities(dt);
@@ -679,6 +1163,7 @@
       let nearest = null;
       let best = 64;
       for (const pad of this.pads) {
+        if (!this.isPadVisible(pad)) continue;
         const d = distXY(this.king.x, this.king.y, pad.x, pad.y);
         if (d < best) { nearest = pad; best = d; }
       }
@@ -688,12 +1173,169 @@
       if (!this.isPadUnlocked(nearest)) return `${def.name}: 領土${nearest.territory}が必要。前哨基地で領土を広げる。`;
       if (!existing) {
         const remain = Math.max(0, Math.ceil(def.cost - nearest.invested));
-        return `${def.name}: 残り${remain}コインで建設。${def.desc || ''}`;
+        const short = this.facilityShortText ? this.facilityShortText(nearest.type) : (def.desc || '');
+        const label = this.facilityCategoryLabel ? this.facilityCategoryLabel(nearest.type) : '施設';
+        const advice = this.padStrategicAdvice ? this.padStrategicAdvice(nearest) : '';
+        return `${def.name} / ${label}: 残り${remain}コイン。${short}${advice ? ' / ' + advice : ''}`;
       }
       if (existing.level >= 3) return `${def.name}: 最大レベル。別の床へ向かう。`;
       const need = this.getUpgradeNeed(existing);
       const remain = Math.max(0, Math.ceil(need - nearest.upgradeInvested));
       return `${def.name} Lv.${existing.level}: 残り${remain}コインで強化。`;
+    }
+
+    stageGoal() {
+      return (C.stageGoals && C.stageGoals[this.stageKey()]) || C.stageGoals && C.stageGoals.meadow || { title: '防衛', intro: '', opening: '', winTip: '', loseTip: '' };
+    }
+
+    nextWaveProfile() {
+      const nextIndex = this.wave && this.wave.active ? this.wave.index : (this.wave ? this.wave.index + 1 : 0);
+      const wave = this.waves && this.waves[nextIndex];
+      const profile = { total: 0, main: 0, side: 0, raid: 0, fast: 0, heavy: 0, swarm: 0, siege: 0, boss: 0, support: 0 };
+      if (!wave) return profile;
+      for (const group of wave.groups || []) {
+        const count = group.count || 0;
+        const def = C.enemyTypes[group.type] || {};
+        profile.total += count;
+        if ((group.route || 'main') === 'side') profile.side += count; else profile.main += count;
+        if (group.raid) profile.raid += count;
+        if (group.type === 'runner') profile.fast += count;
+        if (group.type === 'shield' || group.type === 'brute') profile.heavy += count;
+        if (group.type === 'siege') profile.siege += count;
+        if (group.type === 'shaman') profile.support += count;
+        if (def.boss) profile.boss += count;
+      }
+      profile.swarm = profile.total >= 26 ? profile.total : 0;
+      return profile;
+    }
+
+    builtCount(type) {
+      return (this.facilities || []).filter((f) => f.type === type && f.hp > 0).length;
+    }
+
+    builtCategoryCount(category) {
+      if (!this.facilityCategory) return 0;
+      return (this.facilities || []).filter((f) => f.hp > 0 && this.facilityCategory(f.type) === category).length;
+    }
+
+    distanceToNearestRoute(x, y) {
+      let best = Infinity;
+      const routes = ['main', 'side'];
+      for (const route of routes) {
+        const path = this.routePath ? this.routePath(route) : [];
+        for (let i = 1; i < path.length; i += 1) {
+          const a = path[i - 1];
+          const b = path[i];
+          const denom = ((b.x - a.x) ** 2 + (b.y - a.y) ** 2) || 1;
+          const t = clamp(((x - a.x) * (b.x - a.x) + (y - a.y) * (b.y - a.y)) / denom, 0, 1);
+          const px = a.x + (b.x - a.x) * t;
+          const py = a.y + (b.y - a.y) * t;
+          best = Math.min(best, distXY(x, y, px, py));
+        }
+      }
+      return best;
+    }
+
+    padStrategicScore(pad) {
+      const def = C.facilityTypes[pad.type];
+      if (!pad || !def || (this.isPadVisible && !this.isPadVisible(pad))) return { score: 0, grade: '', reason: '' };
+      const existing = pad.facilityId ? this.facilities.find((f) => f.id === pad.facilityId) : null;
+      if (existing || (this.isPadUnlocked && !this.isPadUnlocked(pad))) return { score: 0, grade: '', reason: '' };
+      const profile = this.nextWaveProfile();
+      const category = this.facilityCategory ? this.facilityCategory(pad.type) : 'defense';
+      const routeD = this.distanceToNearestRoute(pad.x, pad.y);
+      let score = 35;
+      const reasons = [];
+      const early = !this.wave || this.wave.index < 2;
+      if (routeD < 70) { score += 18; reasons.push('道に近い'); }
+      if (routeD > 170 && (category === 'attack' || category === 'defense')) score -= 16;
+      if (category === 'attack') {
+        if (this.builtCategoryCount('attack') < 1) { score += 18; reasons.push('火力不足'); }
+        if (profile.heavy || profile.support) { score += 14; reasons.push('硬い敵/支援敵に有効'); }
+        if (profile.swarm && pad.type === 'cannon') { score += 16; reasons.push('群れ対策'); }
+        if (pad.type === 'archer' && early) { score += 8; reasons.push('序盤安定'); }
+      }
+      if (category === 'defense') {
+        if (this.builtCategoryCount('defense') < 1) { score += 16; reasons.push('足止め不足'); }
+        if (profile.fast || profile.siege || profile.swarm) { score += 15; reasons.push('進軍を遅らせる'); }
+        if (pad.type === 'trap' && profile.swarm) { score += 10; reasons.push('密集に強い'); }
+      }
+      if (category === 'economy') {
+        if (early) { score += 18; reasons.push('早いほど得'); }
+        if (this.king && this.king.coins < 90) { score += 8; reasons.push('資金不足対策'); }
+        if (this.builtCategoryCount('economy') >= 2) score -= 18;
+        if (profile.siege || profile.boss) score -= 8;
+      }
+      if (category === 'support') {
+        if (this.facilities.length >= 2) { score += 10; reasons.push('既存防衛を伸ばす'); }
+        if (pad.type === 'repair' && this.facilities.some((f) => f.block || f.type === 'cannon')) { score += 16; reasons.push('前線維持'); }
+        if (pad.type === 'outpost' && (this.discoveries || []).some((d) => !d.discovered)) { score += 10; reasons.push('開拓継続'); }
+        if (pad.type === 'barracks' && this.kingdom && this.soldiers.length < this.kingdom.popCap) { score += 8; reasons.push('自動防衛'); }
+      }
+      if (profile.raid && category !== 'economy') { score += 8; reasons.push('略奪隊対応'); }
+      score = clamp(Math.round(score), 0, 100);
+      const grade = score >= 72 ? '◎' : score >= 55 ? '○' : score >= 38 ? '△' : '・';
+      return { score, grade, reason: reasons.slice(0, 2).join(' / ') || '状況次第' };
+    }
+
+    padStrategicAdvice(pad) {
+      const r = this.padStrategicScore ? this.padStrategicScore(pad) : null;
+      if (!r || !r.grade) return '';
+      return `${r.grade} ${r.reason}`;
+    }
+
+    enemyIntentSummary() {
+      const raids = (this.enemies || []).filter((e) => e.raidTargetId && e.hp > 0);
+      const bosses = (this.enemies || []).filter((e) => e.def && e.def.boss && e.hp > 0);
+      if (bosses.length) return 'ボスが城へ圧力。足止めと範囲火力を確認。';
+      if (raids.length) {
+        const target = raids[0].raidTargetName || '拠点';
+        return `略奪隊が${target}を狙っています。守るか、城防衛を優先するか判断。`;
+      }
+      const profile = this.nextWaveProfile();
+      if (profile.side && profile.main) return '次は二方向。片方は施設、片方は王で補助。';
+      if (profile.swarm) return '次は数が多い。柵・罠・大砲が効く。';
+      if (profile.heavy) return '次は硬い敵。火力不足に注意。';
+      return (this.stageGoal().opening || '次の襲撃に合わせて投資先を選ぶ。');
+    }
+
+    runAssessment(won) {
+      const built = this.facilities || [];
+      const found = (this.discoveries || []).filter((d) => d.discovered).length;
+      const totalDiscoveries = (this.discoveries || []).length || 1;
+      const defense = this.builtCategoryCount ? this.builtCategoryCount('defense') : 0;
+      const attack = this.builtCategoryCount ? this.builtCategoryCount('attack') : 0;
+      const economy = this.builtCategoryCount ? this.builtCategoryCount('economy') : 0;
+      const support = this.builtCategoryCount ? this.builtCategoryCount('support') : 0;
+      const castleRatio = this.castle ? this.castle.hp / Math.max(1, this.castle.maxHp) : 0;
+      const defendScore = Math.round(clamp(castleRatio * 70 + defense * 7 + attack * 6, 0, 100));
+      const developScore = Math.round(clamp((found / totalDiscoveries) * 78 + support * 5, 0, 100));
+      const economyScore = Math.round(clamp(economy * 26 + (this.kingdom.economyBonus - 1) * 120, 0, 100));
+      const grade = (s) => s >= 85 ? 'S' : s >= 70 ? 'A' : s >= 55 ? 'B' : s >= 40 ? 'C' : 'D';
+      const tips = [];
+      if (defense < 1) tips.push('足止め施設が不足。柵・壁で敵を止める。');
+      if (attack < 1) tips.push('火力施設が不足。弓塔か大砲を早めに置く。');
+      if (economy < 1 && found >= 2) tips.push('開拓後の経済化が弱い。金鉱・市場の価値を見直す。');
+      if (found < Math.ceil(totalDiscoveries / 2)) tips.push('開拓が少ない。安全な合間に「?」へ向かう。');
+      if (!tips.length) tips.push(won ? (this.stageGoal().winTip || '次は別の配置を試す。') : (this.stageGoal().loseTip || '城近くの防衛線を見直す。'));
+      return {
+        defendScore, developScore, economyScore,
+        defendGrade: grade(defendScore), developGrade: grade(developScore), economyGrade: grade(economyScore),
+        builtCount: built.length, found, totalDiscoveries, tips
+      };
+    }
+
+    resultText(won, reward) {
+      const a = this.runAssessment ? this.runAssessment(won) : null;
+      if (!a) return `${won ? 'ステージクリア' : '城が落ちました'}。スコア: ${this.score}。獲得クラウン: ${reward}`;
+      const goal = this.stageGoal();
+      const headline = won ? 'ステージクリア' : '城が落ちました';
+      return `${headline}
+スコア: ${this.score} / 獲得クラウン: ${reward}
+防衛 ${a.defendGrade} / 開拓 ${a.developGrade} / 経済 ${a.economyGrade}
+施設 ${a.builtCount} / 発見 ${a.found}/${a.totalDiscoveries}
+次の改善: ${a.tips[0]}
+ステージ方針: ${won ? goal.winTip : goal.loseTip}`;
     }
 
     updateHud() {
@@ -705,7 +1347,7 @@
       if ($('popText')) $('popText').textContent = `${this.soldiers.length}/${this.kingdom.popCap}`;
       if ($('territoryText')) $('territoryText').textContent = `${this.kingdom.territory}/${this.kingdom.maxTerritory}`;
       if ($('economyText')) $('economyText').textContent = `${Math.round(this.kingdom.economyBonus * 100)}%`;
-      if ($('nextWaveText')) $('nextWaveText').textContent = this.nextWaveSummary();
+      if ($('nextWaveText')) $('nextWaveText').textContent = `${this.nextWaveSummary()} / ${this.discoveryCountText()} / ${this.siteStatusText()}`;
       this.updateSetupHud();
       $('pauseButton').textContent = this.paused ? '再開' : '一時停止';
       $('speedButton').textContent = `${this.speed}x`;

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>王国防衛 v2.9.0</title>
+  <title>王国防衛 v2.9.3</title>
   <link rel="stylesheet" href="styles/style.css">
 </head>
 <body>
@@ -19,7 +19,7 @@
       <div class="title-row">
         <div>
           <h1>王国防衛</h1>
-          <p>v2.9.0 / 判断材料・バランス・ステージ体験強化</p>
+          <p>v2.9.3 / 表示整理・敵画像安定化</p>
         </div>
         <div class="panel-actions">
           <button id="mobilePanelCloseButton" class="panel-close" type="button" aria-label="メニューを閉じる">閉じる</button>
@@ -77,7 +77,7 @@
       </div>
 
       <div class="legend-box small">
-        <p><b>v2.9.0:</b> 建設判断、敵の目的、開拓効果、勝敗後の振り返りを強化しました。操作ボタンは増やしていません。</p>
+        <p><b>v2.9.3:</b> 開始画面、説明表示、敵画像の安定性を改善しました。</p>
         <p><b>移動:</b> WASD / 矢印キー / クリック / タップ</p>
         <p><b>一時停止:</b> Space</p>
         <p><b>速度変更:</b> F</p>
@@ -93,17 +93,18 @@
       <div class="overlay" id="overlay">
         <div class="overlay-card">
           <h2 id="overlayTitle">王国防衛</h2>
-          <p id="overlayText">王を動かしてコインを集め、建設床に投資して城を守ります。</p>
-          <div class="tutorial-list">
-            <p><b>操作:</b> 王だけを動かします。WASD / 矢印キー / クリック / タップ。</p>
-            <p><b>お金:</b> 敵を倒すとコインが落ちます。王で近づくと回収します。</p>
-            <p><b>建設:</b> 建設床に王を少し滞在させると、自動でコインを投入します。通過だけでは消費しません。</p>
-            <p><b>強化:</b> 完成した施設にもう一度投資すると、2択強化を選べます。</p>
-            <p><b>探索:</b> マップ上の「?」に近づくと発見できます。村・金鉱・前哨などは敵に狙われるため、守るか城防衛を優先するか判断します。</p>
-            <p><b>判断:</b> 建設床のおすすめ表示、敵の目的、開拓効果を見て、3手先の投資先を決めてください。</p>
-            <p><b>音:</b> BGMと効果音はメニューから切り替えできます。</p>
-          </div>
-          <button id="startButton" type="button">開始</button>
+          <p id="overlayText" class="overlay-summary">王を動かし、コインを投資して城を守るゲームです。</p>
+          <button id="startButton" class="start-primary" type="button">開始</button>
+          <details class="tutorial-details">
+            <summary>遊び方を見る</summary>
+            <div class="tutorial-list">
+              <p><b>操作:</b> 王だけを動かします。WASD / 矢印キー / クリック / タップ。</p>
+              <p><b>お金:</b> 敵を倒すとコインが落ちます。王で近づくと回収します。</p>
+              <p><b>建設:</b> 建設床に王を少し滞在させると、自動でコインを投入します。通過だけでは消費しません。</p>
+              <p><b>探索:</b> マップ上の「?」に近づくと発見できます。村・金鉱・前哨などは敵に狙われます。</p>
+              <p><b>判断:</b> 床のおすすめ表示、敵の目的、開拓効果を見て投資先を決めます。</p>
+            </div>
+          </details>
         </div>
       </div>
 

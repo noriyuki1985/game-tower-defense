@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const ASSET_VERSION = 'v2.9.1';
+  const ASSET_VERSION = 'v2.9.3';
 
   const ASSET_MANIFEST = {
     kingIdle: 'assets/images/king/king_idle.png',

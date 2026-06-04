@@ -250,6 +250,7 @@ select {
   margin-top: 8px;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.42;
 }
 
 .save-row strong { color: var(--accent); }
@@ -290,7 +291,7 @@ button.danger {
 .tutorial-list {
   display: grid;
   gap: 6px;
-  margin: 0 0 18px;
+  margin: 0 0 10px;
   text-align: left;
   background: rgba(255,255,255,0.06);
   border: 1px solid var(--line);
@@ -691,4 +692,20 @@ body.mobile-menu-open {
   .hud-grid span {
     font-size: 12px;
   }
+}
+
+.overlay-card { max-height: calc(100% - 28px); overflow: auto; }
+.overlay-summary { font-size: 14px; }
+.start-primary { width: 100%; min-height: 52px; margin: 8px 0 12px; font-size: 20px; border-radius: 16px; }
+.tutorial-details { margin-top: 4px; text-align: left; }
+.tutorial-details summary { cursor: pointer; color: #ffd35b; font-weight: 900; text-align: center; padding: 8px 0; list-style-position: inside; }
+
+@media (max-width: 860px) {
+  .overlay { padding: 14px; align-items: start; padding-top: 86px; }
+  .overlay-card { width: min(390px, 100%); max-height: calc(100dvh - 112px); padding: 16px; }
+  .overlay-card h2 { font-size: 24px; }
+  .overlay-summary { font-size: 14px; margin-bottom: 8px; }
+  .start-primary { min-height: 58px; font-size: 22px; margin: 8px 0 10px; }
+  .tutorial-list { padding: 10px; gap: 5px; }
+  .tutorial-list p { font-size: 12px; line-height: 1.35; margin-bottom: 0; }
 }

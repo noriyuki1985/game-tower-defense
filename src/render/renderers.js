@@ -132,12 +132,9 @@
     }
 
     enemyWalkFrameKey(enemy) {
-      if (enemy.hit > 0) return this.enemyAssetKey(enemy.type);
-      const base = this.enemyWalkBaseKey(enemy.type);
-      const stride = enemy.def.siege || enemy.def.boss ? 22 : enemy.type === 'runner' ? 12 : 15;
-      const frame = enemy.isWalking === false ? 1 : (Math.floor(((enemy.walkDistance || 0) / stride) + (enemy.animSeed || 0)) % 4) + 1;
-      const key = `${base}Walk${frame}`;
-      return this.imageReady(key) ? key : this.enemyAssetKey(enemy.type);
+      // v2.9.3: 歩行フレームだけ古い画像が残ると、通常時と被弾時で敵の見た目が切り替わる。
+      // 敵画像は基準画像に統一し、歩行感は描画時の揺れ・伸縮で表現する。
+      return this.enemyAssetKey(enemy.type);
     }
 
     enemyFacingScale(enemy) {
@@ -1909,10 +1906,11 @@
       const existing = pad.facilityId ? this.facilities.find((f) => f.id === pad.facilityId) : null;
       const locked = !this.isPadUnlocked || !this.isPadUnlocked(pad);
       const compact = this.isMobileView && this.isMobileView();
-      const w = compact ? 344 : 302;
-      const h = compact ? 154 : 134;
+      const mini = compact && this.miniMapBounds ? this.miniMapBounds() : null;
+      const w = compact ? Math.min(320, Math.max(270, (mini ? mini.x - 24 : 320))) : 302;
+      const h = compact ? 146 : 134;
       const x = compact ? 12 : C.w - w - 14;
-      const y = compact ? 536 : C.h - h - 18;
+      const y = compact ? 548 : C.h - h - 18;
       const categoryColor = this.facilityCategoryColor(pad.type);
       const categoryLabel = this.facilityCategoryLabel(pad.type);
       const icon = this.facilityIcon(pad.type);
@@ -1985,7 +1983,7 @@
       const w = compact ? 356 : 330;
       const h = compact ? 122 : 116;
       const x = Math.round((C.w - w) / 2);
-      const y = compact ? 134 : 108;
+      const y = compact && ((this.routeAlert && this.routeAlert.life > 0) || (this.wave && this.wave.banner > 0)) ? 250 : (compact ? 134 : 108);
       ctx.save();
       ctx.globalAlpha = Math.max(0, alpha);
       ctx.fillStyle = 'rgba(10, 16, 15, 0.88)';
@@ -2016,6 +2014,12 @@
       if (this.minimapExpanded) return;
       if (this.status !== 'playing') return;
       const compact = this.isMobileView && this.isMobileView();
+      if (compact) {
+        if (this.discoveryToast && this.discoveryToast.life > 0) return;
+        if (this.routeAlert && this.routeAlert.life > 0) return;
+        if (this.wave && this.wave.banner > 0) return;
+        if (this.nearestBuildPad && this.nearestBuildPad(96)) return;
+      }
       const elapsed = this.time || 0;
       let text = '';
       if (elapsed < 9000 && !(this.facilities || []).length) text = (this.stageGoal && this.stageGoal().opening) || 'まず近くの床へ。弓塔・柵・金鉱のどれを先に作るかが最初の判断です。';
@@ -2025,7 +2029,7 @@
       const w = compact ? 356 : 360;
       const h = compact ? 52 : 44;
       const x = Math.round((C.w - w) / 2);
-      const y = compact ? C.h - 104 : 94;
+      const y = compact ? 118 : 94;
       ctx.save();
       ctx.globalAlpha = compact ? 0.92 : 0.82;
       ctx.fillStyle = 'rgba(8, 14, 13, 0.86)';

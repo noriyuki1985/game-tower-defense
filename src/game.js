@@ -631,42 +631,47 @@
       const gain = ctx.createGain();
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(3600, now);
-      filter.Q.setValueAtTime(0.55, now);
+      filter.frequency.setValueAtTime(5200, now);
+      filter.Q.setValueAtTime(0.35, now);
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.085, now + 1.2);
+      gain.gain.exponentialRampToValueAtTime(0.072, now + 0.65);
       gain.connect(filter);
       filter.connect(this.masterGain);
       this.bgmGain = gain;
       this.bgmFilter = filter;
 
-      const droneNotes = [73.42, 110.00, 146.83, 220.00];
+      const droneNotes = [55.00, 110.00];
       this.bgmNodes = droneNotes.map((freq, i) => {
         const osc = ctx.createOscillator();
         const nodeGain = ctx.createGain();
-        osc.type = i === 0 ? 'sine' : i === 1 ? 'triangle' : 'sine';
+        osc.type = i === 0 ? 'triangle' : 'square';
         osc.frequency.setValueAtTime(freq, now);
-        nodeGain.gain.setValueAtTime(i < 2 ? 0.12 : 0.045, now);
+        nodeGain.gain.setValueAtTime(i === 0 ? 0.030 : 0.010, now);
         osc.connect(nodeGain);
         nodeGain.connect(gain);
-        osc.start(now + i * 0.025);
+        osc.start(now + i * 0.018);
         return { osc, nodeGain };
       });
 
       this.bgmStep = 0;
       this.bgmBar = 0;
-      this.bgmNextTick = now + 0.08;
+      this.bgmPhrase = 0;
+      this.bgmStepDur = 0.135;
+      this.bgmNextTick = now + 0.05;
       this.scheduleBgmStep(this.bgmNextTick);
       this.bgmTimer = setInterval(() => {
         if (!this.audio.bgm || !this.audioContext || !this.bgmGain) return;
-        const lookAhead = this.audioContext.currentTime + 0.55;
+        const lookAhead = this.audioContext.currentTime + 0.70;
         while (this.bgmNextTick < lookAhead) {
-          this.bgmNextTick += 0.255;
+          this.bgmNextTick += this.bgmStepDur || 0.135;
           this.bgmStep = (this.bgmStep + 1) % 16;
-          if (this.bgmStep === 0) this.bgmBar = (this.bgmBar + 1) % 4;
+          if (this.bgmStep === 0) {
+            this.bgmBar = ((this.bgmBar || 0) + 1) % 4;
+            if (this.bgmBar === 0) this.bgmPhrase = ((this.bgmPhrase || 0) + 1) % 2;
+          }
           this.scheduleBgmStep(this.bgmNextTick);
         }
-      }, 120);
+      }, 80);
     }
 
     stopBgm() {
@@ -676,10 +681,10 @@
       const now = this.audioContext.currentTime;
       if (this.bgmGain) {
         this.bgmGain.gain.cancelScheduledValues(now);
-        this.bgmGain.gain.setTargetAtTime(0.0001, now, 0.18);
+        this.bgmGain.gain.setTargetAtTime(0.0001, now, 0.12);
       }
       for (const node of this.bgmNodes) {
-        try { node.osc.stop(now + 0.35); } catch (_) {}
+        try { node.osc.stop(now + 0.26); } catch (_) {}
       }
       this.bgmNodes = [];
       this.bgmGain = null;
@@ -696,8 +701,8 @@
       osc.frequency.setValueAtTime(Math.max(20, freq), startTime);
       if (endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), startTime + duration);
       gain.gain.setValueAtTime(0.0001, startTime);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), startTime + 0.010);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), startTime + 0.004);
+      gain.gain.setTargetAtTime(0.0001, startTime + Math.max(0.018, duration * 0.35), Math.max(0.018, duration * 0.20));
       osc.connect(gain);
       if (panner) {
         panner.pan.setValueAtTime(clamp(pan, -1, 1), startTime);
@@ -718,7 +723,8 @@
       const data = buffer.getChannelData(0);
       for (let i = 0; i < len; i += 1) {
         const t = i / Math.max(1, len - 1);
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.2);
+        const bit = Math.random() > 0.5 ? 1 : -1;
+        data[i] = bit * Math.pow(1 - t, 2.0);
       }
       const source = ctx.createBufferSource();
       const filter = ctx.createBiquadFilter();
@@ -726,9 +732,10 @@
       source.buffer = buffer;
       filter.type = filterType;
       filter.frequency.setValueAtTime(frequency, startTime);
+      filter.Q.setValueAtTime(0.85, startTime);
       gain.gain.setValueAtTime(0.0001, startTime);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), startTime + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), startTime + 0.003);
+      gain.gain.setTargetAtTime(0.0001, startTime + Math.max(0.014, duration * 0.20), Math.max(0.010, duration * 0.18));
       source.connect(filter);
       filter.connect(gain);
       gain.connect(this.bgmGain);
@@ -736,33 +743,66 @@
       source.stop(startTime + duration + 0.03);
     }
 
+    playBgmArpAt(startTime, notes, volume = 0.022, pan = 0) {
+      const dur = (this.bgmStepDur || 0.135) / Math.max(1, notes.length);
+      for (let i = 0; i < notes.length; i += 1) {
+        this.playBgmToneAt(startTime + i * dur, notes[i], dur * 0.92, volume, 'square', null, pan);
+      }
+    }
+
     scheduleBgmStep(t) {
       const step = this.bgmStep || 0;
       const bar = this.bgmBar || 0;
-      const chordRoots = [146.83, 130.81, 174.61, 110.00];
-      const root = chordRoots[bar % chordRoots.length];
-      const chord = [root, root * 1.5, root * 2, root * 2.25, root * 3];
-      if (step % 4 === 0) {
-        const bass = root / (step === 8 ? 1 : 2);
-        this.playBgmToneAt(t, bass, 0.46, 0.080, 'sine', bass * 0.995);
+      const phrase = this.bgmPhrase || 0;
+      const rootSeq = [146.83, 174.61, 130.81, 196.00];
+      const root = rootSeq[bar % rootSeq.length];
+      const fifth = root * 1.5;
+      const octave = root * 2;
+      const minorThird = root * 1.2;
+      const raid = this.wave && this.wave.active;
+      const boss = this.enemies && this.enemies.some((enemy) => enemy.def && enemy.def.boss);
+      const stageShift = this.selectedStage === 'river' ? 1.125 : this.selectedStage === 'pass' ? 0.875 : 1;
+
+      if (this.bgmFilter && this.audioContext) {
+        const target = boss ? 6600 : raid ? 5900 : 5100;
+        this.bgmFilter.frequency.setTargetAtTime(target, t, 0.25);
       }
-      if (step === 0 || step === 6 || step === 10) {
-        this.playBgmNoiseAt(t, 0.090, 0.018, 'lowpass', 560);
+
+      if (step === 0 || step === 8) {
+        const bass = (step === 8 ? root : root / 2) * stageShift;
+        this.playBgmToneAt(t, bass, 0.22, raid ? 0.070 : 0.056, 'triangle', bass * 0.997, -0.08);
       }
+      if (step === 4 || step === 12) {
+        const bass = (bar % 2 ? fifth / 2 : root / 2) * stageShift;
+        this.playBgmToneAt(t, bass, 0.18, raid ? 0.052 : 0.040, 'triangle', null, -0.05);
+      }
+
       if (step % 2 === 0) {
-        const idx = (step / 2 + bar) % chord.length;
-        this.playBgmToneAt(t + 0.015, chord[idx], 0.18, 0.030, 'triangle', null, idx % 2 ? 0.18 : -0.18);
+        const notes = phrase
+          ? [root, minorThird, fifth, octave].map((n) => n * stageShift)
+          : [root, fifth, octave, fifth].map((n) => n * stageShift);
+        this.playBgmArpAt(t + 0.010, notes, raid ? 0.018 : 0.014, step % 4 === 0 ? -0.18 : 0.18);
       }
-      if (step === 3 || step === 7 || step === 11 || step === 15) {
-        const hi = chord[(step + bar) % chord.length] * 2;
-        this.playBgmToneAt(t + 0.025, hi, 0.080, 0.013, 'sine', hi * 1.006, 0.22);
+
+      const leadPatternA = [0, null, 3, null, 5, null, 7, 10, 12, null, 10, null, 7, 5, 3, null];
+      const leadPatternB = [12, null, 10, 7, 5, null, 7, null, 10, 12, null, 15, 14, null, 12, 10];
+      const scale = [root, minorThird, fifth, octave, octave * 1.2, octave * 1.5, octave * 2];
+      const p = phrase ? leadPatternB[step] : leadPatternA[step];
+      if (p != null) {
+        const degree = Math.min(scale.length - 1, Math.max(0, Math.floor(p / 3)));
+        const note = scale[degree] * (p >= 12 ? 2 : 1) * stageShift;
+        this.playBgmToneAt(t + 0.012, note, 0.092, raid ? 0.027 : 0.020, 'square', null, 0.05);
       }
-      if ((bar === 1 && step === 12) || (bar === 3 && (step === 4 || step === 12))) {
-        const lead = bar === 3 && step === 12 ? root * 4.5 : root * 3;
-        this.playBgmToneAt(t + 0.030, lead, 0.28, 0.036, 'triangle', lead * 1.125, -0.12);
+
+      if (step === 0 || step === 8) this.playBgmNoiseAt(t, 0.070, raid ? 0.040 : 0.026, 'lowpass', 900);
+      if (step === 4 || step === 12) this.playBgmNoiseAt(t + 0.004, 0.038, 0.022, 'bandpass', 1800);
+      if (step % 2 === 1) this.playBgmNoiseAt(t + 0.006, 0.030, raid ? 0.012 : 0.008, 'highpass', 5200);
+      if (raid && (step === 2 || step === 6 || step === 10 || step === 14)) {
+        this.playBgmToneAt(t, root / 1.5, 0.075, boss ? 0.036 : 0.024, 'square', root / 1.7, -0.12);
       }
-      if (this.wave && this.wave.active && (step === 2 || step === 10)) {
-        this.playBgmToneAt(t, root / 1.5, 0.18, 0.028, 'sawtooth', root / 1.55);
+      if (boss && (step === 3 || step === 11)) {
+        this.playBgmNoiseAt(t, 0.095, 0.033, 'lowpass', 520);
+        this.playBgmToneAt(t, root / 3, 0.180, 0.045, 'sawtooth', root / 4, 0);
       }
     }
 
@@ -834,6 +874,16 @@
       try { navigator.vibrate(pattern); } catch (_) {}
     }
 
+    playChiptuneJingle(now, notes, unit = 0.085, volume = 0.045) {
+      for (let i = 0; i < notes.length; i += 1) {
+        const n = notes[i];
+        if (!n) continue;
+        const [freq, len = 1, type = 'square'] = Array.isArray(n) ? n : [n, 1, 'square'];
+        this.playToneAt(now + i * unit, freq, freq * 1.002, unit * 0.92 * len, volume, type, 0.002);
+        if (i % 2 === 0) this.playToneAt(now + i * unit, freq / 2, freq / 2, unit * 0.75, volume * 0.35, 'triangle', 0.002);
+      }
+    }
+
     playSfx(name, cooldown = 0, force = false) {
       if ((!this.audio.sfx && !force) || !window.AudioContext && !window.webkitAudioContext) return;
       this.unlockAudio();
@@ -850,7 +900,7 @@
       }
       if (name === 'start') {
         this.playTactileClick(now, 0.85);
-        this.playSparkle(now + 0.035, 520, 0.060);
+        this.playChiptuneJingle(now + 0.030, [523.25, 659.25, 783.99, 1046.50], 0.055, 0.034);
         return;
       }
       if (name === 'pause') {
@@ -871,15 +921,21 @@
         return;
       }
       if (name === 'build') {
-        this.playThump(now, 150, 0.090, 0.150);
-        this.playSparkle(now + 0.055, 560, 0.045);
+        this.playThump(now, 150, 0.080, 0.120);
+        this.playChiptuneJingle(now + 0.045, [392.00, 523.25, 659.25, [783.99, 1.4]], 0.065, 0.043);
+        this.playSparkle(now + 0.065, 560, 0.038);
         this.vibrate([12, 18, 12]);
         return;
       }
       if (name === 'upgrade' || name === 'discovery') {
-        this.playTactileClick(now, 0.65);
-        this.playSparkle(now + 0.020, name === 'discovery' ? 680 : 760, name === 'discovery' ? 0.065 : 0.072);
-        this.playToneAt(now + 0.120, 420, 840, 0.160, 0.040, 'triangle');
+        this.playTactileClick(now, 0.62);
+        if (name === 'discovery') {
+          this.playChiptuneJingle(now + 0.030, [659.25, 783.99, 987.77, [1318.51, 1.45]], 0.070, 0.046);
+          this.playSparkle(now + 0.070, 740, 0.052);
+        } else {
+          this.playChiptuneJingle(now + 0.020, [523.25, 659.25, 783.99, 987.77, [1174.66, 1.25]], 0.055, 0.044);
+          this.playSparkle(now + 0.065, 760, 0.060);
+        }
         this.vibrate([10, 20, 14]);
         return;
       }
@@ -895,20 +951,21 @@
         return;
       }
       if (name === 'clear') {
-        this.playSparkle(now, 620, 0.070);
-        this.playToneAt(now + 0.110, 700, 1120, 0.180, 0.052, 'triangle');
+        this.playChiptuneJingle(now, [523.25, 659.25, 783.99, [1046.50, 1.25]], 0.070, 0.045);
+        this.playSparkle(now + 0.050, 620, 0.052);
         return;
       }
       if (name === 'victory') {
-        this.playSparkle(now, 520, 0.080);
-        this.playSparkle(now + 0.140, 700, 0.070);
-        this.playToneAt(now + 0.280, 520, 1040, 0.420, 0.068, 'triangle');
+        this.playChiptuneJingle(now, [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, [2093.00, 2.0]], 0.075, 0.052);
+        this.playSparkle(now + 0.080, 680, 0.075);
+        this.playSparkle(now + 0.260, 940, 0.060);
         this.vibrate([30, 40, 30]);
         return;
       }
       if (name === 'defeat') {
-        this.playThump(now, 120, 0.120, 0.360);
-        this.playToneAt(now + 0.070, 160, 58, 0.650, 0.085, 'sawtooth');
+        this.playChiptuneJingle(now, [392.00, 349.23, 293.66, 220.00, [146.83, 2.2, 'triangle']], 0.110, 0.055);
+        this.playThump(now + 0.040, 120, 0.090, 0.300);
+        this.playToneAt(now + 0.240, 160, 58, 0.520, 0.070, 'sawtooth');
         this.vibrate(60);
         return;
       }

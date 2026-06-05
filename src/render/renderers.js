@@ -125,14 +125,14 @@
         saboteur: 'enemySaboteur',
         bomber: 'enemyBomber',
         shaman: 'enemyShaman',
-        siege: 'enemySiege',
+        siege: 'enemySiegeRam',
         warlord: 'enemyWarlord',
         overlord: 'enemyOverlord'
       }[type] || 'enemyGrunt';
     }
 
     enemyWalkFrameKey(enemy) {
-      // v2.9.3: 歩行フレームだけ古い画像が残ると、通常時と被弾時で敵の見た目が切り替わる。
+      // v3.0.0: 歩行フレームだけ古い画像が残ると、通常時と被弾時で敵の見た目が切り替わる。
       // 敵画像は基準画像に統一し、歩行感は描画時の揺れ・伸縮で表現する。
       return this.enemyAssetKey(enemy.type);
     }
@@ -205,6 +205,7 @@
       this.drawDiscoveryToast(ctx);
       this.drawBuildInfoPanel(ctx);
       this.drawStrategicHint(ctx);
+      this.drawNoticeBar(ctx);
       this.drawResultFx(ctx);
       ctx.restore();
     }
@@ -214,6 +215,10 @@
       const key = this.stageKey();
       const ww = this.worldWidth();
       const wh = this.worldHeight();
+      const sxw = C.worldScaleX || 1;
+      const syw = C.worldScaleY || 1;
+      const wx = (value) => value * sxw;
+      const wy = (value) => value * syw;
       const g = ctx.createLinearGradient(0, 0, 0, wh);
       g.addColorStop(0, theme.bgTop);
       g.addColorStop(0.55, theme.bgMid);
@@ -235,39 +240,39 @@
       if (key === 'river') {
         ctx.fillStyle = theme.water;
         ctx.beginPath();
-        ctx.moveTo(214, 120);
-        ctx.bezierCurveTo(266, 250, 214, 338, 253, 455);
-        ctx.bezierCurveTo(296, 585, 252, 668, 304, 810);
-        ctx.lineTo(368, 810);
-        ctx.bezierCurveTo(315, 665, 365, 580, 319, 446);
-        ctx.bezierCurveTo(282, 334, 337, 242, 281, 120);
+        ctx.moveTo(wx(214), wy(120));
+        ctx.bezierCurveTo(wx(266), wy(250), wx(214), wy(338), wx(253), wy(455));
+        ctx.bezierCurveTo(wx(296), wy(585), wx(252), wy(668), wx(304), wy(810));
+        ctx.lineTo(wx(368), wy(810));
+        ctx.bezierCurveTo(wx(315), wy(665), wx(365), wy(580), wx(319), wy(446));
+        ctx.bezierCurveTo(wx(282), wy(334), wx(337), wy(242), wx(281), wy(120));
         ctx.closePath();
         ctx.fill();
         ctx.strokeStyle = 'rgba(213,239,255,0.28)';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(250, 125);
-        ctx.bezierCurveTo(296, 254, 245, 351, 286, 454);
-        ctx.bezierCurveTo(324, 552, 281, 666, 330, 795);
+        ctx.moveTo(wx(250), wy(125));
+        ctx.bezierCurveTo(wx(296), wy(254), wx(245), wy(351), wx(286), wy(454));
+        ctx.bezierCurveTo(wx(324), wy(552), wx(281), wy(666), wx(330), wy(795));
         ctx.stroke();
       }
 
       ctx.fillStyle = theme.blob;
-      this.blob(ctx, 28, 116, 180, 80);
-      this.blob(ctx, 380, 190, 160, 95);
-      this.blob(ctx, 392, 720, 140, 80);
+      this.blob(ctx, wx(28), wy(116), wx(180), wy(80));
+      this.blob(ctx, wx(380), wy(190), wx(160), wy(95));
+      this.blob(ctx, wx(392), wy(720), wx(140), wy(80));
       if (key === 'pass') {
         ctx.fillStyle = 'rgba(39, 36, 31, 0.50)';
-        this.blob(ctx, 58, 265, 64, 92);
-        this.blob(ctx, 421, 350, 76, 116);
-        this.blob(ctx, 78, 724, 96, 62);
+        this.blob(ctx, wx(58), wy(265), wx(64), wy(92));
+        this.blob(ctx, wx(421), wy(350), wx(76), wy(116));
+        this.blob(ctx, wx(78), wy(724), wx(96), wy(62));
       }
 
       const decorationCount = Math.max(32, Math.round((ww * wh) / (C.w * C.h) * 28));
       for (let i = 0; i < decorationCount; i += 1) {
         const x = (i * 83 + 37) % ww;
         const y = 145 + ((i * 137) % Math.max(240, wh - 210));
-        if (this.distanceToPath(x, y) <= 42) continue;
+        if (this.distanceToPath(x, y) <= 56) continue;
         if (theme.object === 'rock') this.drawRock(ctx, x, y, 0.65 + (i % 3) * 0.15);
         else if (theme.object === 'reed') this.drawReed(ctx, x, y, 0.72 + (i % 3) * 0.12);
         else this.drawTree(ctx, x, y, 0.72 + (i % 3) * 0.12);
@@ -289,13 +294,15 @@
       ctx.lineWidth = 2;
       this.drawPathLine(ctx, main);
       this.drawPathLine(ctx, side);
+      this.drawUpcomingRoutePreview(ctx);
       this.drawRaidTrails(ctx, theme);
+      this.drawMapDesignGuides(ctx, theme);
 
       if (key === 'river') {
         ctx.fillStyle = 'rgba(110, 76, 44, 0.82)';
-        rounded(ctx, 246, 478, 88, 24, 5);
+        rounded(ctx, wx(246), wy(478), wx(88), wy(24), 8);
         ctx.fill();
-        rounded(ctx, 286, 344, 92, 22, 5);
+        rounded(ctx, wx(286), wy(344), wx(92), wy(22), 8);
         ctx.fill();
       }
 
@@ -312,7 +319,7 @@
 
       if (key !== 'river') {
         ctx.fillStyle = theme.water;
-        this.blob(ctx, 430, 290, 80, 130);
+        this.blob(ctx, wx(430), wy(290), wx(80), wy(130));
       }
       ctx.fillStyle = key === 'pass' ? '#3c3b36' : '#506775';
       ctx.fillRect(0, wh - 40, ww, 40);
@@ -320,12 +327,37 @@
       ctx.fillRect(0, wh - 20, ww, 20);
 
       ctx.fillStyle = 'rgba(10, 18, 16, 0.35)';
-      rounded(ctx, 14, 136, 138, 29, 8);
+      rounded(ctx, wx(14), wy(136), 210, 31, 8);
       ctx.fill();
       ctx.fillStyle = '#fff0bb';
       ctx.font = '800 12px system-ui';
       ctx.textAlign = 'left';
-      ctx.fillText(`${theme.name} / ${theme.rule}`, 24, 155);
+      ctx.fillText(`${theme.name} / ${theme.rule}`, wx(24), wy(155));
+    }
+
+
+    drawUpcomingRoutePreview(ctx) {
+      if (!this.wave || this.wave.active || this.wave.index < -1) return;
+      const next = this.waves && this.waves[this.wave.index + 1];
+      if (!next || !next.groups) return;
+      const rest = this.wave.rest == null ? 9999 : this.wave.rest;
+      if (rest > 5200) return;
+      const t = 0.45 + 0.35 * Math.sin((this.time || 0) * 0.010);
+      const routes = new Set(next.groups.map((g) => g.route || 'main'));
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const route of routes) {
+        const path = this.routePath(route);
+        if (!path || path.length < 2) continue;
+        ctx.strokeStyle = route === 'side' ? `rgba(205, 116, 255, ${0.20 + t * 0.22})` : `rgba(255, 215, 91, ${0.18 + t * 0.20})`;
+        ctx.lineWidth = route === 'side' ? 18 : 16;
+        this.drawPathLine(ctx, path);
+        ctx.strokeStyle = route === 'side' ? `rgba(248, 214, 255, ${0.18 + t * 0.22})` : `rgba(255, 244, 190, ${0.14 + t * 0.20})`;
+        ctx.lineWidth = 4;
+        this.drawPathLine(ctx, path);
+      }
+      ctx.restore();
     }
 
     drawPathLine(ctx, pts) {
@@ -1730,6 +1762,14 @@
         for (let i = 1; i < path.length; i += 1) ctx.lineTo(mx(path[i].x), my(path[i].y));
         ctx.stroke();
       }
+      const miniChokes = (C.routeChokepoints && C.routeChokepoints[this.stageKey()]) || [];
+      ctx.strokeStyle = 'rgba(255, 240, 188, 0.52)';
+      ctx.lineWidth = expanded ? 1.6 : 1;
+      for (const cp of miniChokes) {
+        ctx.beginPath();
+        ctx.arc(mx(cp.x), my(cp.y), Math.max(3, (cp.r || 72) * sx), 0, Math.PI * 2);
+        ctx.stroke();
+      }
       const sitesForTrails = (this.discoveries || []).filter((d) => d.discovered && this.isRaidableDiscovery && this.isRaidableDiscovery(d));
       if (sitesForTrails.length && this.raidTrailPathForSite) {
         ctx.strokeStyle = 'rgba(210, 150, 88, 0.64)';
@@ -1980,10 +2020,12 @@
       if (!toast || toast.life <= 0) return;
       const alpha = Math.min(1, toast.life / 360, (toast.max - toast.life) / 220 + 0.15);
       const compact = this.isMobileView && this.isMobileView();
-      const w = compact ? 356 : 330;
-      const h = compact ? 122 : 116;
+      const w = compact ? 340 : 330;
+      const h = compact ? 104 : 116;
       const x = Math.round((C.w - w) / 2);
-      const y = compact && ((this.routeAlert && this.routeAlert.life > 0) || (this.wave && this.wave.banner > 0)) ? 250 : (compact ? 134 : 108);
+      const hasTopAlert = (this.routeAlert && this.routeAlert.life > 0) || (this.wave && this.wave.banner > 0);
+      const hasBuildInfo = this.nearestBuildPad && this.nearestBuildPad(compact ? 96 : 82);
+      const y = compact ? (hasTopAlert ? 250 : (hasBuildInfo ? 214 : 132)) : 108;
       ctx.save();
       ctx.globalAlpha = Math.max(0, alpha);
       ctx.fillStyle = 'rgba(10, 16, 15, 0.88)';
@@ -2000,7 +2042,7 @@
       ctx.fillStyle = '#fff0bb';
       ctx.font = compact ? '900 16px system-ui' : '800 14px system-ui';
       const lines = toast.lines || [];
-      for (let i = 0; i < Math.min(3, lines.length); i += 1) ctx.fillText(lines[i], C.w / 2, y + 58 + i * 20);
+      for (let i = 0; i < Math.min(compact ? 2 : 3, lines.length); i += 1) ctx.fillText(lines[i], C.w / 2, y + 58 + i * 20);
       if (toast.note && lines.length < 3) {
         ctx.fillStyle = '#d6f2a3';
         ctx.font = compact ? '800 13px system-ui' : '800 12px system-ui';
@@ -2018,7 +2060,8 @@
         if (this.discoveryToast && this.discoveryToast.life > 0) return;
         if (this.routeAlert && this.routeAlert.life > 0) return;
         if (this.wave && this.wave.banner > 0) return;
-        if (this.nearestBuildPad && this.nearestBuildPad(96)) return;
+        if (this.nearestBuildPad && this.nearestBuildPad(120)) return;
+        if (this.notice && this.notice.life > 0) return;
       }
       const elapsed = this.time || 0;
       let text = '';
@@ -2029,7 +2072,7 @@
       const w = compact ? 356 : 360;
       const h = compact ? 52 : 44;
       const x = Math.round((C.w - w) / 2);
-      const y = compact ? 118 : 94;
+      const y = compact ? 112 : 94;
       ctx.save();
       ctx.globalAlpha = compact ? 0.92 : 0.82;
       ctx.fillStyle = 'rgba(8, 14, 13, 0.86)';
@@ -2156,26 +2199,32 @@
       ctx.textAlign = 'left';
       ctx.fillText('状況', x + 14, y + 23);
       ctx.fillStyle = '#fff0bb';
-      ctx.font = '900 16px system-ui';
-      const msg = (this.message || '').replace(/。/g, '。 ');
-      const first = msg.slice(0, 16);
-      const second = msg.slice(16, 32);
+      ctx.font = '900 15px system-ui';
+      const src = (this.notice && this.notice.life > 0) ? this.notice.text : this.message;
+      const msg = (src || '').replace(/。/g, '。 ');
+      const first = msg.slice(0, 18);
+      const second = msg.slice(18, 36);
       ctx.fillText(first, x + 14, y + 47);
       if (second) ctx.fillText(second, x + 14, y + 68);
       ctx.restore();
     }
 
     drawAlertBanners(ctx) {
+      const compact = this.isMobileView && this.isMobileView();
       if (this.routeAlert.life > 0) {
         ctx.globalAlpha = Math.min(1, this.routeAlert.life / 300);
         ctx.fillStyle = this.routeAlert.route === 'side' ? 'rgba(110, 39, 32, 0.82)' : 'rgba(93, 62, 24, 0.82)';
-        rounded(ctx, 56, 112, 368, 54, 16);
+        const ax = compact ? 72 : 56;
+        const ay = compact ? 112 : 112;
+        const aw = compact ? 336 : 368;
+        const ah = compact ? 46 : 54;
+        rounded(ctx, ax, ay, aw, ah, 16);
         ctx.fill();
         ctx.fillStyle = '#ffe7a8';
-        ctx.font = '900 22px system-ui';
+        ctx.font = compact ? '900 18px system-ui' : '900 22px system-ui';
         ctx.textAlign = 'center';
-        this.drawAsset(ctx, 'uiWarning', 82, 139, 34, 34);
-        ctx.fillText(this.routeAlert.text, C.w / 2 + 8, 146);
+        this.drawAsset(ctx, 'uiWarning', ax + 27, ay + ah / 2, compact ? 28 : 34, compact ? 28 : 34);
+        ctx.fillText(this.routeAlert.text.slice(0, compact ? 16 : 22), C.w / 2 + 8, ay + (compact ? 30 : 34));
         ctx.globalAlpha = 1;
       }
       if (this.wave.banner > 0 && this.wave.index >= 0) {
@@ -2192,6 +2241,34 @@
         ctx.fillText(this.waves[this.wave.index].title, 260, 226);
         ctx.globalAlpha = 1;
       }
+    }
+
+
+    drawNoticeBar(ctx) {
+      if (this.isMobileView && this.isMobileView()) return;
+      if (!this.notice || this.notice.life <= 0) return;
+      if (this.minimapExpanded) return;
+      const msg = this.notice.text || '';
+      if (!msg) return;
+      const alpha = Math.min(1, this.notice.life / 320);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      const x = 64;
+      const y = 730;
+      const w = 352;
+      const h = 42;
+      ctx.fillStyle = this.notice.kind === 'danger' ? 'rgba(92, 26, 22, 0.84)' : this.notice.kind === 'good' ? 'rgba(24, 76, 48, 0.82)' : 'rgba(12, 18, 15, 0.82)';
+      rounded(ctx, x, y, w, h, 14);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+      ctx.lineWidth = 1.4;
+      rounded(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 14);
+      ctx.stroke();
+      ctx.fillStyle = '#fff0bb';
+      ctx.font = '900 15px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(msg.slice(0, 34), C.w / 2, y + 27);
+      ctx.restore();
     }
 
     drawBar(ctx, x, y, w, h, ratio, color) {

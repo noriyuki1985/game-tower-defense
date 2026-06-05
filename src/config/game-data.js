@@ -12,8 +12,8 @@
     payRate: 98,
     buildHoldTime: 620,
     maxCoinsOnGround: 95,
-    saveKey: 'game-tower-defense-v286-save',
-    audioKey: 'game-tower-defense-v286-audio',
+    saveKey: 'game-tower-defense-v320-save',
+    audioKey: 'game-tower-defense-v320-audio',
     path: [
       { x: 24, y: 762 },
       { x: 66, y: 704 },
@@ -429,6 +429,40 @@
   Object.assign(C.facilityTypes.outpost, { cost: 122, hp: 260 });
   Object.assign(C.facilityTypes.keep, { cost: 164, castleHpBonus: 70 });
 
+
+  C.routeChokepoints = {
+    meadow: [
+      { id: 'meadow_front', label: '前線', x: 270, y: 516, r: 78, note: '火力を置きやすい曲がり角' },
+      { id: 'meadow_gate', label: '城門前', x: 168, y: 244, r: 70, note: '最後の足止め位置' },
+      { id: 'meadow_east', label: '東道', x: 388, y: 560, r: 72, note: '側道の迎撃線' }
+    ],
+    river: [
+      { id: 'river_west_bridge', label: '西橋', x: 245, y: 480, r: 82, note: '左右分断の合流点' },
+      { id: 'river_east_bend', label: '東曲道', x: 322, y: 414, r: 76, note: '側道の守りどころ' },
+      { id: 'river_castle', label: '城門前', x: 185, y: 252, r: 68, note: '最後の防衛線' }
+    ],
+    pass: [
+      { id: 'pass_center', label: '峠中央', x: 250, y: 444, r: 88, note: '大砲と壁が効く狭所' },
+      { id: 'pass_gate', label: '城門前', x: 166, y: 262, r: 74, note: '破城部隊を止める場所' },
+      { id: 'pass_east', label: '東山道', x: 342, y: 492, r: 78, note: '略奪隊の分岐点' }
+    ]
+  };
+
+  C.mapGuideTrails = {
+    meadow: [
+      { label: '金鉱へ', kind: 'economy', points: [{ x: 244, y: 666 }, { x: 328, y: 670 }, { x: 426, y: 704 }] },
+      { label: '前線へ', kind: 'defense', points: [{ x: 244, y: 666 }, { x: 268, y: 590 }, { x: 270, y: 516 }] }
+    ],
+    river: [
+      { label: '西橋へ', kind: 'defense', points: [{ x: 244, y: 666 }, { x: 236, y: 570 }, { x: 246, y: 478 }] },
+      { label: '東市へ', kind: 'economy', points: [{ x: 244, y: 666 }, { x: 335, y: 670 }, { x: 430, y: 704 }] }
+    ],
+    pass: [
+      { label: '峠中央へ', kind: 'defense', points: [{ x: 244, y: 666 }, { x: 232, y: 540 }, { x: 260, y: 408 }] },
+      { label: '整備小屋へ', kind: 'support', points: [{ x: 244, y: 666 }, { x: 176, y: 586 }, { x: 124, y: 522 }] }
+    ]
+  };
+
   C.worldScaleX = 2;
   C.worldScaleY = 2;
   C.world = {
@@ -470,6 +504,12 @@
   }
   for (const list of Object.values(C.discoveryPoints || {})) {
     scalePointArrayForWorld(list);
+  }
+  for (const list of Object.values(C.routeChokepoints || {})) {
+    scalePointArrayForWorld(list);
+  }
+  for (const trails of Object.values(C.mapGuideTrails || {})) {
+    for (const trail of trails) scalePointArrayForWorld(trail.points || []);
   }
 
 

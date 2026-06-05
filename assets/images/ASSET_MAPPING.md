@@ -63,22 +63,10 @@
 
 ## v1.7.0 敵歩行アニメーション
 
-敵の歩行フレームは `assets/images/enemies/walk/` に配置しています。ゲーム内では `enemyWalkFrameKey(enemy)` が移動距離に応じて 1〜4 フレームを切り替えます。
 
 | ゲーム内定義 | 画像キー | ファイル |
 |---|---|---|
-| enemy.grunt.walk | enemyGruntWalk1〜4 | enemies/walk/enemy_grunt_walk_1.png〜4.png |
-| enemy.runner.walk | enemyRunnerWalk1〜4 | enemies/walk/enemy_runner_walk_1.png〜4.png |
-| enemy.brute.walk | enemyBruteWalk1〜4 | enemies/walk/enemy_brute_walk_1.png〜4.png |
-| enemy.shield.walk | enemyShieldWalk1〜4 | enemies/walk/enemy_shield_walk_1.png〜4.png |
-| enemy.saboteur.walk | enemySaboteurWalk1〜4 | enemies/walk/enemy_saboteur_walk_1.png〜4.png |
-| enemy.bomber.walk | enemyBomberWalk1〜4 | enemies/walk/enemy_bomber_walk_1.png〜4.png |
-| enemy.shaman.walk | enemyShamanWalk1〜4 | enemies/walk/enemy_shaman_walk_1.png〜4.png |
-| enemy.siege.walk | enemySiegeWalk1〜4 | enemies/walk/enemy_siege_walk_1.png〜4.png |
-| enemy.warlord.walk | enemyWarlordWalk1〜4 | enemies/walk/enemy_warlord_walk_1.png〜4.png |
-| enemy.overlord.walk | enemyOverlordWalk1〜4 | enemies/walk/enemy_overlord_walk_1.png〜4.png |
 
-歩行フレームが読み込めない場合は、従来の `enemyGrunt` などの静止画像へフォールバックします。
 
 ## v1.8.0 兵士攻撃モーション
 

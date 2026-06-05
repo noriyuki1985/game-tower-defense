@@ -26,6 +26,7 @@
       this.images = loadGameImages();
       this.resultFx = null;
       this.message = '開始を押してください。';
+      this.notice = { text: '', kind: 'info', life: 0, priority: 0 };
       this.save = loadSave();
       this.selectedStage = this.save.selectedStage || 'meadow';
       this.selectedDifficulty = this.save.selectedDifficulty || 'normal';
@@ -109,6 +110,7 @@
       this.time = 0;
       this.flash = 0;
       this.routeAlert = { text: '', life: 0, route: 'main' };
+      this.notice = { text: '', kind: 'info', life: 0, priority: 0 };
       this.resultFx = null;
       this.hintTimer = 0;
       this.upgradeChoice = null;
@@ -118,6 +120,18 @@
       this.updateCamera(true);
       this.message = 'まず近くの弓塔・柵・金鉱を見比べ、0.6秒滞在して投資してください。';
       this.updateHud();
+    }
+
+    setNotice(text, kind = 'info', life = 2400, priority = 1) {
+      if (!text) return;
+      const current = this.notice || { life: 0, priority: 0 };
+      if (current.life > 0 && current.priority > priority) return;
+      this.notice = { text, kind, life, priority };
+      this.message = text;
+    }
+
+    setMessage(text, kind = 'info', priority = 1) {
+      this.setNotice(text, kind, 2300, priority);
     }
 
     stageKey() {
@@ -1115,6 +1129,7 @@
       this.castle.hit = Math.max(0, this.castle.hit - dt);
       this.wave.banner = Math.max(0, this.wave.banner - dt);
       this.routeAlert.life = Math.max(0, this.routeAlert.life - dt);
+      if (this.notice) this.notice.life = Math.max(0, (this.notice.life || 0) - dt);
       this.king.invuln = Math.max(0, this.king.invuln - dt);
       this.king.stunned = Math.max(0, this.king.stunned - dt);
 
@@ -1293,6 +1308,32 @@
       return best;
     }
 
+
+    distanceToRouteSet(x, y, routes) {
+      let best = Infinity;
+      for (const route of routes || []) {
+        const path = this.routePath ? this.routePath(route) : [];
+        for (let i = 1; i < path.length; i += 1) {
+          const a = path[i - 1];
+          const b = path[i];
+          const denom = ((b.x - a.x) ** 2 + (b.y - a.y) ** 2) || 1;
+          const t = clamp(((x - a.x) * (b.x - a.x) + (y - a.y) * (b.y - a.y)) / denom, 0, 1);
+          const px = a.x + (b.x - a.x) * t;
+          const py = a.y + (b.y - a.y) * t;
+          best = Math.min(best, distXY(x, y, px, py));
+        }
+      }
+      return best;
+    }
+
+    nearNextWaveRoute(x, y, radius = 96) {
+      if (!this.waves || !this.wave) return false;
+      const next = this.wave.active ? this.waves[this.wave.index] : this.waves[this.wave.index + 1];
+      if (!next || !next.groups) return false;
+      const routes = Array.from(new Set(next.groups.map((g) => g.route || 'main')));
+      return this.distanceToRouteSet(x, y, routes) <= radius;
+    }
+
     padStrategicScore(pad) {
       const def = C.facilityTypes[pad.type];
       if (!pad || !def || (this.isPadVisible && !this.isPadVisible(pad))) return { score: 0, grade: '', reason: '' };
@@ -1410,7 +1451,7 @@
       $('speedButton').textContent = `${this.speed}x`;
       if ($('mobilePauseButton')) $('mobilePauseButton').textContent = this.paused ? '再開' : '一時停止';
       if ($('mobileSpeedButton')) $('mobileSpeedButton').textContent = `${this.speed}x`;
-      $('guideText').textContent = this.message;
+      $('guideText').textContent = (this.notice && this.notice.life > 0) ? this.notice.text : this.message;
     }
 
     showOverlay(title, text, button, resultType = '') {

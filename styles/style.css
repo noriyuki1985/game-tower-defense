@@ -709,3 +709,53 @@ body.mobile-menu-open {
   .tutorial-list { padding: 10px; gap: 5px; }
   .tutorial-list p { font-size: 12px; line-height: 1.35; margin-bottom: 0; }
 }
+
+
+/* v3.0.0: start-first title screen and safer mobile text layout */
+.overlay-card {
+  max-height: min(86dvh, 640px);
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, auto);
+  gap: 10px;
+}
+.overlay-summary {
+  margin-bottom: 4px !important;
+  font-size: 15px;
+}
+.start-primary {
+  width: 100%;
+  min-height: 52px;
+  font-size: 19px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.tutorial-details {
+  text-align: left;
+  max-height: 230px;
+  overflow: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.tutorial-details summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 900;
+  text-align: center;
+  list-style-position: inside;
+}
+.tutorial-list p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .overlay { padding: 14px; align-items: start; padding-top: calc(env(safe-area-inset-top, 0px) + 68px); }
+  .overlay-card { width: 100%; padding: 16px; gap: 8px; }
+  .overlay-card h2 { font-size: 24px; margin-bottom: 0; }
+  .overlay-summary { font-size: 14px; line-height: 1.42; }
+  .start-primary { min-height: 56px; font-size: 20px; }
+  .tutorial-details { max-height: 190px; }
+  .tutorial-list p { font-size: 12px; }
+}

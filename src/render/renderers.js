@@ -658,10 +658,12 @@
         ctx.beginPath();
         ctx.arc(0, -2, nearKing ? 27 : 23, 0, Math.PI * 2);
         ctx.stroke();
+        const iconText = this.facilityIcon ? this.facilityIcon(pad.type) : (def.name || '?').slice(0, 1);
+        const showNameLabel = iconText !== def.name;
         ctx.fillStyle = locked ? '#c3c7bd' : '#fff4c8';
         ctx.font = nearKing ? '900 18px system-ui' : '900 15px system-ui';
         ctx.textAlign = 'center';
-        ctx.fillText(this.facilityIcon ? this.facilityIcon(pad.type) : (def.name || '?').slice(0, 1), 0, 3);
+        ctx.fillText(iconText, 0, 3);
         if (!locked && this.padStrategicScore) {
           const rec = this.padStrategicScore(pad);
           if (rec && rec.grade) {
@@ -717,18 +719,22 @@
             ctx.font = '900 15px system-ui';
             ctx.strokeStyle = 'rgba(0,0,0,0.60)';
             ctx.lineWidth = 4;
-            const label = locked ? `${def.name} 未解放` : def.name;
-            ctx.strokeText(label, 0, -33);
-            ctx.fillText(label, 0, -33);
+            if (locked || showNameLabel) {
+              const label = locked ? `${def.name} 未解放` : def.name;
+              ctx.strokeText(label, 0, -33);
+              ctx.fillText(label, 0, -33);
+            }
             ctx.font = '900 11px system-ui';
             const role = this.facilityShortText ? this.facilityShortText(pad.type).slice(0, 12) : '';
             ctx.strokeText(role, 0, -48);
             ctx.fillText(role, 0, -48);
           }
         } else {
-          ctx.fillStyle = locked ? '#c3c7bd' : '#fff0bb';
-          ctx.font = '700 10px system-ui';
-          ctx.fillText(locked ? '未解放' : def.name, 0, -5);
+          if (locked || showNameLabel) {
+            ctx.fillStyle = locked ? '#c3c7bd' : '#fff0bb';
+            ctx.font = '700 10px system-ui';
+            ctx.fillText(locked ? '未解放' : def.name, 0, -5);
+          }
           ctx.fillStyle = locked ? '#d8d8d8' : '#ffd35b';
           ctx.font = '800 12px system-ui';
           ctx.fillText(locked ? `領土 ${pad.territory}` : `${Math.ceil(def.cost - pad.invested)}`, 0, 14);

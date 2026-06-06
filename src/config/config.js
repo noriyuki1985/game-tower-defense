@@ -396,7 +396,7 @@
     wall: { category: 'defense', icon: '壁', short: '高耐久の防衛線', timing: '敵が漏れる道や終盤の前線維持に使う。' },
     archer: { category: 'attack', icon: '弓', short: '安定遠距離火力', timing: '最初の火力。道を長く撃てる場所が強い。' },
     cannon: { category: 'attack', icon: '砲', short: '範囲火力', timing: '群れが増える中盤から価値が上がる。' },
-    barracks: { category: 'support', icon: '兵', short: '兵士で足止め', timing: '壁だけで止まらない時に道の脇へ置く。' },
+    barracks: { category: 'support', icon: '兵舎', short: '兵士で足止め', timing: '壁だけで止まらない時に道の脇へ置く。' },
     mine: { category: 'economy', icon: '金', short: '定期収入', timing: '早いほど得。ただし防衛が薄いと損をする。' },
     repair: { category: 'support', icon: '修', short: '周辺施設を修理', timing: '壁・砲台が集中する防衛線の後ろへ。' },
     trap: { category: 'defense', icon: '罠', short: '一撃と鈍足', timing: '敵が密集して通る細い道に置く。' },
@@ -530,7 +530,7 @@
 (function () {
   'use strict';
 
-  const ASSET_VERSION = 'v3.2.1';
+  const ASSET_VERSION = 'v3.2.3';
 
   const ASSET_MANIFEST = {
     kingIdle: 'assets/images/king/king_idle.png',

@@ -1114,11 +1114,18 @@
     }
 
     loop(t) {
-      const rawDt = Math.min(50, t - this.last);
-      this.last = t;
-      const dt = rawDt * (this.status === 'playing' && !this.paused ? this.speed : 1);
-      if (this.status === 'playing' && !this.paused) this.update(dt);
-      this.render();
+      try {
+        const rawDt = Math.min(50, t - this.last);
+        this.last = t;
+        const dt = rawDt * (this.status === 'playing' && !this.paused ? this.speed : 1);
+        if (this.status === 'playing' && !this.paused) this.update(dt);
+        this.render();
+      } catch (error) {
+        console.error('[Game Loop Error]', error);
+        this.paused = true;
+        this.message = 'エラーが発生しました。再読み込みしてください。';
+        this.showNotice && this.showNotice('表示エラー。再読み込みしてください', 'danger', 1800, 9);
+      }
       requestAnimationFrame((n) => this.loop(n));
     }
 
@@ -1502,7 +1509,17 @@
   Object.defineProperties(Game.prototype, window.KBD_RENDERER_DESCRIPTORS);
 
   window.addEventListener('DOMContentLoaded', () => {
-    const game = new Game($('gameCanvas'));
-    window.__kingBuilderDefense = game;
+    try {
+      const game = new Game($('gameCanvas'));
+      window.__kingBuilderDefense = game;
+    } catch (error) {
+      console.error('[Boot Error]', error);
+      const overlay = $('overlay');
+      const title = $('overlayTitle');
+      const text = $('overlayText');
+      if (title) title.textContent = '起動エラー';
+      if (text) text.textContent = 'ゲームの起動に失敗しました。ページを再読み込みしてください。';
+      if (overlay) overlay.classList.remove('is-hidden');
+    }
   });
 })();

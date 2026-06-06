@@ -336,6 +336,64 @@
     }
 
 
+    drawMapDesignGuides(ctx, theme) {
+      const key = this.stage ? this.stage.key : 'meadow';
+      const chokepoints = (C.routeChokepoints && C.routeChokepoints[key]) || [];
+      const trails = (C.mapGuideTrails && C.mapGuideTrails[key]) || [];
+      const categoryColors = C.categoryColors || {};
+      ctx.save();
+      for (const trail of trails) {
+        const pts = trail.points || [];
+        if (pts.length < 2) continue;
+        const color = categoryColors[trail.kind] || 'rgba(255, 236, 158, 0.55)';
+        ctx.globalAlpha = 0.36;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 7;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.setLineDash([12, 14]);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const last = pts[pts.length - 1];
+        ctx.globalAlpha = 0.72;
+        ctx.fillStyle = color;
+        ctx.font = '900 15px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText((trail.label || '').slice(0, 8), last.x, last.y - 18);
+      }
+      for (const cp of chokepoints) {
+        const color = categoryColors.defense || '#ff6b5e';
+        const pulse = 0.5 + 0.5 * Math.sin((this.time || 0) * 0.004 + cp.x * 0.01);
+        ctx.globalAlpha = 0.12 + pulse * 0.08;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(cp.x, cp.y, cp.r || 64, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.42;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 8]);
+        ctx.beginPath();
+        ctx.arc(cp.x, cp.y, cp.r || 64, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 0.78;
+        ctx.fillStyle = 'rgba(18, 20, 16, 0.72)';
+        rounded(ctx, cp.x - 36, cp.y - 15, 72, 24, 8);
+        ctx.fill();
+        ctx.fillStyle = '#fff0bb';
+        ctx.font = '900 13px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText((cp.label || '').slice(0, 5), cp.x, cp.y + 2);
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+
     drawUpcomingRoutePreview(ctx) {
       if (!this.wave || this.wave.active || this.wave.index < -1) return;
       const next = this.waves && this.waves[this.wave.index + 1];

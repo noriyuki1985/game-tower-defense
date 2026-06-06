@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>王国防衛 v3.2.0</title>
+  <title>王国防衛 v3.2.1</title>
   <link rel="stylesheet" href="styles/style.css">
 </head>
 <body>
@@ -19,7 +19,7 @@
       <div class="title-row">
         <div>
           <h1>王国防衛</h1>
-          <p>v3.2.0 / マップ改善版</p>
+          <p>v3.2.1 / マップ改善・起動修正版</p>
         </div>
         <div class="panel-actions">
           <button id="mobilePanelCloseButton" class="panel-close" type="button" aria-label="メニューを閉じる">閉じる</button>
@@ -77,7 +77,7 @@
       </div>
 
       <div class="legend-box small">
-        <p><b>v3.2.0:</b> バグ修正、敵画像安定化、道・防衛線・開拓導線を整理しました。</p>
+        <p><b>v3.2.1:</b> バグ修正、敵画像安定化、道・防衛線・開拓導線を整理しました。</p>
         <p><b>移動:</b> WASD / 矢印キー / クリック / タップ</p>
         <p><b>一時停止:</b> Space</p>
         <p><b>速度変更:</b> F</p>
@@ -121,20 +121,14 @@
     </section>
   </main>
 
-  <script src="src/config/game-data.js"></script>
-  <script src="src/config/assets.js"></script>
+  <script src="src/config/config.js"></script>
   <script src="src/utils/helpers.js"></script>
-  <script src="src/core/save.js"></script>
+  <script src="src/core/core.js"></script>
   <script src="src/render/renderers.js"></script>
-  <script src="src/systems/effect-system.js"></script>
-  <script src="src/systems/king-system.js"></script>
-  <script src="src/systems/wave-system.js"></script>
-  <script src="src/systems/enemy-system.js"></script>
-  <script src="src/systems/facility-system.js"></script>
-  <script src="src/systems/soldier-system.js"></script>
-  <script src="src/systems/projectile-system.js"></script>
-  <script src="src/systems/build-system.js"></script>
-  <script src="src/systems/end-system.js"></script>
+  <script src="src/systems/actor-systems.js"></script>
+  <script src="src/systems/combat-systems.js"></script>
+  <script src="src/systems/world-systems.js"></script>
+  <script src="src/systems/progression-systems.js"></script>
   <script src="src/game.js"></script>
 </body>
 </html>

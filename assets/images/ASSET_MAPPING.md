@@ -1,4 +1,4 @@
-# 画像アセット対応表 v1.9.0
+# 画像アセット対応表 v3.5.0
 
 ゲーム内の定義名と画像ファイル名の対応を明示しています。
 命名ルールは `カテゴリ_対象_分岐.png` です。
@@ -41,8 +41,8 @@
 | 修理小屋/工房 | buildingRepairHutWorkshop | buildings/upgrades/building_repair_hut_workshop.png |
 | 棘罠/鋭利な罠 | buildingSpikeTrapBarbed | buildings/upgrades/building_spike_trap_barbed.png |
 | 棘罠/氷結罠 | buildingSpikeTrapFrost | buildings/upgrades/building_spike_trap_frost.png |
-| 軍旗/士気の旗 | buildingWarBannerMorale | buildings/upgrades/building_war_banner_morale.png |
-| 軍旗/指揮の旗 | buildingWarBannerCommand | buildings/upgrades/building_war_banner_command.png |
+| 指揮所/攻撃号令 | buildingWarBannerMorale | buildings/upgrades/building_war_banner_morale.png |
+| 指揮所/見張り号令 | buildingWarBannerCommand | buildings/upgrades/building_war_banner_command.png |
 | 狼煙台/見張り火 | buildingSignalBeaconScout | buildings/upgrades/building_signal_beacon_scout.png |
 | 狼煙台/集結火 | buildingSignalBeaconRally | buildings/upgrades/building_signal_beacon_rally.png |
 
@@ -96,7 +96,7 @@
 `v1.8.0` 時点で実際に兵舎から出る主な兵士は `militia` / `shield` / `spear` です。`archer` / `engineer` は今後の兵士追加に備えて同じ命名規則で用意しています。
 
 
-## 王アニメーション v1.9.0
+## 王アニメーション v3.5.0
 
 | ゲーム内定義 | 画像キー | ファイル |
 |---|---|---|
@@ -108,3 +108,26 @@
 | 王 run frame 4 | kingRunFrame4 | king/run/king_run_4.png |
 | 王 被弾 | kingHurt | king/king_hurt.png |
 | 王 気絶 | kingDown | king/king_down.png |
+
+
+## v3.5.0 中核5建物 レベル別画像
+
+| 建物 | Lv1 青 | Lv2 緑 | Lv3 黄 | Lv4 赤 |
+|---|---|---|---|---|
+| 柵 | buildingPalisadeLv1 / buildings/levels/building_palisade_lv1.png | buildingPalisadeLv2 / buildings/levels/building_palisade_lv2.png | buildingPalisadeLv3 / buildings/levels/building_palisade_lv3.png | buildingPalisadeLv4 / buildings/levels/building_palisade_lv4.png |
+| 弓塔 | buildingArcherTowerLv1 / buildings/levels/building_archer_tower_lv1.png | buildingArcherTowerLv2 / buildings/levels/building_archer_tower_lv2.png | buildingArcherTowerLv3 / buildings/levels/building_archer_tower_lv3.png | buildingArcherTowerLv4 / buildings/levels/building_archer_tower_lv4.png |
+| 大砲 | buildingCannonLv1 / buildings/levels/building_cannon_lv1.png | buildingCannonLv2 / buildings/levels/building_cannon_lv2.png | buildingCannonLv3 / buildings/levels/building_cannon_lv3.png | buildingCannonLv4 / buildings/levels/building_cannon_lv4.png |
+| 兵舎 | buildingBarracksLv1 / buildings/levels/building_barracks_lv1.png | buildingBarracksLv2 / buildings/levels/building_barracks_lv2.png | buildingBarracksLv3 / buildings/levels/building_barracks_lv3.png | buildingBarracksLv4 / buildings/levels/building_barracks_lv4.png |
+| 金鉱 | buildingGoldMineLv1 / buildings/levels/building_gold_mine_lv1.png | buildingGoldMineLv2 / buildings/levels/building_gold_mine_lv2.png | buildingGoldMineLv3 / buildings/levels/building_gold_mine_lv3.png | buildingGoldMineLv4 / buildings/levels/building_gold_mine_lv4.png |
+
+- Lv1 は青基調、Lv2 は緑基調、Lv3 は黄基調、Lv4 は赤基調。
+- 通常マップではこの5建物のみを使用する。
+- 分岐強化画像は現時点では通常マップの主導線では使用しない。
+
+
+## v3.5.0 Lv別建物画像
+
+- 柵・弓塔・大砲・兵舎・金鉱は Lv1〜Lv4 の画像を使用します。
+- Lv1=青、Lv2=緑、Lv3=黄、Lv4=赤。
+- 対象画像は `assets/images/buildings/levels/` に配置します。
+- 通常マップではこの5建物だけを建設対象にします。

@@ -37,31 +37,15 @@
 
     facilityAssetKey(f) {
       const type = typeof f === 'string' ? f : f.type;
-      const branch = typeof f === 'string' ? null : f.branch;
-      const level = typeof f === 'string' ? 1 : f.level;
-      const branchAssets = {
-        palisade: { thorns: 'buildingPalisadeThorns', reinforced: 'buildingPalisadeReinforced' },
-        wall: { bastion: 'buildingStoneWallBastion', gate: 'buildingStoneWallGate' },
-        archer: { longbow: 'buildingArcherTowerLongbow', rapid: 'buildingArcherTowerRapid' },
-        cannon: { heavy: 'buildingCannonHeavy', scatter: 'buildingCannonScatter' },
-        barracks: { shield: 'buildingBarracksShield', spear: 'buildingBarracksSpear' },
-        mine: { tax: 'buildingGoldMineTax', vault: 'buildingGoldMineVault' },
-        repair: { fieldwork: 'buildingRepairHutFieldwork', workshop: 'buildingRepairHutWorkshop' },
-        trap: { barbed: 'buildingSpikeTrapBarbed', frost: 'buildingSpikeTrapFrost' },
-        banner: { morale: 'buildingWarBannerMorale', command: 'buildingWarBannerCommand' },
-        beacon: { scout: 'buildingSignalBeaconScout', rally: 'buildingSignalBeaconRally' }
+      const level = Math.max(1, Math.min(4, typeof f === 'string' ? 1 : (f.level || 1)));
+      const coreLevelAssets = {
+        palisade: `buildingPalisadeLv${level}`,
+        archer: `buildingArcherTowerLv${level}`,
+        cannon: `buildingCannonLv${level}`,
+        barracks: `buildingBarracksLv${level}`,
+        mine: `buildingGoldMineLv${level}`
       };
-      if (branch && branchAssets[type] && branchAssets[type][branch]) return branchAssets[type][branch];
-      if (level >= 2) {
-        const levelAssets = {
-          village: 'buildingVillageLv2',
-          market: 'buildingMarketLv2',
-          outpost: 'buildingOutpostLv2',
-          training: 'buildingTrainingYard',
-          keep: 'buildingRoyalKeepLv2'
-        };
-        if (levelAssets[type]) return levelAssets[type];
-      }
+      if (coreLevelAssets[type] && this.imageReady(coreLevelAssets[type])) return coreLevelAssets[type];
       return {
         palisade: 'buildingPalisade',
         wall: 'buildingStoneWall',
@@ -79,6 +63,15 @@
         training: 'buildingBarracks',
         keep: 'buildingRoyalKeep'
       }[type];
+    }
+
+    facilityLevelColor(level) {
+      return (C.levelColors && C.levelColors[level]) || '#fff3a3';
+    }
+
+    facilityMaxLevel(type) {
+      const def = C.facilityTypes[type];
+      return (def && def.maxLevel) || 3;
     }
 
     facilityAssetSize(type) {
@@ -279,22 +272,20 @@
         else this.drawTree(ctx, x, y, 0.72 + (i % 3) * 0.12);
       }
 
-      const main = this.routePath('main');
-      const side = this.routePath('side');
+      const stagePaths = (C.stagePaths && C.stagePaths[key]) || {};
+      const routeKeys = Object.keys(stagePaths).length ? Object.keys(stagePaths) : ['main', 'side'];
+      const routePaths = routeKeys.map((route) => this.routePath(route)).filter((path) => path && path.length >= 2);
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.strokeStyle = theme.roadOuter;
       ctx.lineWidth = key === 'pass' ? 48 : 56;
-      this.drawPathLine(ctx, main);
-      this.drawPathLine(ctx, side);
+      for (const path of routePaths) this.drawPathLine(ctx, path);
       ctx.strokeStyle = theme.roadInner;
       ctx.lineWidth = key === 'pass' ? 32 : 40;
-      this.drawPathLine(ctx, main);
-      this.drawPathLine(ctx, side);
+      for (const path of routePaths) this.drawPathLine(ctx, path);
       ctx.strokeStyle = 'rgba(90,59,34,0.25)';
       ctx.lineWidth = 2;
-      this.drawPathLine(ctx, main);
-      this.drawPathLine(ctx, side);
+      for (const path of routePaths) this.drawPathLine(ctx, path);
       this.drawUpcomingRoutePreview(ctx);
       this.drawRaidTrails(ctx, theme);
       this.drawMapDesignGuides(ctx, theme);
@@ -505,7 +496,11 @@
 
     distanceToPath(x, y) {
       let best = Infinity;
-      for (const path of [this.routePath('main'), this.routePath('side')]) {
+      const stagePaths = (C.stagePaths && C.stagePaths[this.stageKey && this.stageKey()]) || C.stagePaths.meadow || {};
+      const routes = Object.keys(stagePaths).length ? Object.keys(stagePaths) : ['main', 'side'];
+      for (const route of routes) {
+        const path = this.routePath(route);
+        if (!path || path.length < 2) continue;
         for (let i = 1; i < path.length; i += 1) {
           const a = path[i - 1];
           const b = path[i];
@@ -786,7 +781,25 @@
         const popScale = 1 + buildT * 0.12 + fireT * 0.06 + spawnT * 0.07;
         const recoil = fireT ? -Math.sin(fireT * Math.PI) * (f.type === 'cannon' ? 7 : 4) : 0;
         const floatY = (f.economy || f.aura) ? Math.sin(this.time * 0.003 + f.x) * 1.3 : 0;
-        const usedAsset = assetKey && this.drawAssetAnimated(ctx, assetKey, f.x + Math.cos(f.fireAngle || -Math.PI / 2) * recoil, f.y + floatY, assetSize[0] * baseScale * popScale, assetSize[1] * baseScale * popScale, { yOffset: f.type === 'trap' ? 6 : -4 });
+        const levelColor = this.facilityLevelColor(f.level || 1);
+        const levelFlashT = clamp((f.levelFlash || 0) / 900, 0, 1);
+        if (levelFlashT > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.20 + levelFlashT * 0.42;
+          ctx.strokeStyle = levelColor;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y - 4, 38 + (1 - levelFlashT) * 30, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 0.10 + levelFlashT * 0.18;
+          ctx.fillStyle = levelColor;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y - 4, 30 + (1 - levelFlashT) * 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        const blinkVisible = levelFlashT <= 0 || Math.floor(this.time / 90) % 2 === 0;
+        const usedAsset = blinkVisible && assetKey && this.drawAssetAnimated(ctx, assetKey, f.x + Math.cos(f.fireAngle || -Math.PI / 2) * recoil, f.y + floatY, assetSize[0] * baseScale * popScale, assetSize[1] * baseScale * popScale, { yOffset: f.type === 'trap' ? 6 : -4 });
         if (!usedAsset) {
           if (f.type === 'palisade') this.drawPalisade(ctx, f);
           else if (f.type === 'wall') this.drawWall(ctx, f);
@@ -822,14 +835,17 @@
         }
         this.drawFacilityAttackOverlay(ctx, f, fireT, workT, spawnT);
         this.drawBar(ctx, f.x - 24, f.y + 30, 48, 5, f.hp / f.maxHp, '#86e3a0');
-        ctx.fillStyle = '#fff4d0';
-        ctx.font = '800 10px system-ui';
+        ctx.fillStyle = levelColor;
+        ctx.font = '900 10px system-ui';
         ctx.textAlign = 'center';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.strokeText(`Lv.${f.level}`, f.x, f.y + 44);
         ctx.fillText(`Lv.${f.level}`, f.x, f.y + 44);
         const pad = this.pads.find((p) => p.facilityId === f.id);
-        if (pad && f.level < 3 && pad.upgradeInvested > 0) {
+        if (pad && f.level < this.facilityMaxLevel(f.type) && pad.upgradeInvested > 0) {
           const need = this.getUpgradeNeed(f);
-          this.drawBar(ctx, f.x - 25, f.y + 50, 50, 5, pad.upgradeInvested / need, '#ffd35b');
+          this.drawBar(ctx, f.x - 25, f.y + 50, 50, 5, pad.upgradeInvested / need, this.facilityLevelColor((f.level || 1) + 1));
         }
         ctx.restore();
       }
@@ -1813,7 +1829,9 @@
       const theme = this.stageTheme ? this.stageTheme() : null;
       ctx.strokeStyle = theme ? theme.roadInner : 'rgba(210, 170, 105, 0.8)';
       ctx.lineWidth = expanded ? 3 : 2;
-      for (const route of ['main', 'side']) {
+      const stagePathsForMini = (C.stagePaths && C.stagePaths[this.stageKey && this.stageKey()]) || C.stagePaths.meadow || {};
+      const routesForMini = Object.keys(stagePathsForMini).length ? Object.keys(stagePathsForMini) : ['main', 'side'];
+      for (const route of routesForMini) {
         const path = this.routePath ? this.routePath(route) : [];
         if (!path || path.length < 2) continue;
         ctx.beginPath();
@@ -1944,7 +1962,7 @@
       ctx.fillStyle = 'rgba(255, 244, 214, 0.88)';
       ctx.font = expanded ? '800 12px system-ui' : '800 9px system-ui';
       ctx.textAlign = 'left';
-      const legend = expanded ? '青:王  緑:城/施設  赤:敵/襲撃  黄:床/損傷' : '青:王 赤:敵 黄:拠点';
+      const legend = expanded ? '青:主人公  緑:防衛都市/施設  赤:敵  黄:床/損傷' : '青:主人公 赤:敵 黄:床';
       ctx.fillText(legend, x + 9, y + mapH - (expanded ? 8 : 9));
       ctx.restore();
     }
@@ -1992,6 +2010,33 @@
       return this.facilityMeta(type).timing || this.facilityRoleText(type);
     }
 
+    facilityUpgradeDeltaText(type, fromLevel) {
+      const def = C.facilityTypes[type];
+      if (!def || !def.levelStats) return '';
+      const toLevel = Math.min((def.maxLevel || 4), (fromLevel || 1) + 1);
+      const cur = def.levelStats[fromLevel] || {};
+      const next = def.levelStats[toLevel] || {};
+      const labels = [];
+      const addDelta = (key, label, lowerBetter = false) => {
+        if (cur[key] == null || next[key] == null || cur[key] === next[key]) return;
+        const diff = next[key] - cur[key];
+        const better = lowerBetter ? diff < 0 : diff > 0;
+        if (!better) return;
+        labels.push(`${label}${lowerBetter ? Math.abs(diff) : `+${diff}`}`);
+      };
+      addDelta('hp', '耐久');
+      addDelta('damage', '攻撃');
+      addDelta('range', '射程');
+      addDelta('splash', '爆風');
+      addDelta('blockRadius', '足止め');
+      addDelta('income', '収入');
+      addDelta('cooldown', '連射', true);
+      addDelta('spawnTime', '出撃', true);
+      addDelta('incomeTime', '収入間隔', true);
+      const hint = C.facilityUpgradeHints && C.facilityUpgradeHints[type] && C.facilityUpgradeHints[type][toLevel];
+      return hint || labels.slice(0, 3).join(' / ');
+    }
+
     facilityRoleText(type) {
       return this.facilityShortText(type);
     }
@@ -2007,7 +2052,7 @@
       const compact = this.isMobileView && this.isMobileView();
       const mini = compact && this.miniMapBounds ? this.miniMapBounds() : null;
       const w = compact ? Math.min(320, Math.max(270, (mini ? mini.x - 24 : 320))) : 302;
-      const h = compact ? 146 : 134;
+      const h = compact ? 168 : 154;
       const x = compact ? 12 : C.w - w - 14;
       const y = compact ? 548 : C.h - h - 18;
       const categoryColor = this.facilityCategoryColor(pad.type);
@@ -2031,9 +2076,12 @@
       ctx.fillText(icon, x + (compact ? 41 : 37), y + (compact ? 49 : 43));
 
       ctx.textAlign = 'left';
-      ctx.fillStyle = locked ? '#d7d7d7' : '#ffd35b';
+      const currentLevel = existing ? existing.level : 1;
+      const maxLevel = this.facilityMaxLevel(pad.type);
+      const currentLevelColor = this.facilityLevelColor(currentLevel);
+      ctx.fillStyle = locked ? '#d7d7d7' : currentLevelColor;
       ctx.font = compact ? '900 22px system-ui' : '900 18px system-ui';
-      const title = existing ? `${def.name} Lv.${existing.level}` : def.name;
+      const title = existing ? `${def.name} Lv.${existing.level}${existing.level >= maxLevel ? ' MAX' : ''}` : `${def.name} Lv.1`;
       ctx.fillText(title, x + (compact ? 78 : 70), y + (compact ? 31 : 28));
       ctx.fillStyle = categoryColor;
       ctx.font = compact ? '900 13px system-ui' : '800 12px system-ui';
@@ -2041,23 +2089,33 @@
 
       ctx.fillStyle = '#fff0bb';
       ctx.font = compact ? '900 18px system-ui' : '800 15px system-ui';
-      const need = existing ? (existing.level >= 3 ? 0 : this.getUpgradeNeed(existing)) : def.cost;
+      const need = existing ? (existing.level >= maxLevel ? 0 : this.getUpgradeNeed(existing)) : def.cost;
       const current = existing ? pad.upgradeInvested : pad.invested;
-      const costText = locked ? `領土${pad.territory}が必要` : existing && existing.level >= 3 ? '最大Lv' : `残り ${Math.max(0, Math.ceil(need - current))} コイン`;
+      const nextLevel = existing ? Math.min(maxLevel, existing.level + 1) : 1;
+      const nextColor = this.facilityLevelColor(nextLevel);
+      const nextColorName = (C.levelColorNames && C.levelColorNames[nextLevel]) || '';
+      const costText = locked ? `領土${pad.territory}が必要` : existing && existing.level >= maxLevel ? 'Lv4 MAX / 最終強化' : `次: Lv.${nextLevel} ${nextColorName} / 残り ${Math.max(0, Math.ceil(need - current))} コイン`;
+      ctx.fillStyle = existing && existing.level < maxLevel ? nextColor : '#fff0bb';
       ctx.fillText(costText, x + 16, y + (compact ? 82 : 72));
+      if (existing && existing.level < maxLevel) {
+        ctx.fillStyle = nextColor;
+        ctx.font = compact ? '900 13px system-ui' : '900 12px system-ui';
+        const delta = this.facilityUpgradeDeltaText ? this.facilityUpgradeDeltaText(pad.type, existing.level) : '';
+        ctx.fillText(`強化効果: ${delta}`.slice(0, compact ? 34 : 40), x + 16, y + (compact ? 106 : 94));
+      }
       ctx.fillStyle = '#d6f2a3';
       ctx.font = compact ? '800 13px system-ui' : '800 12px system-ui';
       const timing = this.facilityTimingText(pad.type);
-      ctx.fillText(timing.slice(0, compact ? 28 : 34), x + 16, y + (compact ? 108 : 94));
+      ctx.fillText(timing.slice(0, compact ? 30 : 38), x + 16, y + (compact ? 130 : 116));
       if (this.padStrategicAdvice && !locked && !existing) {
         const advice = this.padStrategicAdvice(pad);
         if (advice) {
           ctx.fillStyle = '#fff3a3';
           ctx.font = compact ? '900 14px system-ui' : '900 12px system-ui';
-          ctx.fillText(`判断: ${advice}`.slice(0, compact ? 30 : 38), x + 16, y + (compact ? 130 : 114));
+          ctx.fillText(`判断: ${advice}`.slice(0, compact ? 30 : 38), x + 16, y + (compact ? 152 : 136));
         }
       }
-      if (!locked && !(existing && existing.level >= 3)) {
+      if (!locked && !(existing && existing.level >= maxLevel)) {
         const holdNeed = C.buildHoldTime || 620;
         const holdProgress = Math.max(0, Math.min(1, (pad.holdTime || 0) / holdNeed));
         ctx.fillStyle = 'rgba(255,255,255,0.10)';
@@ -2200,7 +2258,7 @@
 
       const cards = [
         { icon: 'uiCoin', label: '金', value: Math.floor(this.king.coins), x: 22 },
-        { icon: 'uiHeart', label: '王', value: `${Math.ceil(this.king.hp)}`, x: 128 },
+        { icon: 'uiHeart', label: '主人公', value: `${Math.ceil(this.king.hp)}`, x: 128 },
         { icon: 'uiCastleHp', label: '城', value: `${Math.max(0, Math.ceil(this.castle.hp))}`, x: 234 },
         { icon: 'uiWarning', label: '進軍', value: `${this.wave.index < 0 ? 0 : this.wave.index + 1}/${this.waves.length}`, x: 340 }
       ];

@@ -1,5 +1,5 @@
 {
-  "version": "1.9.0",
+  "version": "3.5.0",
   "game_definition_to_asset_key": {
     "king.idle": "kingIdle",
     "king.run_1": "kingRun1",
@@ -89,7 +89,27 @@
     "king.run_frame_3": "kingRunFrame3",
     "king.run_frame_4": "kingRunFrame4",
     "king.hurt": "kingHurt",
-    "king.down": "kingDown"
+    "king.down": "kingDown",
+    "facility.palisade.lv1": "buildingPalisadeLv1",
+    "facility.palisade.lv2": "buildingPalisadeLv2",
+    "facility.palisade.lv3": "buildingPalisadeLv3",
+    "facility.palisade.lv4": "buildingPalisadeLv4",
+    "facility.archer.lv1": "buildingArcherTowerLv1",
+    "facility.archer.lv2": "buildingArcherTowerLv2",
+    "facility.archer.lv3": "buildingArcherTowerLv3",
+    "facility.archer.lv4": "buildingArcherTowerLv4",
+    "facility.cannon.lv1": "buildingCannonLv1",
+    "facility.cannon.lv2": "buildingCannonLv2",
+    "facility.cannon.lv3": "buildingCannonLv3",
+    "facility.cannon.lv4": "buildingCannonLv4",
+    "facility.barracks.lv1": "buildingBarracksLv1",
+    "facility.barracks.lv2": "buildingBarracksLv2",
+    "facility.barracks.lv3": "buildingBarracksLv3",
+    "facility.barracks.lv4": "buildingBarracksLv4",
+    "facility.mine.lv1": "buildingGoldMineLv1",
+    "facility.mine.lv2": "buildingGoldMineLv2",
+    "facility.mine.lv3": "buildingGoldMineLv3",
+    "facility.mine.lv4": "buildingGoldMineLv4"
   },
   "animation": {
     "enemy.display": {
@@ -108,5 +128,5 @@
       "files": "canonical assets/images/enemies/enemy_*.png only"
     }
   },
-  "note": "v3.2.0 uses canonical base enemy images for all enemy display states; enemy walk folders are not used."
+  "note": "v3.4.3 focuses the main map on five core buildings. Each core building has Lv1-Lv4 graphics with blue, green, yellow, and red level rules."
 }

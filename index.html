@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>王国防衛 v3.2.7</title>
+  <title>辺境防衛 v3.5.1</title>
   <link rel="stylesheet" href="styles/style.css">
 </head>
 <body>
@@ -18,8 +18,8 @@
     <section class="panel" id="sidePanel" aria-label="ゲーム操作パネル">
       <div class="title-row">
         <div>
-          <h1>王国防衛</h1>
-          <p>v3.2.7 / 王の撤退・復帰演出版</p>
+          <h1>辺境防衛</h1>
+          <p>v3.5.1 / 5建物強化・新チュートリアル版</p>
         </div>
         <div class="panel-actions">
           <button id="mobilePanelCloseButton" class="panel-close" type="button" aria-label="メニューを閉じる">閉じる</button>
@@ -30,13 +30,13 @@
       <div class="hud-grid">
         <div><span>城HP</span><strong id="hpText">-</strong></div>
         <div><span>所持金</span><strong id="coinText">-</strong></div>
-        <div><span>王HP</span><strong id="kingHpText">-</strong></div>
+        <div><span>主人公HP</span><strong id="kingHpText">-</strong></div>
         <div><span>敵軍</span><strong id="waveText">-</strong></div>
         <div><span>人口</span><strong id="popText">-</strong></div>
-        <div><span>領土</span><strong id="territoryText">-</strong></div>
+        <div><span>前線</span><strong id="territoryText">-</strong></div>
         <div><span>経済</span><strong id="economyText">-</strong></div>
         <div><span>スコア</span><strong id="scoreText">-</strong></div>
-        <div class="wide"><span>次の襲撃</span><strong id="nextWaveText">-</strong></div>
+        <div class="wide"><span>次の進軍</span><strong id="nextWaveText">-</strong></div>
       </div>
 
       <div class="status-grid">
@@ -72,16 +72,16 @@
 
       <div class="legend-box">
         <h2>基本ルール</h2>
-        <p>直接動かせるのは王だけ。敵を倒して落ちたコインを拾い、建設床に乗って施設へ投資します。</p>
+        <p>直接動かせるのは主人公だけ。敵を倒して落ちたコインを拾い、建設床に乗って施設へ投資します。</p>
         <p class="tip-line">音はブラウザ制約により、開始ボタンを押した後に鳴ります。</p>
       </div>
 
       <div class="legend-box small">
-        <p><b>v3.2.7:</b> 王HP0時の撤退・復帰演出、自動回復、敗北情報、敵軍進行表示を改善しました。</p>
+        <p><b>v3.5.1:</b> 5建物に絞った強化導線、Lv1〜Lv4の視認性、敵軍進行バランス、チュートリアルを作り直しました。</p>
         <p><b>移動:</b> WASD / 矢印キー / クリック / タップ</p>
         <p><b>一時停止:</b> Space</p>
         <p><b>速度変更:</b> F</p>
-        <p><b>コツ:</b> 次の襲撃を見て、金鉱・弓塔・柵・大砲の優先順位を変える。</p>
+        <p><b>コツ:</b> 次の進軍を見て、柵・弓塔・大砲・兵舎・金鉱の優先順位を変える。</p>
       </div>
 
       <p class="guide" id="guideText">開始を押してください。</p>
@@ -92,18 +92,19 @@
 
       <div class="overlay" id="overlay">
         <div class="overlay-card">
-          <h2 id="overlayTitle">王国防衛</h2>
-          <p id="overlayText" class="overlay-summary">王を動かしてコインを集め、建設床で防衛線を作ります。</p>
+          <h2 id="overlayTitle">辺境防衛</h2>
+          <p id="overlayText" class="overlay-summary">主人公を動かしてコインを集め、建設床で防衛線を作ります。</p>
           <button id="startButton" class="start-primary" type="button">開始</button>
           <button id="tutorialButton" class="tutorial-primary" type="button">チュートリアル</button>
           <details class="tutorial-details">
             <summary>遊び方を見る</summary>
             <div class="tutorial-list">
-              <p><b>操作:</b> 王だけを動かします。WASD / 矢印キー / クリック / タップ。</p>
-              <p><b>お金:</b> 敵を倒すとコインが落ちます。王で近づくと回収します。</p>
-              <p><b>建設:</b> 建設床に王を少し滞在させると、自動でコインを投入します。通過だけでは消費しません。</p>
-              <p><b>探索:</b> マップ上の「?」に近づくと発見できます。村・金鉱・前哨などは敵に狙われます。</p>
-              <p><b>判断:</b> 床のおすすめ表示、敵の目的、開拓効果を見て投資先を決めます。</p>
+              <p><b>操作:</b> 主人公だけを動かします。WASD / 矢印キー / クリック / タップ。</p>
+              <p><b>お金:</b> 敵を倒すとコインが落ちます。主人公で近づくと回収します。</p>
+              <p><b>建設:</b> 建設床に主人公を少し滞在させると、自動でコインを投入します。通過だけでは消費しません。</p>
+              <p><b>探索:</b> マップ上の「?」に近づくと発見できます。主に物資・金鉱などの探索地点が見つかります。</p>
+              <p><b>強化:</b> 柵・弓塔・大砲・兵舎・金鉱はLv4まで強化できます。青→緑→黄→赤の順に強くなります。</p>
+              <p><b>判断:</b> 進軍ルート、建物レベル、次の強化効果を見て投資先を決めます。</p>
             </div>
           </details>
         </div>

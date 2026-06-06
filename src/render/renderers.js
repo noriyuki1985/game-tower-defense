@@ -204,6 +204,7 @@
       this.drawHudOnCanvas(ctx);
       this.drawDiscoveryToast(ctx);
       this.drawBuildInfoPanel(ctx);
+      if (this.drawTutorialGuide) this.drawTutorialGuide(ctx);
       this.drawStrategicHint(ctx);
       this.drawNoticeBar(ctx);
       this.drawResultFx(ctx);
@@ -711,9 +712,6 @@
 
         ctx.textAlign = 'center';
         if (compact) {
-          ctx.fillStyle = locked ? '#d8d8d8' : '#ffd35b';
-          ctx.font = '900 18px system-ui';
-          ctx.fillText(locked ? `領${pad.territory}` : `${Math.ceil(def.cost - pad.invested)}`, 0, 8);
           if (nearKing) {
             ctx.fillStyle = '#fff0bb';
             ctx.font = '900 15px system-ui';
@@ -735,9 +733,6 @@
             ctx.font = '700 10px system-ui';
             ctx.fillText(locked ? '未解放' : def.name, 0, -5);
           }
-          ctx.fillStyle = locked ? '#d8d8d8' : '#ffd35b';
-          ctx.font = '800 12px system-ui';
-          ctx.fillText(locked ? `領土 ${pad.territory}` : `${Math.ceil(def.cost - pad.invested)}`, 0, 14);
         }
         ctx.restore();
       }
@@ -2119,6 +2114,7 @@
     drawStrategicHint(ctx) {
       if (this.minimapExpanded) return;
       if (this.status !== 'playing') return;
+      if (this.tutorialMode) return;
       const compact = this.isMobileView && this.isMobileView();
       if (compact) {
         if (this.discoveryToast && this.discoveryToast.life > 0) return;
@@ -2178,7 +2174,7 @@
       ctx.fillStyle = '#d6f2a3';
       ctx.font = '800 11px system-ui';
       ctx.fillText(`収入 ${Math.round(this.kingdom.economyBonus * 100)}%`, 26, 58);
-      ctx.fillText(`波 ${this.wave.index < 0 ? 0 : this.wave.index + 1}/${this.waves.length}`, 119, 58);
+      ctx.fillText(`進軍 ${this.wave.index < 0 ? 0 : this.wave.index + 1}/${this.waves.length}`, 119, 58);
       ctx.fillText(`次 ${this.nextWaveSummary().slice(0, 24)}`, 207, 58);
       ctx.fillStyle = 'rgba(255,244,214,0.9)';
       ctx.font = '800 11px system-ui';
@@ -2206,7 +2202,7 @@
         { icon: 'uiCoin', label: '金', value: Math.floor(this.king.coins), x: 22 },
         { icon: 'uiHeart', label: '王', value: `${Math.ceil(this.king.hp)}`, x: 128 },
         { icon: 'uiCastleHp', label: '城', value: `${Math.max(0, Math.ceil(this.castle.hp))}`, x: 234 },
-        { icon: 'uiWave', label: '波', value: `${this.wave.index < 0 ? 0 : this.wave.index + 1}/${this.waves.length}`, x: 340 }
+        { icon: 'uiWarning', label: '進軍', value: `${this.wave.index < 0 ? 0 : this.wave.index + 1}/${this.waves.length}`, x: 340 }
       ];
       for (const card of cards) {
         ctx.fillStyle = 'rgba(255,255,255,0.065)';
@@ -2299,8 +2295,8 @@
         ctx.fillStyle = '#ffd35b';
         ctx.font = '900 26px system-ui';
         ctx.textAlign = 'center';
-        this.drawAsset(ctx, 'uiWave', 84, 209, 38, 38);
-        ctx.fillText(`ウェーブ ${this.wave.index + 1}`, 168, 203);
+        this.drawAsset(ctx, 'uiWarning', 84, 209, 38, 38);
+        ctx.fillText(`敵軍進行 ${this.wave.index + 1}`, 178, 203);
         ctx.font = '900 18px system-ui';
         ctx.fillText(this.waves[this.wave.index].title, 260, 226);
         ctx.globalAlpha = 1;

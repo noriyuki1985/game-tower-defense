@@ -62,7 +62,7 @@
       this.wave.spawnedInGroup = 0;
       this.wave.timer = 0;
       this.wave.banner = 1400;
-      this.message = `ウェーブ ${this.wave.index + 1}: ${this.waves[this.wave.index].title}`;
+      this.message = `敵軍進行 ${this.wave.index + 1}: ${this.waves[this.wave.index].title}`;
       this.playSfx(this.waves[this.wave.index].boss ? 'boss' : 'wave');
     }
     return;
@@ -87,8 +87,8 @@
     this.wave.rest = (C.balance && C.balance.waveRest) || 4300;
     const bonus = Math.round((30 + this.wave.index * 14) * this.kingdom.economyBonus);
     this.king.coins += bonus;
-    this.addFloater(`ウェーブ突破 +${bonus}`, C.w / 2, 170, '#f5d56b');
-    this.message = 'ウェーブ突破。次の襲撃までに建設・強化してください。';
+    this.addFloater(`敵軍撃退 +${bonus}`, C.w / 2, 170, '#f5d56b');
+    this.message = '敵軍を撃退。次の進軍までに建設・強化してください。';
     this.playSfx('clear');
   }
 },
@@ -187,6 +187,10 @@
   window.KBD_SYSTEMS.end = {
     checkEnd() {
   if (this.status !== 'playing') return;
+  if (this.tutorialMode) {
+    if (this.castle.hp <= 0 && this.failTutorial) this.failTutorial();
+    return;
+  }
   if (this.castle.hp <= 0) {
     const reward = this.finishRun(false);
     this.status = 'lose';

@@ -10,7 +10,7 @@
   'use strict';
 
   const C = window.KBD_CONFIG;
-  const { clamp, distXY } = window.KBD_UTILS;
+  const { clamp, distXY, rand } = window.KBD_UTILS;
 
   window.KBD_SYSTEMS = window.KBD_SYSTEMS || {};
   window.KBD_SYSTEMS.king = {
@@ -21,6 +21,10 @@
     this.king.attackTimer -= dt;
     this.king.moving = false;
     return;
+  }
+  const regen = (C.balance && C.balance.kingRegenPerSecond) || 2.2;
+  if (this.king.hp > 0 && this.king.hp < this.king.maxHp) {
+    this.king.hp = Math.min(this.king.maxHp, this.king.hp + regen * dt / 1000);
   }
   let vx = 0;
   let vy = 0;
@@ -79,6 +83,52 @@
   this.king.attackFlash = Math.max(0, (this.king.attackFlash || 0) - dt);
 },
 
+    downKing(enemy) {
+  const downX = this.king.x;
+  const downY = this.king.y;
+  const stunMs = (C.balance && C.balance.kingDownStunMs) || 5000;
+  const reviveInvulnMs = (C.balance && C.balance.kingReviveInvulnMs) || 2000;
+  const reviveHpRatio = (C.balance && C.balance.kingReviveHpRatio) || 0.10;
+  const lost = Math.min(35, Math.floor((this.king.coins || 0) * 0.25));
+  if (lost > 0) {
+    this.king.coins = Math.max(0, this.king.coins - lost);
+    let remaining = lost;
+    const piles = Math.min(5, Math.max(1, Math.ceil(lost / 10)));
+    for (let i = 0; i < piles; i += 1) {
+      const value = i === piles - 1 ? remaining : Math.max(1, Math.floor(lost / piles));
+      remaining -= value;
+      this.coins.push({
+        x: downX + rand(-24, 24), y: downY + rand(-20, 24), value, r: 8,
+        life: 24000, animSeed: rand(0, Math.PI * 2)
+      });
+    }
+  }
+  this.king.hp = Math.max(1, Math.ceil(this.king.maxHp * reviveHpRatio));
+  this.king.stunned = stunMs;
+  this.king.invuln = 0;
+  this.king.reviveInvulnPending = reviveInvulnMs;
+  this.king.targetX = this.castle.x + 42;
+  this.king.targetY = this.castle.y + 82;
+  this.king.x = clamp(this.king.targetX, 18, this.worldWidth() - 18);
+  this.king.y = clamp(this.king.targetY, 128, this.worldHeight() - 18);
+  this.king.face = 1;
+  this.pointerTarget = null;
+  this.kingDownCount = (this.kingDownCount || 0) + 1;
+  this.shake = Math.max(this.shake || 0, 260);
+  this.addBurst(downX, downY, '#ff6b5e', 22, 'warning');
+  this.addBurst(this.king.x, this.king.y, '#ffdf7b', 16, 'heal');
+  if (this.addAuraRipple) {
+    this.addAuraRipple(downX, downY, '#ff6b5e', 86, 5, 720);
+    this.addAuraRipple(this.king.x, this.king.y, '#ffdf7b', 70, 4, 680);
+  }
+  this.addFloater('王、撤退', downX, downY - 50, '#ff6b5e');
+  this.addFloater(`落とした金 ${lost}`, downX, downY - 68, '#ffd35b');
+  this.addFloater('復帰準備', this.king.x, this.king.y - 48, '#ffdf7b');
+  this.message = `王が倒れ、城の近くへ撤退しました。${Math.ceil(stunMs / 1000)}秒間操作不能。落とした金: ${lost}`;
+  if (this.setNotice) this.setNotice(this.message, 'danger', 4200, 9);
+  this.playSfx('stun');
+},
+
     damageKing(amount, enemy) {
   if (this.king.invuln > 0 || this.king.stunned > 0) return;
   this.king.hp -= amount;
@@ -87,22 +137,16 @@
   this.addBurst(this.king.x, this.king.y, '#ffdf7b', 9, 'warning');
   this.addFloater(`王 -${Math.round(amount)}`, this.king.x, this.king.y - 40, '#ffdf7b');
   this.playSfx('kingHit', 320);
+  if (this.king.hp <= 0) {
+    this.downKing(enemy);
+    return;
+  }
   if (enemy) {
     const dx = this.king.x - enemy.x;
     const dy = this.king.y - enemy.y;
     const len = Math.hypot(dx, dy) || 1;
     this.king.x = clamp(this.king.x + dx / len * 18, 18, this.worldWidth() - 18);
     this.king.y = clamp(this.king.y + dy / len * 18, 128, this.worldHeight() - 18);
-  }
-  if (this.king.hp <= 0) {
-    this.king.hp = Math.ceil(this.king.maxHp * 0.45);
-    this.king.stunned = 2600;
-    this.king.invuln = 3200;
-    const lost = Math.min(35, Math.floor(this.king.coins * 0.25));
-    this.king.coins -= lost;
-    this.addFloater(`気絶 -${lost}`, this.king.x, this.king.y - 48, '#ff6b5e');
-    this.message = '王が倒れました。防衛施設は戦いますが、しばらく建設できません。';
-    this.playSfx('stun');
   }
 }
   };

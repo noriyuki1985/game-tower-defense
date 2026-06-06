@@ -17,9 +17,11 @@
     updateCoins(dt) {
   for (const coin of this.coins) {
     coin.life -= dt;
+    if (this.king.stunned > 0) continue;
     const d = distXY(this.king.x, this.king.y, coin.x, coin.y);
     if (d < C.coinPickupRange) {
       this.king.coins += coin.value;
+      if (this.tutorialMode && this.tutorial) this.tutorial.coinsPicked = (this.tutorial.coinsPicked || 0) + coin.value;
       coin.dead = true;
       this.addFloater(`+${coin.value}`, this.king.x, this.king.y - 28, '#ffd35b');
       this.addBurst(coin.x, coin.y, '#ffd35b', 4, 'coinPickup');
@@ -36,6 +38,13 @@
 },
 
     updateBuildPayments(dt) {
+  if (this.king.stunned > 0) {
+    this.king.payBuffer = 0;
+    this.king.buildHoldPadId = null;
+    this.king.buildHoldTime = 0;
+    for (const pad of this.pads) pad.holdTime = 0;
+    return;
+  }
   let activePad = null;
   for (const pad of this.pads) {
     pad.pulse += dt;
@@ -51,6 +60,14 @@
     this.king.buildHoldPadId = null;
     this.king.buildHoldTime = 0;
     for (const pad of this.pads) pad.holdTime = 0;
+    return;
+  }
+  if (this.tutorialMode && this.tutorialCanUsePad && !this.tutorialCanUsePad(activePad)) {
+    this.king.payBuffer = 0;
+    this.king.buildHoldPadId = null;
+    this.king.buildHoldTime = 0;
+    for (const pad of this.pads) pad.holdTime = 0;
+    if (this.tutorialRejectPad) this.tutorialRejectPad(activePad);
     return;
   }
   const holdNeed = C.buildHoldTime || 620;

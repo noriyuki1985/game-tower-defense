@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>王国防衛 v3.2.3</title>
+  <title>王国防衛 v3.2.7</title>
   <link rel="stylesheet" href="styles/style.css">
 </head>
 <body>
@@ -19,7 +19,7 @@
       <div class="title-row">
         <div>
           <h1>王国防衛</h1>
-          <p>v3.2.3 / 兵舎表示修正版</p>
+          <p>v3.2.7 / 王の撤退・復帰演出版</p>
         </div>
         <div class="panel-actions">
           <button id="mobilePanelCloseButton" class="panel-close" type="button" aria-label="メニューを閉じる">閉じる</button>
@@ -31,7 +31,7 @@
         <div><span>城HP</span><strong id="hpText">-</strong></div>
         <div><span>所持金</span><strong id="coinText">-</strong></div>
         <div><span>王HP</span><strong id="kingHpText">-</strong></div>
-        <div><span>ウェーブ</span><strong id="waveText">-</strong></div>
+        <div><span>敵軍</span><strong id="waveText">-</strong></div>
         <div><span>人口</span><strong id="popText">-</strong></div>
         <div><span>領土</span><strong id="territoryText">-</strong></div>
         <div><span>経済</span><strong id="economyText">-</strong></div>
@@ -77,7 +77,7 @@
       </div>
 
       <div class="legend-box small">
-        <p><b>v3.2.3:</b> 兵舎の建設床表示を大きい「兵舎」に統一しました。</p>
+        <p><b>v3.2.7:</b> 王HP0時の撤退・復帰演出、自動回復、敗北情報、敵軍進行表示を改善しました。</p>
         <p><b>移動:</b> WASD / 矢印キー / クリック / タップ</p>
         <p><b>一時停止:</b> Space</p>
         <p><b>速度変更:</b> F</p>
@@ -95,6 +95,7 @@
           <h2 id="overlayTitle">王国防衛</h2>
           <p id="overlayText" class="overlay-summary">王を動かしてコインを集め、建設床で防衛線を作ります。</p>
           <button id="startButton" class="start-primary" type="button">開始</button>
+          <button id="tutorialButton" class="tutorial-primary" type="button">チュートリアル</button>
           <details class="tutorial-details">
             <summary>遊び方を見る</summary>
             <div class="tutorial-list">

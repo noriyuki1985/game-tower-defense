@@ -255,7 +255,11 @@
     waveRest: 4300,
     firstWaveRest: 1100,
     raidSuppression: 0.88,
-    recommendationRadius: 118
+    recommendationRadius: 118,
+    kingRegenPerSecond: 2.2,
+    kingDownStunMs: 5000,
+    kingReviveHpRatio: 0.10,
+    kingReviveInvulnMs: 2000
   };
 
 
@@ -530,7 +534,7 @@
 (function () {
   'use strict';
 
-  const ASSET_VERSION = 'v3.2.3';
+  const ASSET_VERSION = 'v3.2.7';
 
   const ASSET_MANIFEST = {
     kingIdle: 'assets/images/king/king_idle.png',

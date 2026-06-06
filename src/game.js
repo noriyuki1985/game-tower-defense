@@ -52,6 +52,7 @@
         maxHp: this.kingMaxHp(),
         invuln: 0,
         stunned: 0,
+        reviveInvulnPending: 0,
         attackTimer: 0,
         payBuffer: 0,
         buildHoldPadId: null,
@@ -66,6 +67,7 @@
         lastStepSide: 1,
         speedRatio: 0
       };
+      this.kingDownCount = 0;
       const castleMax = this.castleMaxHp();
       this.castle = { ...C.castle, hp: castleMax, maxHp: castleMax, hit: 0 };
       this.kingdom = {
@@ -338,6 +340,9 @@
     }
 
     start() {
+      this.overlayAction = null;
+      this.tutorialMode = false;
+      this.tutorial = null;
       this.selectedStage = $('stageSelect') ? $('stageSelect').value : this.selectedStage;
       this.selectedDifficulty = $('difficultySelect') ? $('difficultySelect').value : this.selectedDifficulty;
       this.currentStage = C.stages[this.selectedStage] || C.stages.meadow;
@@ -360,8 +365,274 @@
       this.updateHud();
     }
 
+
+    startTutorial() {
+      this.overlayAction = null;
+      this.selectedStage = 'meadow';
+      this.selectedDifficulty = 'normal';
+      this.currentStage = C.stages.meadow;
+      this.currentDifficulty = C.difficulties.normal;
+      this.resetState();
+      this.tutorialMode = true;
+      this.tutorial = { step: 0, spawned: {}, rejectedTimer: 0, completed: false, coinsPicked: 0, coinsPickedAtStep: 0 };
+      this.status = 'playing';
+      this.paused = false;
+      this.speed = 1;
+      this.king.coins = Math.max(this.king.coins, 180);
+      this.wave.active = false;
+      this.wave.done = false;
+      this.wave.index = -1;
+      this.wave.rest = 999999;
+      this.enemies = [];
+      this.coins = [];
+      this.unlockAudio();
+      this.startBgm();
+      this.playSfx('start');
+      this.hideOverlay();
+      this.hideUpgradeOverlay();
+      this.closeMobileMenu();
+      this.setTutorialStep(0);
+      this.updateHud();
+    }
+
+    tutorialSteps() {
+      return [
+        { id: 'move', title: '移動', text: '光る円まで王を動かしてください。クリック/タップ、またはWASD・矢印キーで移動できます。', target: { x: 244, y: 600 }, radius: 38 },
+        { id: 'buildArcher', title: '弓塔を建てる', text: '光っている「弓」の建設床へ移動し、完成するまでその場に留まってください。他の床では進みません。', targetPadId: 'p2' },
+        { id: 'collectAfterArcher', title: '敵を倒して拾う', text: '弓塔が敵を倒します。落ちたコインを王で拾ってください。拾い終わるまで次へ進みません。', spawnGroup: 'first' },
+        { id: 'buildPalisade', title: '柵を建てる', text: '次は「柵」の建設床へ移動し、足止め施設を完成させてください。他の床では進みません。', targetPadId: 'p1' },
+        { id: 'defend', title: '小さな襲撃を防ぐ', text: '柵と弓塔で小さな襲撃を防ぎます。敵が全滅するまで防衛を見てください。', spawnGroup: 'second' },
+        { id: 'discover', title: '探索する', text: '右下の「?」へ移動して隠れ金鉱を発見してください。指定地点に近づくまで次へ進みません。', targetDiscoveryId: 'meadow_mine' }
+      ];
+    }
+
+    tutorialStep() {
+      if (!this.tutorial) return null;
+      return this.tutorialSteps()[this.tutorial.step] || null;
+    }
+
+    setTutorialStep(index) {
+      if (!this.tutorial) return;
+      this.tutorial.step = index;
+      this.tutorial.stepStartedAt = this.time || 0;
+      this.tutorial.coinsPickedAtStep = this.tutorial.coinsPicked || 0;
+      this.tutorial.rejectedTimer = 0;
+      const step = this.tutorialStep();
+      if (!step) return;
+      this.message = `チュートリアル ${index + 1}/${this.tutorialSteps().length}: ${step.text}`;
+      this.setNotice(this.message, 'info', 2600, 6);
+      this.playSfx(index === 0 ? 'click' : 'upgrade', 220, true);
+    }
+
+    tutorialTargetPoint() {
+      const step = this.tutorialStep();
+      if (!step) return null;
+      if (step.target) return step.target;
+      if (step.targetPadId) {
+        const pad = this.pads.find((p) => p.id === step.targetPadId);
+        return pad ? { x: pad.x, y: pad.y } : null;
+      }
+      if (step.targetDiscoveryId) {
+        const d = (this.discoveries || []).find((x) => x.id === step.targetDiscoveryId);
+        return d ? { x: d.x, y: d.y } : null;
+      }
+      if (step.spawnGroup && this.enemies.length) return { x: this.enemies[0].x, y: this.enemies[0].y };
+      return null;
+    }
+
+    tutorialInstructionText() {
+      const step = this.tutorialStep();
+      if (!step) return 'チュートリアル';
+      return `${this.tutorial.step + 1}/${this.tutorialSteps().length} ${step.title}: ${step.text}`;
+    }
+
+    tutorialCanUsePad(pad) {
+      if (!this.tutorialMode) return true;
+      const step = this.tutorialStep();
+      if (!step || !step.targetPadId) return false;
+      return pad && pad.id === step.targetPadId;
+    }
+
+    tutorialRejectPad(pad) {
+      if (!this.tutorial) return;
+      this.tutorial.rejectedTimer = 900;
+      const step = this.tutorialStep();
+      const name = pad && C.facilityTypes[pad.type] ? C.facilityTypes[pad.type].name : 'この建設床';
+      this.message = `${name}ではまだ進みません。${step ? step.text : '指示された場所へ向かってください。'}`;
+    }
+
+    tutorialSpawnEnemy(type, route, pathIndex = 4, hpRate = 0.6) {
+      const before = this.enemies.length;
+      this.spawnEnemy(type, route || 'main', false);
+      const enemy = this.enemies[this.enemies.length - 1];
+      if (!enemy || this.enemies.length === before) return;
+      const path = enemy.path || [];
+      const safeIndex = Math.max(1, Math.min(path.length - 1, pathIndex));
+      const p = path[safeIndex - 1] || path[0];
+      enemy.x = p.x + rand(-8, 8);
+      enemy.y = p.y + rand(-8, 8);
+      enemy.pathIndex = safeIndex;
+      enemy.maxHp = Math.max(10, Math.round(enemy.maxHp * hpRate));
+      enemy.hp = enemy.maxHp;
+      enemy.def = { ...enemy.def, hp: enemy.maxHp, damage: Math.max(2, Math.round(enemy.def.damage * 0.55)), kingDamage: Math.max(2, Math.round((enemy.def.kingDamage || enemy.def.damage) * 0.55)) };
+    }
+
+    tutorialSpawnGroup(key) {
+      if (!this.tutorial || this.tutorial.spawned[key]) return;
+      this.tutorial.spawned[key] = true;
+      if (key === 'first') {
+        this.tutorialSpawnEnemy('grunt', 'main', 5, 0.42);
+        this.tutorialSpawnEnemy('grunt', 'main', 5, 0.42);
+        this.tutorialSpawnEnemy('runner', 'main', 5, 0.38);
+        this.message = '敵が来ました。弓塔が倒したら、落ちたコインを王で拾ってください。';
+      } else if (key === 'second') {
+        this.tutorialSpawnEnemy('grunt', 'main', 4, 0.55);
+        this.tutorialSpawnEnemy('grunt', 'main', 4, 0.55);
+        this.tutorialSpawnEnemy('runner', 'side', 5, 0.48);
+        this.tutorialSpawnEnemy('shield', 'main', 4, 0.40);
+        this.message = '小さな襲撃です。柵で足止めし、弓塔で削ります。';
+      }
+      this.setNotice(this.message, 'warning', 2200, 7);
+    }
+
+    tutorialRevealDiscovery(id) {
+      const d = (this.discoveries || []).find((x) => x.id === id);
+      if (!d || d.discovered) return false;
+      d.discovered = true;
+      d.flash = 1200;
+      if (d.rewardCoins) {
+        this.king.coins += d.rewardCoins;
+        this.addFloater(`+${d.rewardCoins}`, d.x, d.y - 34, '#ffd35b');
+      }
+      if (d.rewardPop) this.kingdom.popCap += d.rewardPop;
+      if (d.economyBonus) this.kingdom.economyBonus += d.economyBonus;
+      let revealedPads = 0;
+      for (const pad of this.pads) {
+        if (pad.requiresDiscovery === d.id) {
+          pad.discovered = true;
+          pad.revealFlash = 1200;
+          revealedPads += 1;
+        }
+      }
+      this.showDiscoveryToast(d, this.discoveryRewardLines(d, revealedPads));
+      this.addBurst(d.x, d.y, '#fff3a3', 24, 'upgrade');
+      this.playSfx('discovery', 180);
+      return true;
+    }
+
+    updateTutorial(dt) {
+      if (!this.tutorialMode || !this.tutorial || this.status !== 'playing') return;
+      const step = this.tutorialStep();
+      if (!step) return;
+      if (step.spawnGroup) this.tutorialSpawnGroup(step.spawnGroup);
+      if (this.tutorial.rejectedTimer > 0) this.tutorial.rejectedTimer = Math.max(0, this.tutorial.rejectedTimer - dt);
+
+      if (step.id === 'move') {
+        const target = step.target;
+        if (target && distXY(this.king.x, this.king.y, target.x, target.y) <= (step.radius || 36)) this.setTutorialStep(1);
+      } else if (step.id === 'buildArcher') {
+        const pad = this.pads.find((p) => p.id === step.targetPadId);
+        if (pad && pad.facilityId && this.facilities.some((f) => f.id === pad.facilityId && f.type === 'archer')) this.setTutorialStep(2);
+      } else if (step.id === 'collectAfterArcher') {
+        if (this.tutorial.spawned.first && this.enemies.length === 0 && this.coins.length === 0 && (this.tutorial.coinsPicked || 0) > (this.tutorial.coinsPickedAtStep || 0)) this.setTutorialStep(3);
+      } else if (step.id === 'buildPalisade') {
+        const pad = this.pads.find((p) => p.id === step.targetPadId);
+        if (pad && pad.facilityId && this.facilities.some((f) => f.id === pad.facilityId && f.type === 'palisade')) this.setTutorialStep(4);
+      } else if (step.id === 'defend') {
+        if (this.tutorial.spawned.second && this.enemies.length === 0) this.setTutorialStep(5);
+      } else if (step.id === 'discover') {
+        const d = (this.discoveries || []).find((x) => x.id === step.targetDiscoveryId);
+        if (d && distXY(this.king.x, this.king.y, d.x, d.y) <= (C.discoveryRevealRadius || 76)) {
+          this.tutorialRevealDiscovery(d.id);
+          this.finishTutorial();
+        }
+      }
+      if (this.tutorialMode && this.tutorial.rejectedTimer <= 0) {
+        const current = this.tutorialInstructionText();
+        if (this.message !== current) this.message = current;
+      }
+    }
+
+    finishTutorial() {
+      if (!this.tutorialMode) return;
+      this.tutorial.completed = true;
+      this.tutorialMode = false;
+      this.status = 'tutorialClear';
+      this.stopBgm();
+      this.startResultFx('win');
+      this.playSfx('victory');
+      this.showOverlay('チュートリアル完了', '基本操作は完了です。通常ステージでは、次の襲撃を見て投資先を選んでください。\n\n覚えること: 王を動かす / 建設床で待つ / 敵のコインを拾う / 防衛線を作る / ?を探索する', '通常ステージへ', 'win');
+      this.updateHud();
+    }
+
+    failTutorial() {
+      if (!this.tutorialMode) return;
+      this.tutorialMode = false;
+      this.status = 'tutorialLose';
+      this.stopBgm();
+      this.startResultFx('lose');
+      this.playSfx('defeat');
+      this.overlayAction = 'tutorial';
+      this.showOverlay('チュートリアル失敗', '城が落ちました。通常ステージの敗北処理とは分けています。\n\nもう一度、指示された建設床だけを使い、敵のコインを拾ってから次へ進んでください。', 'チュートリアル再挑戦', 'lose');
+      this.updateHud();
+    }
+
+    drawTutorialGuide(ctx) {
+      if (!this.tutorialMode || this.status !== 'playing') return;
+      const step = this.tutorialStep();
+      const text = this.tutorialInstructionText();
+      const compact = this.isMobileView && this.isMobileView();
+      const w = compact ? 430 : 430;
+      const h = compact ? 74 : 66;
+      const x = Math.round((C.w - w) / 2);
+      const y = compact ? 86 : 76;
+      ctx.save();
+      ctx.fillStyle = 'rgba(8, 14, 13, 0.93)';
+      rounded(ctx, x, y, w, h, 18);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 211, 91, 0.78)';
+      ctx.lineWidth = 2;
+      rounded(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 18);
+      ctx.stroke();
+      ctx.fillStyle = '#ffd35b';
+      ctx.font = compact ? '900 14px system-ui' : '900 13px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(`チュートリアル ${this.tutorial.step + 1}/${this.tutorialSteps().length}: ${step ? step.title : ''}`, C.w / 2, y + 22);
+      ctx.fillStyle = '#fff0bb';
+      ctx.font = compact ? '900 13px system-ui' : '800 12px system-ui';
+      const body = text.replace(/^\d+\/\d+ [^:]+: /, '');
+      ctx.fillText(body.slice(0, compact ? 30 : 42), C.w / 2, y + 46);
+      if (body.length > (compact ? 30 : 42)) ctx.fillText(body.slice(compact ? 30 : 42, compact ? 60 : 84), C.w / 2, y + 62);
+      const target = this.tutorialTargetPoint();
+      if (target) {
+        const p = this.worldToScreen(target.x, target.y);
+        const pulse = 0.5 + 0.5 * Math.sin((this.time || 0) * 0.010);
+        ctx.strokeStyle = `rgba(255, 211, 91, ${0.55 + pulse * 0.35})`;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 30 + pulse * 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(255, 211, 91, ${0.16 + pulse * 0.10})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 28 + pulse * 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff0bb';
+        ctx.font = '900 13px system-ui';
+        ctx.fillText('ここ', p.x, p.y - 38);
+      }
+      ctx.restore();
+    }
+
     bind() {
-      $('startButton').addEventListener('click', () => this.start());
+      $('startButton').addEventListener('click', () => {
+        if (this.overlayAction === 'tutorial') {
+          this.overlayAction = null;
+          this.startTutorial();
+          return;
+        }
+        this.start();
+      });
+      if ($('tutorialButton')) $('tutorialButton').addEventListener('click', () => this.startTutorial());
       $('restartButton').addEventListener('click', () => this.start());
       if ($('mobileMenuButton')) $('mobileMenuButton').addEventListener('click', () => this.toggleMobileMenu());
       if ($('mobilePanelCloseButton')) $('mobilePanelCloseButton').addEventListener('click', () => this.closeMobileMenu());
@@ -393,7 +664,7 @@
         if (e && typeof e.preventDefault === 'function') e.preventDefault();
       };
       const setTarget = (e) => {
-        if (this.status !== 'playing') return;
+        if (this.status !== 'playing' || this.king.stunned > 0) return;
         const p = this.screenToCanvas(e.clientX, e.clientY);
         this.pointerTarget = p;
         this.king.targetX = p.x;
@@ -1137,27 +1408,40 @@
       this.wave.banner = Math.max(0, this.wave.banner - dt);
       this.routeAlert.life = Math.max(0, this.routeAlert.life - dt);
       if (this.notice) this.notice.life = Math.max(0, (this.notice.life || 0) - dt);
+      const wasKingStunned = this.king.stunned > 0;
       this.king.invuln = Math.max(0, this.king.invuln - dt);
       this.king.stunned = Math.max(0, this.king.stunned - dt);
+      if (wasKingStunned && this.king.stunned <= 0 && this.king.reviveInvulnPending > 0) {
+        this.king.invuln = Math.max(this.king.invuln, this.king.reviveInvulnPending);
+        this.king.reviveInvulnPending = 0;
+        this.message = '王が復帰しました。2秒間は敵からダメージを受けません。HPは少しずつ自動回復します。';
+        if (this.setNotice) this.setNotice(this.message, 'info', 3200, 8);
+        this.addFloater('王、復帰', this.king.x, this.king.y - 52, '#fff3a3');
+        if (this.addAuraRipple) this.addAuraRipple(this.king.x, this.king.y, '#fff3a3', 76, 4, 760);
+      }
 
       this.updateKing(dt);
       this.updateCamera();
-      this.updateDiscoveries(dt);
-      this.updateDiscoverySites(dt);
-      this.updateWave(dt);
+      if (!this.tutorialMode) {
+        this.updateDiscoveries(dt);
+        this.updateDiscoverySites(dt);
+        this.updateWave(dt);
+      }
       this.updateEnemies(dt);
       this.updateFacilities(dt);
       this.updateSoldiers(dt);
       this.updateProjectiles(dt);
       this.updateCoins(dt);
       this.updateBuildPayments(dt);
-      this.updateContextHint(dt);
+      if (this.tutorialMode) this.updateTutorial(dt);
+      else this.updateContextHint(dt);
       this.updateEffects(dt);
       this.checkEnd();
       this.updateHud();
     }
 
     updateContextHint(dt) {
+      if (this.tutorialMode) return;
       this.hintTimer -= dt;
       if (this.hintTimer > 0) return;
       this.hintTimer = 620;
@@ -1426,33 +1710,55 @@
       return {
         defendScore, developScore, economyScore,
         defendGrade: grade(defendScore), developGrade: grade(developScore), economyGrade: grade(economyScore),
-        builtCount: built.length, found, totalDiscoveries, tips
+        builtCount: built.length, found, totalDiscoveries, tips,
+        defense, attack, economy, support,
+        kingDownCount: this.kingDownCount || 0
       };
     }
 
     resultText(won, reward) {
       const a = this.runAssessment ? this.runAssessment(won) : null;
-      if (!a) return `${won ? 'ステージクリア' : '城が落ちました'}。スコア: ${this.score}。獲得クラウン: ${reward}`;
+      if (!a) return `${won ? 'ステージクリア' : '城が陥落しました'}。スコア: ${this.score}。獲得クラウン: ${reward}`;
       const goal = this.stageGoal();
-      const headline = won ? 'ステージクリア' : '城が落ちました';
-      return `${headline}
+      if (won) {
+        return `ステージクリア
 スコア: ${this.score} / 獲得クラウン: ${reward}
 防衛 ${a.defendGrade} / 開拓 ${a.developGrade} / 経済 ${a.economyGrade}
 施設 ${a.builtCount} / 発見 ${a.found}/${a.totalDiscoveries}
 次の改善: ${a.tips[0]}
-ステージ方針: ${won ? goal.winTip : goal.loseTip}`;
+ステージ方針: ${goal.winTip}`;
+      }
+      const causes = [];
+      if (a.defense < 1) causes.push('城前の足止め施設が不足');
+      if (a.attack < 1) causes.push('敵を削る火力施設が不足');
+      if (a.kingDownCount > 0) causes.push(`王が${a.kingDownCount}回倒れ、建設と回収が停止`);
+      if (a.economy < 1 && a.found >= 2) causes.push('開拓後の経済化が遅れた');
+      if (!causes.length) causes.push('防衛線の維持が追いつかなかった');
+      const tips = a.tips.slice(0, 3);
+      if (!tips.includes(goal.loseTip)) tips.push(goal.loseTip || '城近くの防衛線を見直す。');
+      return `城が陥落しました
+スコア: ${this.score} / 獲得クラウン: ${reward}
+防衛 ${a.defendGrade} / 開拓 ${a.developGrade} / 経済 ${a.economyGrade}
+
+主な敗因:
+- ${causes.slice(0, 3).join('\n- ')}
+
+次に試すこと:
+- ${tips.slice(0, 3).join('\n- ')}
+
+もう一度押すと同じ条件で再挑戦できます。`;
     }
 
     updateHud() {
       $('hpText').textContent = `${Math.max(0, Math.ceil(this.castle.hp))}/${this.castle.maxHp}`;
       $('coinText').textContent = `${Math.floor(this.king.coins)}`;
       $('kingHpText').textContent = `${Math.ceil(this.king.hp)}/${this.king.maxHp}`;
-      $('waveText').textContent = this.wave.index < 0 ? `0/${this.waves.length}` : `${Math.min(this.wave.index + 1, this.waves.length)}/${this.waves.length}`;
+      $('waveText').textContent = this.tutorialMode && this.tutorial ? `練習 ${this.tutorial.step + 1}/${this.tutorialSteps().length}` : (this.wave.index < 0 ? `0/${this.waves.length}` : `${Math.min(this.wave.index + 1, this.waves.length)}/${this.waves.length}`);
       $('scoreText').textContent = `${this.score}`;
       if ($('popText')) $('popText').textContent = `${this.soldiers.length}/${this.kingdom.popCap}`;
       if ($('territoryText')) $('territoryText').textContent = `${this.kingdom.territory}/${this.kingdom.maxTerritory}`;
       if ($('economyText')) $('economyText').textContent = `${Math.round(this.kingdom.economyBonus * 100)}%`;
-      if ($('nextWaveText')) $('nextWaveText').textContent = `${this.nextWaveSummary()} / ${this.discoveryCountText()} / ${this.siteStatusText()}`;
+      if ($('nextWaveText')) $('nextWaveText').textContent = this.tutorialMode ? this.tutorialInstructionText() : `${this.nextWaveSummary()} / ${this.discoveryCountText()} / ${this.siteStatusText()}`;
       this.updateSetupHud();
       $('pauseButton').textContent = this.paused ? '再開' : '一時停止';
       $('speedButton').textContent = `${this.speed}x`;
@@ -1461,10 +1767,11 @@
       $('guideText').textContent = (this.notice && this.notice.life > 0) ? this.notice.text : this.message;
     }
 
-    showOverlay(title, text, button, resultType = '') {
+    showOverlay(title, text, button, resultType = '', action = null) {
       $('overlayTitle').textContent = title;
       $('overlayText').textContent = text;
       $('startButton').textContent = button;
+      if (action !== null) this.overlayAction = action;
       const card = document.querySelector('.overlay-card');
       if (card) {
         card.classList.toggle('is-win', resultType === 'win');

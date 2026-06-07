@@ -21,6 +21,9 @@
     f.work = Math.max(0, (f.work || 0) - dt);
     f.spawnFlash = Math.max(0, (f.spawnFlash || 0) - dt);
     f.buildFlash = Math.max(0, (f.buildFlash || 0) - dt);
+    f.levelFlash = Math.max(0, (f.levelFlash || 0) - dt);
+    f.upgradeTransition = Math.max(0, (f.upgradeTransition || 0) - dt);
+    f.maxLevelPulse = Math.max(0, (f.maxLevelPulse || 0) - dt);
     if (f.attack) {
       f.cooldown -= dt;
       if (f.cooldown <= 0) {

@@ -200,6 +200,7 @@
       if (this.drawTutorialGuide) this.drawTutorialGuide(ctx);
       this.drawStrategicHint(ctx);
       this.drawNoticeBar(ctx);
+      this.drawUpgradeBanner(ctx);
       this.drawResultFx(ctx);
       ctx.restore();
     }
@@ -783,6 +784,8 @@
         const floatY = (f.economy || f.aura) ? Math.sin(this.time * 0.003 + f.x) * 1.3 : 0;
         const levelColor = this.facilityLevelColor(f.level || 1);
         const levelFlashT = clamp((f.levelFlash || 0) / 900, 0, 1);
+        const upgradeTransitionT = clamp((f.upgradeTransition || 0) / (f.upgradeTransitionMax || 980), 0, 1);
+        const maxPulseT = clamp((f.maxLevelPulse || 0) / 1480, 0, 1);
         if (levelFlashT > 0) {
           ctx.save();
           ctx.globalAlpha = 0.20 + levelFlashT * 0.42;
@@ -799,7 +802,37 @@
           ctx.restore();
         }
         const blinkVisible = levelFlashT <= 0 || Math.floor(this.time / 90) % 2 === 0;
-        const usedAsset = blinkVisible && assetKey && this.drawAssetAnimated(ctx, assetKey, f.x + Math.cos(f.fireAngle || -Math.PI / 2) * recoil, f.y + floatY, assetSize[0] * baseScale * popScale, assetSize[1] * baseScale * popScale, { yOffset: f.type === 'trap' ? 6 : -4 });
+        const drawOpts = { yOffset: f.type === 'trap' ? 6 : -4 };
+        const drawX = f.x + Math.cos(f.fireAngle || -Math.PI / 2) * recoil;
+        const drawY = f.y + floatY;
+        const drawW = assetSize[0] * baseScale * popScale;
+        const drawH = assetSize[1] * baseScale * popScale;
+        let usedAsset = false;
+        if (assetKey && upgradeTransitionT > 0) {
+          const transitionIn = 1 - upgradeTransitionT;
+          const prevLevel = f.upgradeFromLevel || Math.max(1, (f.level || 1) - 1);
+          const previousKey = this.facilityAssetKey({ ...f, level: prevLevel });
+          if (previousKey && this.imageReady(previousKey)) {
+            ctx.save();
+            ctx.globalAlpha = 0.10 + upgradeTransitionT * 0.52;
+            this.drawAssetAnimated(ctx, previousKey, drawX, drawY, drawW * (1 + upgradeTransitionT * 0.10), drawH * (1 + upgradeTransitionT * 0.10), drawOpts);
+            ctx.restore();
+          }
+          ctx.save();
+          ctx.globalAlpha = 0.62 + transitionIn * 0.38;
+          usedAsset = !!(blinkVisible && this.drawAssetAnimated(ctx, assetKey, drawX, drawY - transitionIn * 3, drawW * (1.08 + Math.sin(transitionIn * Math.PI) * 0.12), drawH * (1.08 + Math.sin(transitionIn * Math.PI) * 0.12), drawOpts));
+          ctx.restore();
+          ctx.save();
+          ctx.globalAlpha = 0.16 + transitionIn * 0.26;
+          ctx.strokeStyle = levelColor;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y - 8, 34 + transitionIn * 18, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        } else {
+          usedAsset = blinkVisible && assetKey && this.drawAssetAnimated(ctx, assetKey, drawX, drawY, drawW, drawH, drawOpts);
+        }
         if (!usedAsset) {
           if (f.type === 'palisade') this.drawPalisade(ctx, f);
           else if (f.type === 'wall') this.drawWall(ctx, f);
@@ -816,6 +849,47 @@
           else if (f.type === 'outpost') this.drawOutpost(ctx, f);
           else if (f.type === 'training') this.drawTraining(ctx, f);
           else if (f.type === 'keep') this.drawKeep(ctx, f);
+        }
+        if (upgradeTransitionT > 0) {
+          const upgradeText = f.level >= this.facilityMaxLevel(f.type) ? 'MAX LEVEL!' : 'LEVEL UP!';
+          ctx.save();
+          ctx.globalAlpha = 0.22 + upgradeTransitionT * 0.72;
+          ctx.fillStyle = 'rgba(255,255,255,0.18)';
+          ctx.beginPath();
+          ctx.ellipse(f.x, f.y + 18, 44 + (1 - upgradeTransitionT) * 12, 12 + (1 - upgradeTransitionT) * 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.font = '900 14px system-ui';
+          ctx.textAlign = 'center';
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+          ctx.fillStyle = '#fff3a3';
+          ctx.strokeText(upgradeText, f.x, f.y - drawH * 0.50 - 18);
+          ctx.fillText(upgradeText, f.x, f.y - drawH * 0.50 - 18);
+          ctx.font = '900 12px system-ui';
+          ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+          ctx.fillStyle = levelColor;
+          ctx.strokeText(`Lv.${f.level}`, f.x, f.y - drawH * 0.50 - 2);
+          ctx.fillText(`Lv.${f.level}`, f.x, f.y - drawH * 0.50 - 2);
+          ctx.restore();
+        }
+        if (maxPulseT > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.22 + maxPulseT * 0.32;
+          ctx.strokeStyle = '#ffe58f';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y - 6, 46 + (1 - maxPulseT) * 22, 0, Math.PI * 2);
+          ctx.stroke();
+          for (let i = 0; i < 8; i += 1) {
+            const a = this.time * 0.012 + i * (Math.PI / 4);
+            const px = f.x + Math.cos(a) * (34 + (1 - maxPulseT) * 16);
+            const py = f.y - 12 + Math.sin(a) * (22 + (1 - maxPulseT) * 10);
+            ctx.fillStyle = i % 2 === 0 ? '#ffe58f' : '#fff3c2';
+            ctx.beginPath();
+            ctx.arc(px, py, 2.6 + maxPulseT * 1.4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
         }
         if (fireT > 0) {
           ctx.strokeStyle = f.type === 'cannon' ? 'rgba(255,178,92,0.55)' : 'rgba(255,236,158,0.42)';
@@ -2386,6 +2460,38 @@
       ctx.font = '900 15px system-ui';
       ctx.textAlign = 'center';
       ctx.fillText(msg.slice(0, 34), C.w / 2, y + 27);
+      ctx.restore();
+    }
+
+
+    drawUpgradeBanner(ctx) {
+      if (!this.upgradeBanner) return;
+      const t = clamp((this.upgradeBanner.life || 0) / (this.upgradeBanner.max || 1), 0, 1);
+      const pop = 1 + Math.sin((1 - t) * Math.PI) * 0.08;
+      const width = this.upgradeBanner.final ? 300 : 250;
+      const height = this.upgradeBanner.final ? 72 : 62;
+      const x = C.w / 2 - width / 2;
+      const y = 52 - (1 - t) * 18;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, 0.20 + t * 0.90);
+      rounded(ctx, x, y, width, height, 16);
+      ctx.fillStyle = this.upgradeBanner.final ? 'rgba(91,38,18,0.88)' : 'rgba(34,42,58,0.82)';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = this.upgradeBanner.color || '#fff3a3';
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.font = `900 ${Math.round((this.upgradeBanner.final ? 24 : 22) * pop)}px system-ui`;
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = 'rgba(0,0,0,0.58)';
+      ctx.fillStyle = '#fff6c5';
+      ctx.strokeText(this.upgradeBanner.text, C.w / 2, y + 28);
+      ctx.fillText(this.upgradeBanner.text, C.w / 2, y + 28);
+      ctx.font = '700 13px system-ui';
+      ctx.lineWidth = 4;
+      ctx.strokeText(this.upgradeBanner.sub, C.w / 2, y + 49);
+      ctx.fillStyle = this.upgradeBanner.color || '#fff3a3';
+      ctx.fillText(this.upgradeBanner.sub, C.w / 2, y + 49);
       ctx.restore();
     }
 

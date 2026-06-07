@@ -96,14 +96,11 @@
   if (!existing) {
     if (activePad.invested >= def.cost) return;
     this.spendIntoPad(activePad, def.cost, dt, () => this.completePad(activePad));
-  } else if (existing.level < 3) {
+  } else if (existing.level < this.facilityMaxLevel(existing.type)) {
     const need = this.getUpgradeNeed(existing);
-    this.spendIntoPad(activePad, need, dt, () => {
-      if (!existing.branch && def.options && def.options.length >= 2) this.openUpgradeChoice(existing, activePad);
-      else this.upgradeFacility(existing, activePad);
-    });
+    this.spendIntoPad(activePad, need, dt, () => this.upgradeFacility(existing, activePad));
   } else {
-    this.message = `${def.name}は最大レベルです。王を別の建設床へ向かわせてください。`;
+    this.message = `${def.name}はLv.${this.facilityMaxLevel(existing.type)}で最大強化です。主人公を別の建設床へ向かわせてください。`;
   }
 },
 
@@ -111,9 +108,93 @@
   return !pad.territory || pad.territory <= this.kingdom.territory;
 },
 
+    facilityMaxLevel(type) {
+  const def = C.facilityTypes[type];
+  return (def && def.maxLevel) || 3;
+},
+
+    facilityLevelStats(type, level) {
+  const def = C.facilityTypes[type];
+  return def && def.levelStats ? (def.levelStats[level] || def.levelStats[1] || null) : null;
+},
+
     getUpgradeNeed(f) {
+  const nextLevel = Math.min(this.facilityMaxLevel(f.type), (f.level || 1) + 1);
+  const stats = this.facilityLevelStats(f.type, nextLevel);
+  if (stats && stats.upgradeCost != null) return Math.round(stats.upgradeCost);
   const def = C.facilityTypes[f.type];
-  return Math.round(def.upgradeCost * f.level * (f.branch ? 1.35 : 1.15));
+  return Math.round((def.upgradeCost || 80) * (f.level || 1));
+},
+
+    applyFacilityLevelStats(f, level, keepHpRatio = false) {
+  const stats = this.facilityLevelStats(f.type, level);
+  if (!stats) return;
+  const beforeMax = Math.max(1, f.maxHp || stats.hp || 1);
+  const hpRatio = keepHpRatio ? Math.max(0, Math.min(1, (f.hp || beforeMax) / beforeMax)) : 1;
+  f.level = level;
+  if (stats.hp != null) {
+    f.maxHp = stats.hp;
+    f.hp = Math.max(1, Math.round(f.maxHp * hpRatio));
+  }
+  if (stats.range != null) f.range = stats.range;
+  if (stats.blockRadius != null) f.blockRadius = stats.blockRadius;
+  if (stats.damage != null) f.damage = stats.damage;
+  if (stats.cooldown != null) {
+    f.baseCooldown = stats.cooldown;
+    f.cooldown = Math.min(f.cooldown || stats.cooldown, stats.cooldown);
+  }
+  if (stats.splash != null) f.splash = stats.splash;
+  if (stats.spawnTime != null) {
+    f.spawnTime = stats.spawnTime;
+    f.spawnTimer = Math.min(f.spawnTimer || stats.spawnTime, stats.spawnTime);
+  }
+  if (stats.incomeTime != null) {
+    f.incomeTime = stats.incomeTime;
+    f.incomeTimer = Math.min(f.incomeTimer || stats.incomeTime, stats.incomeTime);
+  }
+  if (stats.income != null) f.income = stats.income;
+  f.accent = this.levelColor ? this.levelColor(level) : ((C.levelColors && C.levelColors[level]) || f.accent);
+},
+
+    levelColor(level) {
+  return (C.levelColors && C.levelColors[level]) || '#fff3a3';
+},
+
+    triggerFacilityUpgradeFx(f, nextLevel, def, options = {}) {
+  const color = this.levelColor(nextLevel);
+  const isFinal = !!options.isFinal;
+  const prevLevel = options.prevLevel || Math.max(1, nextLevel - 1);
+  const bannerLife = isFinal ? 1680 : 1240;
+  f.upgradeFromLevel = prevLevel;
+  f.upgradeToLevel = nextLevel;
+  f.upgradeTransition = isFinal ? 1360 : 980;
+  f.upgradeTransitionMax = f.upgradeTransition;
+  f.maxLevelPulse = isFinal ? 1480 : 0;
+  f.levelFlash = isFinal ? 1320 : 980;
+  f.buildFlash = Math.max(f.buildFlash || 0, isFinal ? 980 : 820);
+  f.accent = color;
+  this.addBurst(f.x, f.y, color, isFinal ? 42 : 30, 'upgrade');
+  this.addBurst(f.x, f.y - 18, '#ffe9a8', isFinal ? 22 : 14, 'upgrade');
+  if (this.addAuraRipple) {
+    this.addAuraRipple(f.x, f.y, color, isFinal ? 132 : 96, isFinal ? 7 : 5, isFinal ? 980 : 720);
+    this.addAuraRipple(f.x, f.y - 8, '#fff0bb', isFinal ? 106 : 74, isFinal ? 4 : 3, isFinal ? 760 : 540);
+  }
+  if (this.addSparkShower) {
+    this.addSparkShower(f.x, f.y - 20, color, isFinal ? 30 : 18, isFinal ? 126 : 92);
+    this.addSparkShower(f.x, f.y - 28, '#fff0bb', isFinal ? 18 : 10, isFinal ? 110 : 72);
+  }
+  this.addFloater('LEVEL UP!', f.x, f.y - 70, '#fff3a3');
+  this.addFloater(`Lv.${nextLevel}`, f.x, f.y - 48, color);
+  if (isFinal) this.addFloater('MAX LEVEL!', f.x, f.y - 90, '#ffe58f');
+  this.upgradeBanner = {
+    text: isFinal ? 'MAX LEVEL!' : 'LEVEL UP!',
+    sub: `${def.name}  Lv.${nextLevel}`,
+    color,
+    life: bannerLife,
+    max: bannerLife,
+    final: isFinal
+  };
+  this.shake = Math.max(this.shake || 0, isFinal ? 240 : 130);
 },
 
     openUpgradeChoice(f, pad) {
@@ -138,18 +219,17 @@
   }
   const def = C.facilityTypes[f.type];
   const option = def.options[index];
+  const prevLevel = f.level || 1;
   f.branch = option.key;
   f.branchName = option.name;
   this.applyBranchUpgrade(f, option.key);
   f.level = 2;
   f.hp = f.maxHp;
+  f.accent = this.levelColor(2);
   pad.upgradeInvested = 0;
-  f.buildFlash = 760;
-  this.addBurst(f.x, f.y, def.accent, 28, 'upgrade');
-  if (this.addAuraRipple) this.addAuraRipple(f.x, f.y, def.accent, 92, 4, 680);
-  if (this.addSparkShower) this.addSparkShower(f.x, f.y - 20, '#fff3a3', 18, 88);
-  this.addFloater(option.name, f.x, f.y - 46, '#fff3a3');
-  this.message = `${def.name}を${option.name}に強化しました。`;
+  this.triggerFacilityUpgradeFx(f, 2, def, { prevLevel, isFinal: false });
+  this.addFloater(option.name, f.x, f.y - 112, '#fff3a3');
+  this.message = `${def.name}を${option.name}に強化しました。建物の見た目もLv.2用に更新されました。`;
   this.playSfx('upgrade');
   this.hideUpgradeOverlay();
   this.paused = this.wasPausedBeforeChoice;
@@ -185,7 +265,7 @@
 
     spendIntoPad(pad, need, dt, onComplete) {
   if (this.king.coins <= 0) {
-    this.message = `コイン不足。あと${Math.ceil(need - (pad.facilityId ? pad.upgradeInvested : pad.invested))}必要です。敵のドロップ回収か金鉱・市場が有効です。`;
+    this.message = `コイン不足。あと${Math.ceil(need - (pad.facilityId ? pad.upgradeInvested : pad.invested))}必要です。敵のドロップ回収か金鉱が有効です。`;
     return;
   }
   const current = pad.facilityId ? pad.upgradeInvested : pad.invested;
@@ -241,8 +321,10 @@
     fire: 0,
     work: 0,
     spawnFlash: 0,
-    buildFlash: 680
+    buildFlash: 680,
+    levelFlash: 0
   };
+  this.applyFacilityLevelStats(f, 1, false);
   this.facilities.push(f);
   pad.facilityId = f.id;
   pad.invested = def.cost;
@@ -257,23 +339,16 @@
 
     upgradeFacility(f, pad) {
   const def = C.facilityTypes[f.type];
-  f.level += 1;
-  f.maxHp = Math.round(f.maxHp * 1.34);
-  f.hp = f.maxHp;
-  if (f.attack) {
-    f.damage = Math.round(f.damage * 1.32);
-    f.range += 13;
-  }
-  if (f.block) f.blockRadius += 5;
+  const prevLevel = f.level || 1;
+  const nextLevel = Math.min(this.facilityMaxLevel(f.type), prevLevel + 1);
+  this.applyFacilityLevelStats(f, nextLevel, true);
   if (f.development) this.applyDevelopmentEffect(f, 'upgrade');
   pad.upgradeInvested = 0;
-  f.buildFlash = 760;
-  this.addBurst(f.x, f.y, '#fff3a3', 24, 'upgrade');
-  if (this.addAuraRipple) this.addAuraRipple(f.x, f.y, '#fff3a3', 78, 4, 620);
-  if (this.addSparkShower) this.addSparkShower(f.x, f.y - 18, '#fff3a3', 14, 78);
-  this.addFloater(`Lv.${f.level}`, f.x, f.y - 42, '#fff3a3');
+  const isFinal = nextLevel >= this.facilityMaxLevel(f.type);
+  this.triggerFacilityUpgradeFx(f, nextLevel, def, { prevLevel, isFinal });
   this.playSfx('upgrade');
-  this.message = `${def.name}をLv.${f.level}に強化。次の襲撃で役割が活きる場所を確認してください。`;
+  const maxText = isFinal ? ' 最終強化で特別演出が発生しました。' : '';
+  this.message = `${def.name}をLv.${nextLevel}に強化。建物画像が切り替わり、性能も上がりました。${maxText}`;
 },
 
     applyDevelopmentEffect(f, phase) {
@@ -417,6 +492,10 @@
   if (this.discoveryToast) {
     this.discoveryToast.life -= dt;
     if (this.discoveryToast.life <= 0) this.discoveryToast = null;
+  }
+  if (this.upgradeBanner) {
+    this.upgradeBanner.life -= dt;
+    if (this.upgradeBanner.life <= 0) this.upgradeBanner = null;
   }
   for (const f of this.floaters) {
     f.life -= dt;

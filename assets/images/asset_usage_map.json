@@ -1,5 +1,5 @@
 {
-  "version": "3.12.3",
+  "version": "3.12.4",
   "game_definition_to_asset_key": {
     "king.idle": "kingIdle",
     "king.run_1": "kingRun1",
@@ -95,5 +95,5 @@
       "files": "canonical assets/images/enemies/enemy_*.png only"
     }
   },
-  "note": "v3.12.3 adds stage selection diagnostics and mobile UI compaction without adding image assets."
+  "note": "v3.12.4 consolidates stage explanation text and compresses stage diagnostics/mobile UI without adding image assets."
 }

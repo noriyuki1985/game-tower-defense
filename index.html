@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>辺境防衛 v3.12.3</title>
+  <title>辺境防衛 v3.12.4</title>
   <link rel="stylesheet" href="styles/style.css">
 </head>
 <body>
@@ -19,7 +19,7 @@
       <div class="title-row">
         <div>
           <h1>辺境防衛</h1>
-          <p>v3.12.3 / ステージ診断・スマホUI最適化版</p>
+          <p>v3.12.4 / 説明集約・UI整理版</p>
         </div>
         <div class="panel-actions">
           <button id="mobilePanelCloseButton" class="panel-close" type="button" aria-label="メニューを閉じる">閉じる</button>
@@ -64,29 +64,27 @@
             <strong id="stageSummaryName">-</strong>
             <span id="stageTypeBadge" class="stage-badge">-</span>
           </div>
-          <p id="stageSummaryText">ステージを選択してください。</p>
-          <div class="stage-stat-grid">
-            <div><span>ルート</span><strong id="stageRouteCountText">-</strong></div>
-            <div><span>難易度</span><strong id="stageDifficultyText">-</strong></div>
-            <div class="wide"><span>推奨</span><strong id="stageRecommendedText">-</strong></div>
+          <p id="stageSummaryText" class="stage-summary-text">ステージを選択してください。</p>
+          <div class="stage-chip-row" aria-label="ステージ要点">
+            <span id="stageRouteCountText" class="stage-chip">-</span>
+            <span id="stageDifficultyText" class="stage-chip">-</span>
+            <span id="stageRecommendedText" class="stage-chip wide">-</span>
           </div>
-          <p class="stage-purpose" id="stagePurposeText">-</p>
           <div class="stage-diagnostic" id="stageDiagnostic" aria-label="ステージ診断">
             <div class="stage-diagnostic-head">
               <strong>診断</strong>
               <span id="stageDiagnosticTotalText">-</span>
             </div>
-            <div class="stage-diagnostic-grid">
-              <div><span>初期資金</span><strong id="stageStartCoinsText">-</strong></div>
-              <div><span>敵倍率</span><strong id="stageEnemyRateText">-</strong></div>
-              <div><span>建設床</span><strong id="stagePadCountText">-</strong></div>
+            <div class="stage-diagnostic-line">
+              <span id="stageStartCoinsText">-</span>
+              <span id="stageEnemyRateText">-</span>
+              <span id="stagePadCountText">-</span>
             </div>
             <div class="stage-route-counts" id="stageRouteCountsText">-</div>
           </div>
         </div>
         <div class="save-row"><span>クラウン</span><strong id="crownText">0</strong></div>
         <div class="save-row"><span>ベスト</span><strong id="bestText">-</strong></div>
-        <div class="save-row wide"><span>地形</span><strong id="stageRuleText">-</strong></div>
         <button id="resetSaveButton" type="button" class="danger">セーブ初期化</button>
       </div>
 
@@ -101,17 +99,9 @@
         <p class="tip-line">音はブラウザ制約により、開始ボタンを押した後に鳴ります。</p>
       </div>
 
-      <div class="legend-box small">
-        <p><b>v3.12.3:</b> ステージ診断表示とスマホ向けのステージ概要カード圧縮を追加しました。</p>
-        <p><b>v3.12.1:</b> ステージ選択UIにルート数・難易度・推奨建物・本番候補/背景テスト区分を追加しました。</p>
-        <p><b>v3.12.0:</b> ridge専用の岩・崖・高台・草束パーツを追加し、高台ステージの専用背景差分を実装しました。</p>
-        <p><b>v3.11.2:</b> 高台マップの建設床を調整し、背景パーツ配置プリセットと弓塔ラベル重なり修正を追加しました。</p>
-        <p><b>v3.9.1:</b> 背景ラフの道・建設床・装飾濃度を視認性優先で調整しました。</p>
-        <p><b>移動:</b> WASD / 矢印キー / クリック / タップ</p>
-        <p><b>一時停止:</b> Space</p>
-        <p><b>速度変更:</b> F</p>
-        <p><b>背景レイヤー可視化:</b> B / <b>背景パーツ確認:</b> P / ラベル切替: N</p>
-        <p><b>コツ:</b> 次の進軍を見て、足止め・単体火力・範囲火力・前線維持・経済の優先順位を変える。</p>
+      <div class="legend-box small compact-help">
+        <p><b>操作:</b> 移動 WASD/矢印/クリック/タップ、停止 Space、速度 F。</p>
+        <p><b>表示:</b> 背景レイヤー B、背景パーツ P、ラベル N。</p>
       </div>
 
       <p class="guide" id="guideText">開始を押してください。</p>

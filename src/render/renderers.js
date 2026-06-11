@@ -2912,18 +2912,15 @@ drawBackgroundPart(ctx, layerName, def, item, ww, wh) {
       ctx.lineWidth = 1.5;
       rounded(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 17);
       ctx.stroke();
-      ctx.fillStyle = '#ffd35b';
-      ctx.font = '900 14px system-ui';
-      ctx.textAlign = 'left';
-      ctx.fillText('状況', x + 14, y + 23);
       ctx.fillStyle = '#fff0bb';
       ctx.font = '900 15px system-ui';
+      ctx.textAlign = 'left';
       const src = (this.notice && this.notice.life > 0) ? this.notice.text : this.message;
       const msg = (src || '').replace(/。/g, '。 ');
-      const first = msg.slice(0, 18);
-      const second = msg.slice(18, 36);
-      ctx.fillText(first, x + 14, y + 47);
-      if (second) ctx.fillText(second, x + 14, y + 68);
+      const first = msg.slice(0, 20);
+      const second = msg.slice(20, 40);
+      ctx.fillText(first, x + 14, y + 34);
+      if (second) ctx.fillText(second, x + 14, y + 58);
       ctx.restore();
     }
 

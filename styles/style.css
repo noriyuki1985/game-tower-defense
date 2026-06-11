@@ -763,13 +763,14 @@ body.mobile-menu-open {
 }
 
 
-/* v3.12.1: stage selection summary */
+/* v3.12.4: consolidated stage explanation */
 .stage-summary {
-  border: 1px solid rgba(255, 236, 176, 0.18);
+  border: 1px solid rgba(255, 236, 176, 0.16);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255, 236, 176, 0.06), rgba(12, 20, 16, 0.28));
-  padding: 10px;
-  margin: 4px 0 10px;
+  background: linear-gradient(180deg, rgba(255, 236, 176, 0.055), rgba(12, 20, 16, 0.26));
+  padding: 9px;
+  margin: 4px 0 9px;
+  overflow: hidden;
 }
 
 .stage-summary-head {
@@ -777,87 +778,79 @@ body.mobile-menu-open {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
+  min-width: 0;
 }
 
 .stage-summary-head strong {
+  min-width: 0;
   color: var(--text);
   font-size: 14px;
-  line-height: 1.25;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stage-badge {
   flex: 0 0 auto;
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 11px;
+  padding: 2px 7px;
+  font-size: 10px;
   font-weight: 800;
   color: #161d16;
   background: #dfead1;
+  white-space: nowrap;
 }
 
-.stage-badge.is-background-test {
-  background: #d7beff;
-  color: #20122e;
-}
+.stage-badge.is-background-test { background: #d7beff; color: #20122e; }
+.stage-badge.is-candidate { background: #9ee1bb; color: #102018; }
 
-.stage-badge.is-candidate {
-  background: #9ee1bb;
-  color: #102018;
-}
-
-#stageSummaryText,
-.stage-purpose {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.stage-purpose {
-  margin-top: 8px;
-  color: rgba(231, 245, 221, 0.78);
-}
-
-.stage-stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 7px;
-  margin-top: 9px;
-}
-
-.stage-stat-grid div {
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 10px;
-  padding: 7px 8px;
-  background: rgba(0,0,0,0.15);
-}
-
-.stage-stat-grid div.wide {
-  grid-column: 1 / -1;
-}
-
-.stage-stat-grid span {
-  display: block;
-  color: var(--muted);
+.stage-summary-text {
+  margin: 0 0 7px;
+  color: rgba(231,245,221,0.78);
   font-size: 11px;
-  margin-bottom: 3px;
-}
-
-.stage-stat-grid strong {
-  display: block;
-  color: var(--text);
-  font-size: 12px;
   line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
+.stage-chip-row,
+.stage-diagnostic-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
 
-/* v3.12.2: balance diagnostics in stage selection */
+.stage-chip,
+.stage-diagnostic-line span,
+.stage-route-counts {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.14);
+  color: var(--text);
+  font-size: 10px;
+  line-height: 1.25;
+  padding: 4px 7px;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage-chip.wide {
+  flex: 1 1 100%;
+}
+
 .stage-diagnostic {
-  margin-top: 9px;
-  border-top: 1px solid rgba(255,255,255,0.10);
-  padding-top: 8px;
+  margin-top: 7px;
+  border-top: 1px solid rgba(255,255,255,0.09);
+  padding-top: 7px;
 }
 
 .stage-diagnostic-head {
@@ -865,125 +858,50 @@ body.mobile-menu-open {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .stage-diagnostic-head strong {
   color: #ffd35b;
-  font-size: 12px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .stage-diagnostic-head span {
   color: rgba(231,245,221,0.82);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.stage-diagnostic-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-
-.stage-diagnostic-grid div {
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 9px;
-  padding: 6px 6px;
-  background: rgba(0,0,0,0.13);
-}
-
-.stage-diagnostic-grid span {
-  display: block;
-  color: var(--muted);
   font-size: 10px;
-  margin-bottom: 2px;
-}
-
-.stage-diagnostic-grid strong,
-.stage-route-counts {
-  color: var(--text);
-  font-size: 11px;
-  line-height: 1.35;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .stage-route-counts {
-  margin-top: 6px;
-  color: rgba(231,245,221,0.80);
+  display: block;
+  margin-top: 5px;
+  border-radius: 9px;
+  color: rgba(231,245,221,0.78);
 }
 
-/* v3.12.3: compact stage card on mobile */
+.stage-purpose,
+.stage-stat-grid,
+.stage-diagnostic-grid {
+  display: none !important;
+}
+
 @media (max-width: 860px) {
-  .stage-summary {
-    padding: 8px;
-    margin-bottom: 8px;
-  }
-
-  .stage-summary-head {
-    margin-bottom: 5px;
-  }
-
-  .stage-summary-head strong {
-    font-size: 13px;
-  }
-
-  .stage-badge {
-    padding: 2px 7px;
-    font-size: 10px;
-  }
-
-  #stageSummaryText,
-  .stage-purpose {
-    display: none;
-  }
-
-  .stage-stat-grid,
-  .stage-diagnostic-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 5px;
-    margin-top: 6px;
-  }
-
-  .stage-stat-grid div,
-  .stage-stat-grid div.wide,
-  .stage-diagnostic-grid div {
-    grid-column: auto;
-    padding: 5px 5px;
-    min-width: 0;
-  }
-
-  .stage-stat-grid span,
-  .stage-diagnostic-grid span {
-    font-size: 9px;
-  }
-
-  .stage-stat-grid strong,
-  .stage-diagnostic-grid strong,
-  .stage-route-counts {
-    font-size: 10px;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
-  }
-
-  .stage-diagnostic {
-    margin-top: 6px;
-    padding-top: 6px;
-  }
-
-  .stage-diagnostic-head {
-    margin-bottom: 4px;
-  }
-
-  .stage-route-counts {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .stage-summary { padding: 8px; margin-bottom: 8px; }
+  .stage-summary-text { font-size: 10px; -webkit-line-clamp: 1; margin-bottom: 5px; }
+  .stage-chip,
+  .stage-diagnostic-line span,
+  .stage-route-counts { font-size: 9px; padding: 3px 6px; }
+  .stage-diagnostic { margin-top: 5px; padding-top: 5px; }
+  .stage-diagnostic-head { margin-bottom: 4px; }
+  .stage-route-counts { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
 @media (max-width: 430px) {
-  .stage-stat-grid strong,
-  .stage-diagnostic-grid strong,
-  .stage-route-counts {
-    font-size: 9px;
-  }
+  .stage-summary-head strong { font-size: 13px; }
+  .stage-badge { font-size: 9px; padding: 2px 6px; }
+  .stage-chip-row,
+  .stage-diagnostic-line { gap: 4px; }
 }
+

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v3.12.4
+- ステージ説明を1か所へ集約
+- ステージ要点と診断表示をチップ形式へ整理
+- stagePurposeText / stageRuleText の表示を削除
+- モバイル時の説明量を削減し、文字重なり・枠はみ出しを抑制
+- モバイルメッセージバーの「状況」見出しを削除
+- saveKey / audioKey / ASSET_VERSION を v3.12.4 へ更新
+
 ## v3.12.3
 
 - 画像生成なし。

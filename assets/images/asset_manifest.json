@@ -1,7 +1,7 @@
 {
-  "version": "3.12.3",
+  "version": "3.12.4",
   "asset_count": 134,
-  "policy": "v3.12.0 adds ridge-specific generated scenery parts so the ridge stage can diverge from meadow/crossroads without breaking the reusable background-part workflow.",
+  "policy": "v3.12.4 is a UI-only cleanup: stage explanations are consolidated and no image assets are added.",
   "assets": [
     "allies/ally_militia.png",
     "allies/ally_shield.png",

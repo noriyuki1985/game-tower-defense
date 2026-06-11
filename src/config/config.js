@@ -20,8 +20,8 @@
     payRate: 112,
     buildHoldTime: 620,
     maxCoinsOnGround: 95,
-    saveKey: 'game-tower-defense-v123-save',
-    audioKey: 'game-tower-defense-v123-audio',
+    saveKey: 'game-tower-defense-v124-save',
+    audioKey: 'game-tower-defense-v124-audio',
     path: [
       { x: 24, y: 762 },
       { x: 66, y: 704 },
@@ -410,7 +410,7 @@ C.stageBackgrounds = {
 
   
 C.backgroundStyleGuide = {
-  activeProfile: 'soft-toon-stage-system-v123',
+  activeProfile: 'soft-toon-stage-system-v124',
   priority: ['playability', 'sprite-readability', 'depth-order', 'soft-toon-fit', 'background-detail'],
   notes: [
     'The rough meadow background is still validation art, not final art.',
@@ -1186,7 +1186,7 @@ C.routeLabels = {
 (function () {
   'use strict';
 
-  const ASSET_VERSION = 'v3.12.3';
+  const ASSET_VERSION = 'v3.12.4';
 
   const ASSET_MANIFEST = {
     kingIdle: 'assets/images/king/king_idle.png',

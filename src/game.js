@@ -804,7 +804,7 @@
           const meta = this.stageUiMeta(key);
           const routeCount = this.stageRouteCount(key);
           const lockText = this.save.unlockedStages.includes(key) ? '' : ' - 未解放';
-          opt.textContent = `${st.name} / ${meta.stageType} / ${routeCount}ルート / ${meta.difficultyLabel}${lockText}`;
+          opt.textContent = `${st.name}（${meta.stageType}・${routeCount}ルート・${meta.difficultyLabel}）${lockText}`;
           opt.disabled = !this.save.unlockedStages.includes(key);
           stageSelect.appendChild(opt);
         }
@@ -962,23 +962,22 @@
       const stageKey = this.selectedStage || this.stageKey();
       const stage = C.stages[stageKey] || C.stages.meadow;
       const meta = this.stageUiMeta(stageKey);
-      const routeNames = (meta.routeNames || []).join(' / ');
+      const routeNames = (meta.routeNames || []).join('・');
       if ($('stageSummaryName')) $('stageSummaryName').textContent = stage.name;
       if ($('stageTypeBadge')) {
         $('stageTypeBadge').textContent = meta.stageType;
         $('stageTypeBadge').className = `stage-badge ${meta.stageTypeKey === 'background-test' ? 'is-background-test' : meta.stageTypeKey === 'candidate' ? 'is-candidate' : ''}`.trim();
       }
-      if ($('stageSummaryText')) $('stageSummaryText').textContent = meta.summary || stage.desc;
-      if ($('stageRouteCountText')) $('stageRouteCountText').textContent = `${meta.routeCount}ルート${routeNames ? ` / ${routeNames}` : ''}`;
-      if ($('stageDifficultyText')) $('stageDifficultyText').textContent = `${meta.difficultyLabel}${'★'.repeat(Math.max(1, meta.difficultyRank || 1))}`;
-      if ($('stageRecommendedText')) $('stageRecommendedText').textContent = (meta.recommendedFacilities || []).join(' / ');
-      if ($('stagePurposeText')) $('stagePurposeText').textContent = meta.purpose || stage.desc;
+      if ($('stageSummaryText')) $('stageSummaryText').textContent = `${meta.summary || stage.desc}${routeNames ? ` / ルート:${routeNames}` : ''}`;
+      if ($('stageRouteCountText')) $('stageRouteCountText').textContent = `ルート:${meta.routeCount}`;
+      if ($('stageDifficultyText')) $('stageDifficultyText').textContent = `難度:${meta.difficultyLabel}${'★'.repeat(Math.max(1, meta.difficultyRank || 1))}`;
+      if ($('stageRecommendedText')) $('stageRecommendedText').textContent = `推奨:${(meta.recommendedFacilities || []).join('・')}`;
       const diag = this.stageBalanceDiagnostics(stageKey);
-      if ($('stageDiagnosticTotalText')) $('stageDiagnosticTotalText').textContent = `${diag.waveCount}波 / 敵${diag.totalEnemies}`;
-      if ($('stageStartCoinsText')) $('stageStartCoinsText').textContent = `${diag.startCoins}`;
-      if ($('stageEnemyRateText')) $('stageEnemyRateText').textContent = `HP${diag.enemyHp.toFixed(2)} / 攻${diag.enemyDamage.toFixed(2)} / 速${diag.enemySpeed.toFixed(2)}`;
-      if ($('stagePadCountText')) $('stagePadCountText').textContent = `${diag.padTotal}床${diag.hiddenPads ? `（発見${diag.hiddenPads}）` : ''}`;
-      if ($('stageRouteCountsText')) $('stageRouteCountsText').textContent = diag.routeText || '-';
+      if ($('stageDiagnosticTotalText')) $('stageDiagnosticTotalText').textContent = `${diag.waveCount}波・敵${diag.totalEnemies}`;
+      if ($('stageStartCoinsText')) $('stageStartCoinsText').textContent = `資金:${diag.startCoins}`;
+      if ($('stageEnemyRateText')) $('stageEnemyRateText').textContent = `倍率:H${diag.enemyHp.toFixed(2)} A${diag.enemyDamage.toFixed(2)} S${diag.enemySpeed.toFixed(2)}`;
+      if ($('stagePadCountText')) $('stagePadCountText').textContent = `床:${diag.padTotal}${diag.hiddenPads ? `+${diag.hiddenPads}` : ''}`;
+      if ($('stageRouteCountsText')) $('stageRouteCountsText').textContent = diag.routeText ? `敵:${diag.routeText}` : '-';
     }
 
     updateSetupHud() {
@@ -987,10 +986,6 @@
         const key = `${this.selectedStage}:${this.selectedDifficulty}`;
         const best = this.save.bestScores[key] || 0;
         $('bestText').textContent = best ? `${best}` : '-';
-      }
-      if ($('stageRuleText')) {
-        const st = C.stageThemes[this.selectedStage] || C.stageThemes.meadow;
-        $('stageRuleText').textContent = st.rule;
       }
       this.updateStageSummary();
     }

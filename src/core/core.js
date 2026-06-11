@@ -15,7 +15,7 @@
   const defaultSave = () => ({
     crowns: 0,
     meta: defaultMeta(),
-    unlockedStages: ['meadow'],
+    unlockedStages: ['meadow', 'crossroads', 'ridge'],
     bestScores: {},
     selectedStage: 'meadow',
     selectedDifficulty: 'normal'
@@ -31,7 +31,7 @@
         ...base,
         ...data,
         meta: { ...base.meta, ...(data.meta || {}) },
-        unlockedStages: Array.isArray(data.unlockedStages) && data.unlockedStages.length ? data.unlockedStages : base.unlockedStages,
+        unlockedStages: Array.isArray(data.unlockedStages) && data.unlockedStages.length ? Array.from(new Set([...base.unlockedStages, ...data.unlockedStages])) : base.unlockedStages,
         bestScores: data.bestScores || {}
       };
     } catch (_) {

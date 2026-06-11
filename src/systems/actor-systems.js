@@ -121,10 +121,10 @@
     this.addAuraRipple(downX, downY, '#ff6b5e', 86, 5, 720);
     this.addAuraRipple(this.king.x, this.king.y, '#ffdf7b', 70, 4, 680);
   }
-  this.addFloater('王、撤退', downX, downY - 50, '#ff6b5e');
+  this.addFloater('主人公、撤退', downX, downY - 50, '#ff6b5e');
   this.addFloater(`落とした金 ${lost}`, downX, downY - 68, '#ffd35b');
   this.addFloater('復帰準備', this.king.x, this.king.y - 48, '#ffdf7b');
-  this.message = `王が倒れ、城の近くへ撤退しました。${Math.ceil(stunMs / 1000)}秒間操作不能。落とした金: ${lost}`;
+  this.message = `主人公が倒れ、防衛都市の近くへ撤退しました。${Math.ceil(stunMs / 1000)}秒間操作不能。落とした金: ${lost}`;
   if (this.setNotice) this.setNotice(this.message, 'danger', 4200, 9);
   this.playSfx('stun');
 },
@@ -135,7 +135,7 @@
   this.king.invuln = 650;
   this.shake = 130;
   this.addBurst(this.king.x, this.king.y, '#ffdf7b', 9, 'warning');
-  this.addFloater(`王 -${Math.round(amount)}`, this.king.x, this.king.y - 40, '#ffdf7b');
+  this.addFloater(`主人公 -${Math.round(amount)}`, this.king.x, this.king.y - 40, '#ffdf7b');
   this.playSfx('kingHit', 320);
   if (this.king.hp <= 0) {
     this.downKing(enemy);
@@ -178,7 +178,7 @@
   const start = (this.routePath(route) || [])[0] || { x: this.castle.x, y: this.castle.y };
   const weighted = sites.map((s) => {
     const hpRatio = (s.siteHp || 1) / Math.max(1, s.siteMaxHp || 1);
-    const kindWeight = s.kind === 'outpost' ? 0.85 : s.kind === 'resource' || s.kind === 'market' ? 1.05 : 1;
+    const kindWeight = s.kind === 'resource' ? 1.05 : 1;
     const d = distXY(start.x, start.y, s.x, s.y);
     return { site: s, score: d / kindWeight + hpRatio * 60 + rand(-18, 18) };
   }).sort((a, b) => a.score - b.score);
@@ -218,7 +218,8 @@
       }
       e.attackTimer -= dt;
       if (e.attackTimer <= 0) {
-        const facilityDamage = e.def.damage * (e.def.siege ? 2.15 : 1);
+        const rawFacilityDamage = e.def.damage * (e.def.siege ? 2.15 : 1);
+        const facilityDamage = rawFacilityDamage * (1 - Math.max(0, Math.min(0.72, blocker.blockArmor || 0)));
         blocker.hp -= facilityDamage;
         blocker.hit = 160;
         this.addBurst(blocker.x, blocker.y, e.def.siege ? '#ff9d55' : '#d59a58', e.def.siege ? 8 : 4);
@@ -432,9 +433,8 @@
     let damageBonus = 1;
     for (const f of this.facilities) {
       if (f.aura && distXY(s.x, s.y, f.x, f.y) < f.range) {
-        const detection = f.branch === 'scout' ? 85 : f.branch === 'command' ? 70 : 45;
+        const detection = 45;
         senseBonus = Math.max(senseBonus, detection + f.level * 14);
-        if (f.type === 'banner' || f.branch === 'morale' || f.branch === 'rally') damageBonus = Math.max(damageBonus, 1.18 + f.level * 0.08);
       }
     }
     let target = s.target && s.target.hp > 0 ? s.target : null;

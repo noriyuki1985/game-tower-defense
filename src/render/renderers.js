@@ -48,20 +48,10 @@
       if (coreLevelAssets[type] && this.imageReady(coreLevelAssets[type])) return coreLevelAssets[type];
       return {
         palisade: 'buildingPalisade',
-        wall: 'buildingStoneWall',
         archer: 'buildingArcherTower',
         cannon: 'buildingCannon',
         barracks: 'buildingBarracks',
-        mine: 'buildingGoldMine',
-        repair: 'buildingRepairHut',
-        trap: 'buildingSpikeTrap',
-        banner: 'buildingWarBanner',
-        beacon: 'buildingSignalBeacon',
-        village: 'buildingVillage',
-        market: 'buildingMarket',
-        outpost: 'buildingOutpost',
-        training: 'buildingBarracks',
-        keep: 'buildingRoyalKeep'
+        mine: 'buildingGoldMine'
       }[type];
     }
 
@@ -77,20 +67,10 @@
     facilityAssetSize(type) {
       return {
         palisade: [76, 62],
-        wall: [82, 58],
         archer: [82, 100],
         cannon: [84, 88],
         barracks: [90, 78],
-        mine: [88, 74],
-        repair: [88, 74],
-        trap: [76, 48],
-        banner: [58, 88],
-        beacon: [70, 90],
-        village: [88, 72],
-        market: [92, 72],
-        outpost: [84, 86],
-        training: [86, 74],
-        keep: [108, 100]
+        mine: [88, 74]
       }[type] || [74, 74];
     }
 
@@ -139,9 +119,7 @@
       return {
         militia: 'allyMilitia',
         shield: 'allyShield',
-        spear: 'allySpear',
-        archer: 'allyArcher',
-        engineer: 'allyEngineer'
+        spear: 'allySpear'
       }[type] || 'allyMilitia';
     }
 
@@ -149,9 +127,7 @@
       return {
         militia: 'allyMilitia',
         shield: 'allyShield',
-        spear: 'allySpear',
-        archer: 'allyArcher',
-        engineer: 'allyEngineer'
+        spear: 'allySpear'
       }[type] || 'allyMilitia';
     }
 
@@ -195,6 +171,7 @@
       this.drawOffscreenMarkers(ctx);
       this.drawMiniMap(ctx);
       this.drawHudOnCanvas(ctx);
+      this.drawBackgroundDebugHud(ctx);
       this.drawDiscoveryToast(ctx);
       this.drawBuildInfoPanel(ctx);
       if (this.drawTutorialGuide) this.drawTutorialGuide(ctx);
@@ -205,100 +182,789 @@
       ctx.restore();
     }
 
+    stageBackground() {
+      const key = this.stageKey ? this.stageKey() : 'meadow';
+      const backgrounds = C.stageBackgrounds || {};
+      const own = backgrounds[key] || backgrounds.meadow || null;
+      if (!own || !own.inherits) return own;
+      const parent = backgrounds[own.inherits] || backgrounds.meadow || {};
+      return {
+        ...parent,
+        ...own,
+        layers: { ...(parent.layers || {}), ...(own.layers || {}) }
+      };
+    }
+
+    backgroundLayer(name) {
+      const background = this.stageBackground ? this.stageBackground() : null;
+      return (background && background.layers && background.layers[name]) || {};
+    }
+
+    backgroundDebugEnabled() {
+      return !!(this.backgroundDebug && this.backgroundDebug.enabled);
+    }
+
+    backgroundDebugLabelsEnabled() {
+      return !!(this.backgroundDebug && this.backgroundDebug.enabled && this.backgroundDebug.labels !== false);
+    }
+
+    backgroundDebugSpec(name) {
+      const cfg = C.backgroundDebug || {};
+      const layers = cfg.layers || {};
+      return layers[name] || { label: name, color: 'rgba(255, 246, 170, 0.32)' };
+    }
+
+    drawBackgroundLayerLabel(ctx, text, x, y) {
+      if (!this.backgroundDebugLabelsEnabled()) return;
+      ctx.save();
+      ctx.font = '900 11px system-ui';
+      ctx.textAlign = 'left';
+      const w = Math.min(190, Math.max(70, ctx.measureText(text).width + 14));
+      rounded(ctx, x, y - 15, w, 19, 6);
+      ctx.fillStyle = 'rgba(8, 13, 18, 0.72)';
+      ctx.fill();
+      ctx.fillStyle = '#fff6c5';
+      ctx.fillText(text, x + 7, y - 2);
+      ctx.restore();
+    }
+
+    drawBackgroundLayerDebug(ctx, name, opts = {}) {
+      if (!this.backgroundDebugEnabled()) return;
+      const spec = this.backgroundDebugSpec(name);
+      const ww = opts.ww || this.worldWidth();
+      const wh = opts.wh || this.worldHeight();
+      ctx.save();
+      if (name === 'base') {
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = spec.color;
+        ctx.fillRect(0, 0, ww, wh);
+        ctx.globalAlpha = 0.20;
+        ctx.strokeStyle = spec.color;
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= ww; x += 80) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, wh);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= wh; y += 80) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(ww, y);
+          ctx.stroke();
+        }
+        this.drawBackgroundLayerLabel(ctx, spec.label, 18, 182);
+      } else if (name === 'path') {
+        ctx.globalAlpha = 0.62;
+        ctx.strokeStyle = spec.color;
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        for (const path of opts.routePaths || []) this.drawPathLine(ctx, path);
+        this.drawBackgroundLayerLabel(ctx, spec.label, 18, 205);
+      } else if (name === 'decorationBack') {
+        ctx.globalAlpha = 0.20;
+        ctx.fillStyle = spec.color;
+        rounded(ctx, 16, 154, 180, 82, 18);
+        ctx.fill();
+        rounded(ctx, ww - 200, 128, 176, 100, 18);
+        ctx.fill();
+        this.drawBackgroundLayerLabel(ctx, spec.label, 18, 228);
+      } else if (name === 'decorationFront') {
+        ctx.globalAlpha = 0.24;
+        ctx.fillStyle = spec.color;
+        rounded(ctx, 12, wh - 88, ww - 24, 54, 14);
+        ctx.fill();
+        this.drawBackgroundLayerLabel(ctx, spec.label, 18, wh - 96);
+      } else if (name === 'atmosphere') {
+        ctx.globalAlpha = 0.22;
+        ctx.strokeStyle = spec.color;
+        ctx.lineWidth = 12;
+        for (let i = -wh; i < ww; i += 96) {
+          ctx.beginPath();
+          ctx.moveTo(i, wh);
+          ctx.lineTo(i + wh, 0);
+          ctx.stroke();
+        }
+        this.drawBackgroundLayerLabel(ctx, spec.label, ww - 208, 176);
+      } else if (name === 'labels') {
+        ctx.globalAlpha = 0.52;
+        ctx.strokeStyle = spec.color;
+        ctx.lineWidth = 2;
+        rounded(ctx, 14, 136, 210, 31, 8);
+        ctx.stroke();
+        this.drawBackgroundLayerLabel(ctx, spec.label, 230, 158);
+      }
+      ctx.restore();
+    }
+
+    drawBackgroundBuildPadDebug(ctx) {
+      if (!this.backgroundDebugEnabled()) return;
+      const spec = this.backgroundDebugSpec('buildPad');
+      ctx.save();
+      ctx.globalAlpha = 0.72;
+      ctx.strokeStyle = spec.color;
+      ctx.fillStyle = 'rgba(127, 183, 255, 0.10)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([7, 5]);
+      for (const pad of this.pads || []) {
+        if (this.isPadVisible && !this.isPadVisible(pad)) continue;
+        rounded(ctx, pad.x - 40, pad.y - 29, 80, 58, 10);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      this.drawBackgroundLayerLabel(ctx, spec.label, 18, 252);
+      ctx.restore();
+    }
+
+    drawBackgroundDebugHud(ctx) {
+      if (!this.backgroundDebugEnabled()) return;
+      const order = C.backgroundLayerOrder || [];
+      const cfg = C.backgroundDebug || {};
+      const layers = cfg.layers || {};
+      ctx.save();
+      const x = 254;
+      const y = 112;
+      const w = 208;
+      const h = 32 + order.length * 17;
+      rounded(ctx, x, y, w, h, 12);
+      ctx.fillStyle = 'rgba(6, 10, 14, 0.76)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 246, 170, 0.34)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#fff6c5';
+      ctx.font = '900 12px system-ui';
+      ctx.textAlign = 'left';
+      ctx.fillText('BG LAYERS / B:切替 N:ラベル', x + 10, y + 18);
+      ctx.font = '800 10px system-ui';
+      for (let i = 0; i < order.length; i += 1) {
+        const key = order[i];
+        const spec = layers[key] || { label: key, color: 'rgba(255,255,255,0.35)' };
+        const yy = y + 37 + i * 17;
+        ctx.fillStyle = spec.color;
+        rounded(ctx, x + 10, yy - 9, 12, 9, 3);
+        ctx.fill();
+        ctx.fillStyle = '#dfe8dd';
+        ctx.fillText(`${i + 1}. ${spec.label || key}`, x + 28, yy);
+      }
+      ctx.restore();
+    }
+
+
+    backgroundPartDebugEnabled() {
+      return !!(this.backgroundPartDebug && this.backgroundPartDebug.enabled);
+    }
+
+    backgroundPartDebugLabelsEnabled() {
+      return !!(this.backgroundPartDebug && this.backgroundPartDebug.enabled && this.backgroundPartDebug.labels !== false);
+    }
+
+    backgroundPartDebugSpec(layerName) {
+      const cfg = C.backgroundPartDebug || {};
+      const layers = cfg.layers || {};
+      return layers[layerName] || { label: layerName, color: cfg.boundsColor || 'rgba(79, 213, 255, 0.78)' };
+    }
+
+    backgroundPartItemsForLayer(background, layerName) {
+      const layout = this.backgroundPartLayout(background);
+      return (layout && layout[layerName]) || [];
+    }
+
+    backgroundPartDimension(def, item, prop, fallback) {
+      if (item && item[prop] != null) return item[prop];
+      if (def && def[prop] != null) return def[prop];
+      return fallback;
+    }
+
+    backgroundPartBounds(def, item, layerName, ww, wh) {
+      const kind = (def && def.kind) || (item && item.kind) || 'unknown';
+      if (kind === 'routeRibbon') return null;
+      if (kind === 'overlay') {
+        if ((item && item.part) === 'vignetteSoft') return { x: ww / 2, y: wh / 2, w: ww, h: wh, shape: 'screen' };
+        return {
+          x: ww / 2,
+          y: wh / 2,
+          w: this.backgroundPartDimension(def, item, 'width', ww * 1.08),
+          h: this.backgroundPartDimension(def, item, 'height', wh * 1.08),
+          shape: 'rect'
+        };
+      }
+      const x = item && item.x != null ? item.x : ww / 2;
+      const y = item && item.y != null ? item.y : wh / 2;
+      if (kind === 'shadow') {
+        const rx = this.backgroundPartDimension(def, item, 'radiusX', 60);
+        const ry = this.backgroundPartDimension(def, item, 'radiusY', 20);
+        return { x, y, w: Math.max(84, rx * 2.4), h: Math.max(30, ry * 3.0), shape: 'ellipse' };
+      }
+      if (kind === 'patch') {
+        return {
+          x,
+          y,
+          w: this.backgroundPartDimension(def, item, 'w', 120),
+          h: this.backgroundPartDimension(def, item, 'h', 72),
+          shape: 'ellipse'
+        };
+      }
+      const scale = (item && item.scale != null ? item.scale : 1) * (def && def.scale != null ? def.scale : 1);
+      if (kind === 'tree') return { x, y, w: (this.backgroundPartDimension(def, item, 'width', 82)) * scale, h: (this.backgroundPartDimension(def, item, 'height', 96)) * scale, shape: 'rect' };
+      if (kind === 'rock') return { x, y, w: (this.backgroundPartDimension(def, item, 'width', 64)) * scale, h: (this.backgroundPartDimension(def, item, 'height', 54)) * scale, shape: 'rect' };
+      if (kind === 'fence') {
+        const w = this.backgroundPartDimension(def, item, 'width', 96);
+        return { x, y, w, h: Math.max(this.backgroundPartDimension(def, item, 'height', 18), w * 0.34), shape: 'rect' };
+      }
+      if (kind === 'crate') {
+        const w = this.backgroundPartDimension(def, item, 'width', 26);
+        return { x, y, w, h: this.backgroundPartDimension(def, item, 'height', w), shape: 'rect' };
+      }
+      if (kind === 'reed') return { x, y, w: 44 * scale, h: 56 * scale, shape: 'rect' };
+      return { x, y, w: this.backgroundPartDimension(def, item, 'w', 42), h: this.backgroundPartDimension(def, item, 'h', 42), shape: 'rect' };
+    }
+
+    backgroundPartWarnings(background) {
+      const layout = this.backgroundPartLayout(background);
+      const catalog = C.backgroundPartCatalog || {};
+      const warnings = [];
+      if (!layout) return ['backgroundPartLayouts が見つかりません'];
+      for (const [layerName, items] of Object.entries(layout)) {
+        for (let i = 0; i < (items || []).length; i += 1) {
+          const item = items[i] || {};
+          const id = item.id || `${layerName}-${i + 1}`;
+          const def = catalog[item.part];
+          if (!item.part) warnings.push(`${id}: part 未指定`);
+          if (!def) {
+            warnings.push(`${id}: catalog 未定義 ${item.part || ''}`.trim());
+            continue;
+          }
+          const kind = def.kind || item.kind;
+          if (kind !== 'routeRibbon' && kind !== 'overlay') {
+            if (item.x == null || item.y == null) warnings.push(`${id}: x/y 未指定`);
+          }
+          if (item.alpha != null && (item.alpha < 0 || item.alpha > 1.25)) warnings.push(`${id}: alpha 範囲外 ${item.alpha}`);
+          const bounds = this.backgroundPartBounds(def, item, layerName, this.worldWidth(), this.worldHeight());
+          if (bounds && (bounds.w <= 0 || bounds.h <= 0)) warnings.push(`${id}: サイズ不正`);
+          if (bounds && (bounds.x < -80 || bounds.x > this.worldWidth() + 80 || bounds.y < -80 || bounds.y > this.worldHeight() + 80)) warnings.push(`${id}: 画面外の可能性`);
+          const assetKeys = [def.assetKey, def.assetStraightKey, def.assetCurveKey].filter(Boolean);
+          for (const key of assetKeys) {
+            if (this.images && !this.images[key]) warnings.push(`${id}: asset 未登録 ${key}`);
+          }
+          if (kind === 'routeRibbon' && !item.route) warnings.push(`${id}: route 未指定`);
+        }
+      }
+      return warnings;
+    }
+
+    drawBackgroundPartDebugLayer(ctx, layerName, background, opts = {}) {
+      if (!this.backgroundPartDebugEnabled()) return;
+      const items = this.backgroundPartItemsForLayer(background, layerName);
+      if (!items || !items.length) return;
+      const catalog = C.backgroundPartCatalog || {};
+      const cfg = C.backgroundPartDebug || {};
+      const spec = this.backgroundPartDebugSpec(layerName);
+      const ww = opts.ww || this.worldWidth();
+      const wh = opts.wh || this.worldHeight();
+      ctx.save();
+      ctx.globalAlpha = cfg.overlayAlpha == null ? 0.82 : cfg.overlayAlpha;
+      for (let i = 0; i < items.length; i += 1) {
+        const item = items[i] || {};
+        const def = catalog[item.part];
+        const color = spec.color || cfg.boundsColor || 'rgba(79, 213, 255, 0.78)';
+        if (!def) {
+          this.drawBackgroundPartWarningLabel(ctx, `${item.id || i}: ${item.part || 'unknown'}`, 22, 282 + i * 18);
+          continue;
+        }
+        const kind = def.kind || item.kind;
+        if (kind === 'routeRibbon') {
+          const route = item.route || 'main';
+          const path = this.routePath ? this.routePath(route) : [];
+          if (path && path.length >= 2) {
+            ctx.save();
+            ctx.strokeStyle = cfg.routeColor || color;
+            ctx.lineWidth = Math.max(3, Math.min(8, (item.outerWidth || def.outerWidth || 46) * 0.12));
+            ctx.setLineDash([8, 8]);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            this.drawPathLine(ctx, path);
+            ctx.setLineDash([]);
+            ctx.restore();
+            const mid = path[Math.floor(path.length / 2)];
+            this.drawBackgroundPartAnchor(ctx, mid.x, mid.y, cfg.routeColor || color);
+            this.drawBackgroundPartInfoLabel(ctx, item, def, layerName, mid.x + 8, mid.y - 8);
+          }
+          continue;
+        }
+        const bounds = this.backgroundPartBounds(def, item, layerName, ww, wh);
+        if (!bounds) continue;
+        this.drawBackgroundPartBounds(ctx, bounds, color, item.rotation || 0);
+        this.drawBackgroundPartAnchor(ctx, bounds.x, bounds.y, color);
+        this.drawBackgroundPartInfoLabel(ctx, item, def, layerName, bounds.x + bounds.w / 2 + 5, bounds.y - bounds.h / 2 + 2);
+      }
+      ctx.restore();
+    }
+
+    drawBackgroundPartBounds(ctx, bounds, color, rotation = 0) {
+      ctx.save();
+      ctx.translate(bounds.x, bounds.y);
+      ctx.rotate(rotation || 0);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([6, 4]);
+      if (bounds.shape === 'ellipse') {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, bounds.w / 2, bounds.h / 2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        rounded(ctx, -bounds.w / 2, -bounds.h / 2, bounds.w, bounds.h, 5);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    drawBackgroundPartAnchor(ctx, x, y, color) {
+      const cfg = C.backgroundPartDebug || {};
+      const r = cfg.anchorRadius || 4;
+      ctx.save();
+      ctx.fillStyle = color || cfg.boundsColor || 'rgba(79, 213, 255, 0.78)';
+      ctx.strokeStyle = 'rgba(6, 10, 14, 0.72)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    drawBackgroundPartInfoLabel(ctx, item, def, layerName, x, y) {
+      if (!this.backgroundPartDebugLabelsEnabled()) return;
+      const cfg = C.backgroundPartDebug || {};
+      const text = [
+        `${item.id || item.debugLabel || item.part}`,
+        `${layerName}/${item.part}`,
+        item.route ? `route:${item.route}` : `x:${Math.round(item.x || 0)} y:${Math.round(item.y || 0)}`,
+        item.w || item.h ? `w:${Math.round(item.w || 0)} h:${Math.round(item.h || 0)}` : (item.scale != null ? `scale:${item.scale}` : ''),
+        item.alpha != null ? `a:${item.alpha}` : ''
+      ].filter(Boolean).join('  ');
+      ctx.save();
+      ctx.globalAlpha = cfg.labelAlpha == null ? 0.92 : cfg.labelAlpha;
+      ctx.font = '800 10px system-ui';
+      const w = Math.min(280, Math.max(96, ctx.measureText(text).width + 12));
+      const xx = clamp(x, 8, this.worldWidth() - w - 8);
+      const yy = clamp(y, 136, this.worldHeight() - 22);
+      rounded(ctx, xx, yy - 13, w, 18, 5);
+      ctx.fillStyle = 'rgba(5, 10, 14, 0.78)';
+      ctx.fill();
+      ctx.fillStyle = '#dff7ff';
+      ctx.textAlign = 'left';
+      ctx.fillText(text, xx + 6, yy);
+      ctx.restore();
+    }
+
+    drawBackgroundPartWarningLabel(ctx, text, x, y) {
+      ctx.save();
+      ctx.font = '900 10px system-ui';
+      rounded(ctx, x, y - 13, Math.min(250, ctx.measureText(text).width + 14), 18, 5);
+      ctx.fillStyle = 'rgba(50, 8, 8, 0.80)';
+      ctx.fill();
+      ctx.fillStyle = '#ffd6d6';
+      ctx.fillText(text, x + 7, y);
+      ctx.restore();
+    }
+
+    drawBackgroundPartDebugHud(ctx, background) {
+      if (!this.backgroundPartDebugEnabled()) return;
+      const cfg = C.backgroundPartDebug || {};
+      if (cfg.showHud === false) return;
+      const layout = this.backgroundPartLayout(background) || {};
+      const layers = ['base', 'path', 'decorationBack', 'decorationFront', 'atmosphere'];
+      const warnings = this.backgroundPartWarnings(background);
+      ctx.save();
+      const x = 12;
+      const y = 286;
+      const w = 236;
+      const h = 46 + layers.length * 16 + Math.min(warnings.length, 4) * 15;
+      rounded(ctx, x, y, w, h, 12);
+      ctx.fillStyle = 'rgba(6, 10, 14, 0.76)';
+      ctx.fill();
+      ctx.strokeStyle = warnings.length ? (cfg.warningColor || 'rgba(255,88,88,0.92)') : 'rgba(79, 213, 255, 0.40)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#dff7ff';
+      ctx.font = '900 12px system-ui';
+      ctx.textAlign = 'left';
+      ctx.fillText('BG PARTS / P:切替 N:ラベル', x + 10, y + 18);
+      ctx.font = '800 10px system-ui';
+      for (let i = 0; i < layers.length; i += 1) {
+        const key = layers[i];
+        const spec = this.backgroundPartDebugSpec(key);
+        const count = ((layout && layout[key]) || []).length;
+        const yy = y + 38 + i * 16;
+        ctx.fillStyle = spec.color || '#dff7ff';
+        rounded(ctx, x + 10, yy - 9, 12, 8, 3);
+        ctx.fill();
+        ctx.fillStyle = '#e7f2ee';
+        ctx.fillText(`${spec.label || key}: ${count}`, x + 28, yy);
+      }
+      if (warnings.length) {
+        ctx.fillStyle = cfg.warningColor || '#ff8c8c';
+        ctx.font = '900 10px system-ui';
+        ctx.fillText(`warnings: ${warnings.length}`, x + 10, y + 122);
+        ctx.font = '800 9px system-ui';
+        for (let i = 0; i < Math.min(warnings.length, 4); i += 1) {
+          ctx.fillText(warnings[i].slice(0, 36), x + 10, y + 137 + i * 15);
+        }
+      }
+      ctx.restore();
+    }
+
     drawWorld(ctx) {
       const theme = this.stageTheme();
       const key = this.stageKey();
+      const background = this.stageBackground();
       const ww = this.worldWidth();
       const wh = this.worldHeight();
       const sxw = C.worldScaleX || 1;
       const syw = C.worldScaleY || 1;
       const wx = (value) => value * sxw;
       const wy = (value) => value * syw;
+      this.drawWorldBase(ctx, theme, background, ww, wh);
+      this.drawBackgroundLayerDebug(ctx, 'base', { ww, wh });
+      this.drawBackgroundPartDebugLayer(ctx, 'base', background, { ww, wh });
+      this.drawWorldBackDecorations(ctx, theme, background, ww, wh, wx, wy);
+      this.drawBackgroundLayerDebug(ctx, 'decorationBack', { ww, wh });
+      this.drawBackgroundPartDebugLayer(ctx, 'decorationBack', background, { ww, wh });
+      const routePaths = this.worldRoutePaths(key);
+      this.drawWorldRoutes(ctx, theme, background, routePaths);
+      this.drawBackgroundLayerDebug(ctx, 'path', { ww, wh, routePaths });
+      this.drawBackgroundPartDebugLayer(ctx, 'path', background, { ww, wh, routePaths });
+      this.drawBackgroundBuildPadDebug(ctx);
+      this.drawUpcomingRoutePreview(ctx);
+      this.drawRaidTrails(ctx, theme);
+      this.drawMapDesignGuides(ctx, theme);
+      this.drawWorldTerritory(ctx);
+      this.drawWorldFrontDecorations(ctx, theme, background, ww, wh, wx, wy);
+      this.drawBackgroundLayerDebug(ctx, 'decorationFront', { ww, wh });
+      this.drawBackgroundPartDebugLayer(ctx, 'decorationFront', background, { ww, wh });
+      this.drawWorldAtmosphere(ctx, background, ww, wh);
+      this.drawBackgroundLayerDebug(ctx, 'atmosphere', { ww, wh });
+      this.drawBackgroundPartDebugLayer(ctx, 'atmosphere', background, { ww, wh });
+      this.drawWorldLabel(ctx, theme, background, wx, wy);
+      this.drawBackgroundLayerDebug(ctx, 'labels', { ww, wh });
+      this.drawBackgroundPartDebugHud(ctx, background);
+    }
+
+    worldRoutePaths(key) {
+      const stagePaths = (C.stagePaths && C.stagePaths[key]) || {};
+      const routeKeys = Object.keys(stagePaths).length ? Object.keys(stagePaths) : ['main', 'side'];
+      return routeKeys.map((route) => this.routePath(route)).filter((path) => path && path.length >= 2);
+    }
+
+    drawBackgroundAssetLayer(ctx, layer, ww, wh) {
+      if (!layer || !layer.assetKey || !this.imageReady(layer.assetKey)) return false;
+      const img = this.images && this.images[layer.assetKey];
+      if (!img) return false;
+      ctx.save();
+      ctx.globalAlpha *= layer.alpha == null ? 1 : layer.alpha;
+      ctx.drawImage(img, 0, 0, ww, wh);
+      ctx.restore();
+      return true;
+    }
+
+
+backgroundPartLayout(background) {
+  const layoutKey = (background && background.partsLayoutKey) || (this.stageKey ? this.stageKey() : 'meadow');
+  return (C.backgroundPartLayouts && C.backgroundPartLayouts[layoutKey]) || null;
+}
+
+shouldDrawPartLayer(background, layerName) {
+  const layer = background && background.layers ? background.layers[layerName] : null;
+  return !!(layer && layer.useParts);
+}
+
+drawBackgroundPartLayer(ctx, layerName, background, ww, wh) {
+  if (!this.shouldDrawPartLayer(background, layerName)) return false;
+  const layout = this.backgroundPartLayout(background);
+  const items = layout && layout[layerName];
+  if (!items || !items.length) return false;
+  const catalog = C.backgroundPartCatalog || {};
+  for (const item of items) {
+    const def = catalog[item.part];
+    if (!def) continue;
+    this.drawBackgroundPart(ctx, layerName, def, item, ww, wh);
+  }
+  return true;
+}
+
+drawBackgroundPart(ctx, layerName, def, item, ww, wh) {
+  const kind = def.kind || item.kind;
+  ctx.save();
+  ctx.globalAlpha *= item.alpha == null ? (def.alpha == null ? 1 : def.alpha) : item.alpha;
+  if (kind === 'patch') {
+    const x = item.x || ww * 0.5;
+    const y = item.y || wh * 0.5;
+    const w = item.w || def.w || 120;
+    const h = item.h || def.h || 72;
+    const rotation = item.rotation || 0;
+    if (!(def.assetKey && this.imageReady(def.assetKey) && this.drawAssetAnimated(ctx, def.assetKey, x, y, w, h, { rotation }))) {
+      ctx.fillStyle = item.color || def.color || 'rgba(255,255,255,0.08)';
+      ctx.beginPath();
+      ctx.ellipse(x, y, w / 2, h / 2, rotation, 0, Math.PI * 2);
+      ctx.fill();
+      const textureKey = item.textureAsset || def.textureAsset;
+      if (textureKey && this.imageReady(textureKey)) {
+        ctx.save();
+        ctx.globalAlpha *= item.textureAlpha == null ? (def.textureAlpha == null ? 0.12 : def.textureAlpha) : item.textureAlpha;
+        const cols = Math.max(1, Math.round(w / 42));
+        const rows = Math.max(1, Math.round(h / 42));
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            const px = x - w / 2 + (col + 0.5) * (w / cols);
+            const py = y - h / 2 + (row + 0.5) * (h / rows);
+            this.drawAsset(ctx, textureKey, px, py, Math.max(28, w / cols + 8), Math.max(28, h / rows + 8));
+          }
+        }
+        ctx.restore();
+      }
+    }
+  } else if (kind === 'routeRibbon') {
+    const routeName = item.route || def.route || 'main';
+    const path = this.routePath ? this.routePath(routeName) : [];
+    if (path && path.length >= 2) {
+      const stamped = this.drawRouteRibbonAsset(ctx, path, def, item);
+      if (!stamped) {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = item.outerColor || def.outerColor || '#d6c094';
+        ctx.lineWidth = item.outerWidth || def.outerWidth || 48;
+        this.drawPathLine(ctx, path);
+        ctx.strokeStyle = item.innerColor || def.innerColor || '#bb9060';
+        ctx.lineWidth = item.innerWidth || def.innerWidth || 32;
+        this.drawPathLine(ctx, path);
+        ctx.strokeStyle = item.detailColor || def.detailColor || 'rgba(96, 66, 42, 0.18)';
+        ctx.lineWidth = item.detailWidth || def.detailWidth || 2;
+        this.drawPathLine(ctx, path);
+      }
+    }
+  } else if (kind === 'tree') {
+    const scale = (item.scale || 1) * (def.scale || 1);
+    const x = item.x || ww * 0.5;
+    const y = item.y || wh * 0.5;
+    if (!(def.assetKey && this.imageReady(def.assetKey) && this.drawAssetAnimated(ctx, def.assetKey, x, y, (item.width || def.width || 82) * scale, (item.height || def.height || 96) * scale, { rotation: item.rotation || 0 }))) {
+      this.drawTree(ctx, x, y, scale);
+    }
+  } else if (kind === 'rock') {
+    const scale = (item.scale || 1) * (def.scale || 1);
+    const x = item.x || ww * 0.5;
+    const y = item.y || wh * 0.5;
+    if (!(def.assetKey && this.imageReady(def.assetKey) && this.drawAssetAnimated(ctx, def.assetKey, x, y, (item.width || def.width || 64) * scale, (item.height || def.height || 54) * scale, { rotation: item.rotation || 0 }))) {
+      this.drawRock(ctx, x, y, scale);
+    }
+  } else if (kind === 'reed') {
+    this.drawReed(ctx, item.x, item.y, (item.scale || 1) * (def.scale || 1));
+  } else if (kind === 'fence') {
+    const width = item.width || def.width || 96;
+    const height = item.height || def.height || 18;
+    const x = item.x || ww * 0.5;
+    const y = item.y || wh * 0.5;
+    if (!(def.assetKey && this.imageReady(def.assetKey) && this.drawAssetAnimated(ctx, def.assetKey, x, y, width, Math.max(height, width * 0.34), { rotation: item.rotation || 0 }))) {
+      const railColor = item.railColor || def.railColor || '#9f7c57';
+      const postColor = item.postColor || def.postColor || '#76593e';
+      ctx.fillStyle = railColor;
+      rounded(ctx, x - width / 2, y - height * 0.25, width, 6, 3);
+      ctx.fill();
+      rounded(ctx, x - width / 2, y + height * 0.10, width, 6, 3);
+      ctx.fill();
+      const posts = Math.max(3, Math.round(width / 26));
+      ctx.fillStyle = postColor;
+      for (let i = 0; i < posts; i += 1) {
+        const px = x - width / 2 + (i / (posts - 1)) * width;
+        rounded(ctx, px - 3, y - height / 2, 6, height + 4, 2);
+        ctx.fill();
+      }
+    }
+  } else if (kind === 'crate') {
+    const width = item.width || def.width || 26;
+    const height = item.height || def.height || width;
+    const x = item.x || ww * 0.5;
+    const y = item.y || wh * 0.5;
+    if (!(def.assetKey && this.imageReady(def.assetKey) && this.drawAssetAnimated(ctx, def.assetKey, x, y, width, height, { rotation: item.rotation || 0 }))) {
+      ctx.fillStyle = item.fill || def.fill || '#a97a4b';
+      rounded(ctx, x - width / 2, y - height / 2, width, height, 4);
+      ctx.fill();
+      ctx.strokeStyle = item.edge || def.edge || '#6f4f33';
+      ctx.lineWidth = 2;
+      rounded(ctx, x - width / 2, y - height / 2, width, height, 4);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - width / 2 + 4, y - height / 2 + 4);
+      ctx.lineTo(x + width / 2 - 4, y + height / 2 - 4);
+      ctx.moveTo(x + width / 2 - 4, y - height / 2 + 4);
+      ctx.lineTo(x - width / 2 + 4, y + height / 2 - 4);
+      ctx.stroke();
+    }
+  } else if (kind === 'shadow') {
+    const x = item.x || ww * 0.5;
+    const y = item.y || wh * 0.5;
+    const rx = item.radiusX || def.radiusX || 64;
+    const ry = item.radiusY || def.radiusY || 22;
+    if (!(def.assetKey && this.imageReady(def.assetKey) && this.drawAssetAnimated(ctx, def.assetKey, x, y, Math.max(84, rx * 2.4), Math.max(30, ry * 3.0), { rotation: item.rotation || 0 }))) {
+      ctx.fillStyle = item.color || def.color || 'rgba(16,24,18,0.10)';
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (kind === 'overlay') {
+    const style = item.style || def.style || 'mist';
+    if (style !== 'vignette' && def.assetKey && this.imageReady(def.assetKey)) {
+      this.drawAssetAnimated(ctx, def.assetKey, ww * 0.5, wh * 0.5, item.width || def.width || ww * 1.08, item.height || def.height || wh * 1.08, { rotation: item.rotation || 0 });
+    } else if (style === 'vignette') {
+      const g = ctx.createRadialGradient(ww * 0.5, wh * 0.48, wh * 0.16, ww * 0.5, wh * 0.48, wh * 0.78);
+      g.addColorStop(0, item.colorTop || def.colorTop || 'rgba(0,0,0,0)');
+      g.addColorStop(1, item.colorBottom || def.colorBottom || 'rgba(0,0,0,0.16)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, ww, wh);
+    } else {
+      const g = ctx.createLinearGradient(0, 0, 0, wh);
+      g.addColorStop(0, item.colorTop || def.colorTop || 'rgba(255,255,255,0.04)');
+      g.addColorStop(1, item.colorBottom || def.colorBottom || 'rgba(205,224,214,0.12)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, ww, wh);
+    }
+  }
+  ctx.restore();
+}
+
+    drawRouteRibbonAsset(ctx, path, def, item) {
+      const straightKey = item.assetStraightKey || def.assetStraightKey;
+      if (!straightKey || !this.imageReady(straightKey)) return false;
+      const curveKey = item.assetCurveKey || def.assetCurveKey;
+      const routeWidth = item.outerWidth || def.outerWidth || 48;
+      const straightW = routeWidth * 1.32;
+      for (let i = 1; i < path.length; i += 1) {
+        const a = path[i - 1];
+        const b = path[i];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const len = Math.hypot(dx, dy);
+        if (len <= 1) continue;
+        const mx = (a.x + b.x) * 0.5;
+        const my = (a.y + b.y) * 0.5;
+        const rot = Math.atan2(dy, dx) - Math.PI / 2;
+        this.drawAssetAnimated(ctx, straightKey, mx, my, straightW, len + routeWidth * 0.85, { rotation: rot });
+      }
+      if (curveKey && this.imageReady(curveKey) && path.length >= 3) {
+        const curveSize = routeWidth * 2.2;
+        for (let i = 1; i < path.length - 1; i += 1) {
+          const prev = path[i - 1];
+          const cur = path[i];
+          const next = path[i + 1];
+          const a1 = Math.atan2(cur.y - prev.y, cur.x - prev.x);
+          const a2 = Math.atan2(next.y - cur.y, next.x - cur.x);
+          let delta = a2 - a1;
+          while (delta > Math.PI) delta -= Math.PI * 2;
+          while (delta < -Math.PI) delta += Math.PI * 2;
+          if (Math.abs(delta) < 0.18) continue;
+          this.drawAssetAnimated(ctx, curveKey, cur.x, cur.y, curveSize, curveSize, { rotation: a1 - Math.PI / 2 });
+        }
+      }
+      return true;
+    }
+
+    drawWorldBase(ctx, theme, background, ww, wh) {
+      const layer = background && background.layers ? background.layers.base : {};
       const g = ctx.createLinearGradient(0, 0, 0, wh);
       g.addColorStop(0, theme.bgTop);
       g.addColorStop(0.55, theme.bgMid);
       g.addColorStop(1, theme.bgBottom);
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, ww, wh);
-      const grassAsset = key === 'river' ? 'tileGrassRiver' : key === 'pass' ? 'tileGrassPass' : 'tileGrassMeadow';
-      if (this.imageReady(grassAsset) || this.imageReady('tileGrass')) {
+      const assetDrawn = this.drawBackgroundAssetLayer(ctx, layer, ww, wh);
+      const partsDrawn = this.drawBackgroundPartLayer(ctx, 'base', background, ww, wh);
+      if ((assetDrawn || partsDrawn) && layer.hideTexture) return;
+      const textureAsset = layer.textureAsset || 'tileGrassMeadow';
+      const fallbackAsset = layer.textureFallback || 'tileGrass';
+      const drawKey = this.imageReady(textureAsset) ? textureAsset : fallbackAsset;
+      if (this.imageReady(drawKey)) {
         ctx.save();
-        ctx.globalAlpha = key === 'pass' ? 0.16 : 0.20;
+        ctx.globalAlpha = layer.textureAlpha == null ? 0.20 : layer.textureAlpha;
         for (let y = -20; y < wh; y += 92) {
           for (let x = -28; x < ww; x += 92) {
-            this.drawAsset(ctx, this.imageReady(grassAsset) ? grassAsset : 'tileGrass', x + 46, y + 46, 98, 98);
+            this.drawAsset(ctx, drawKey, x + 46, y + 46, 98, 98);
           }
         }
         ctx.restore();
       }
+    }
 
-      if (key === 'river') {
-        ctx.fillStyle = theme.water;
-        ctx.beginPath();
-        ctx.moveTo(wx(214), wy(120));
-        ctx.bezierCurveTo(wx(266), wy(250), wx(214), wy(338), wx(253), wy(455));
-        ctx.bezierCurveTo(wx(296), wy(585), wx(252), wy(668), wx(304), wy(810));
-        ctx.lineTo(wx(368), wy(810));
-        ctx.bezierCurveTo(wx(315), wy(665), wx(365), wy(580), wx(319), wy(446));
-        ctx.bezierCurveTo(wx(282), wy(334), wx(337), wy(242), wx(281), wy(120));
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(213,239,255,0.28)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(wx(250), wy(125));
-        ctx.bezierCurveTo(wx(296), wy(254), wx(245), wy(351), wx(286), wy(454));
-        ctx.bezierCurveTo(wx(324), wy(552), wx(281), wy(666), wx(330), wy(795));
-        ctx.stroke();
-      }
-
+    drawWorldBackDecorations(ctx, theme, background, ww, wh, wx, wy) {
+      const layer = background && background.layers ? background.layers.decorationBack : {};
+      const assetDrawn = this.drawBackgroundAssetLayer(ctx, layer, ww, wh);
+      const partsDrawn = this.drawBackgroundPartLayer(ctx, 'decorationBack', background, ww, wh);
+      if ((assetDrawn || partsDrawn) && layer.hideProcedural) return;
       ctx.fillStyle = theme.blob;
       this.blob(ctx, wx(28), wy(116), wx(180), wy(80));
       this.blob(ctx, wx(380), wy(190), wx(160), wy(95));
       this.blob(ctx, wx(392), wy(720), wx(140), wy(80));
-      if (key === 'pass') {
-        ctx.fillStyle = 'rgba(39, 36, 31, 0.50)';
-        this.blob(ctx, wx(58), wy(265), wx(64), wy(92));
-        this.blob(ctx, wx(421), wy(350), wx(76), wy(116));
-        this.blob(ctx, wx(78), wy(724), wx(96), wy(62));
-      }
-
-      const decorationCount = Math.max(32, Math.round((ww * wh) / (C.w * C.h) * 28));
+      const densityBase = layer.densityBase || 28;
+      const decorationCount = Math.max(layer.minCount || 32, Math.round((ww * wh) / (C.w * C.h) * densityBase));
+      const avoidPathDistance = layer.avoidPathDistance == null ? 56 : layer.avoidPathDistance;
       for (let i = 0; i < decorationCount; i += 1) {
         const x = (i * 83 + 37) % ww;
         const y = 145 + ((i * 137) % Math.max(240, wh - 210));
-        if (this.distanceToPath(x, y) <= 56) continue;
+        if (this.distanceToPath(x, y) <= avoidPathDistance) continue;
+        if (layer.avoidPadDistance != null && (this.pads || []).some((pad) => Math.hypot((pad.x || 0) - x, (pad.y || 0) - y) < layer.avoidPadDistance)) continue;
+        if (layer.avoidCastleDistance != null && Math.hypot((C.castle.x || 0) - x, (C.castle.y || 0) - y) < layer.avoidCastleDistance) continue;
         if (theme.object === 'rock') this.drawRock(ctx, x, y, 0.65 + (i % 3) * 0.15);
         else if (theme.object === 'reed') this.drawReed(ctx, x, y, 0.72 + (i % 3) * 0.12);
         else this.drawTree(ctx, x, y, 0.72 + (i % 3) * 0.12);
       }
-
-      const stagePaths = (C.stagePaths && C.stagePaths[key]) || {};
-      const routeKeys = Object.keys(stagePaths).length ? Object.keys(stagePaths) : ['main', 'side'];
-      const routePaths = routeKeys.map((route) => this.routePath(route)).filter((path) => path && path.length >= 2);
+    }
+    drawWorldRoutes(ctx, theme, background, routePaths) {
+      const layer = background && background.layers ? background.layers.path : {};
+      const assetDrawn = this.drawBackgroundAssetLayer(ctx, layer, this.worldWidth(), this.worldHeight());
+      const partsDrawn = this.drawBackgroundPartLayer(ctx, 'path', background, this.worldWidth(), this.worldHeight());
+      if ((assetDrawn || partsDrawn) && layer.hideRuntimeLines) {
+        if (layer.visibilityGuide !== false) this.drawWorldRouteVisibilityGuide(ctx, layer, routePaths);
+        return;
+      }
+      if (partsDrawn) {
+        if (layer.visibilityGuide !== false) this.drawWorldRouteVisibilityGuide(ctx, layer, routePaths);
+        return;
+      }
+      ctx.save();
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.strokeStyle = theme.roadOuter;
-      ctx.lineWidth = key === 'pass' ? 48 : 56;
+      ctx.strokeStyle = layer.outerColor || theme.roadOuter;
+      ctx.lineWidth = layer.outerWidth || 56;
       for (const path of routePaths) this.drawPathLine(ctx, path);
-      ctx.strokeStyle = theme.roadInner;
-      ctx.lineWidth = key === 'pass' ? 32 : 40;
+      ctx.strokeStyle = layer.innerColor || theme.roadInner;
+      ctx.lineWidth = layer.innerWidth || 40;
       for (const path of routePaths) this.drawPathLine(ctx, path);
-      ctx.strokeStyle = 'rgba(90,59,34,0.25)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = layer.detailColor || 'rgba(90,59,34,0.25)';
+      ctx.lineWidth = layer.detailWidth || 2;
       for (const path of routePaths) this.drawPathLine(ctx, path);
-      this.drawUpcomingRoutePreview(ctx);
-      this.drawRaidTrails(ctx, theme);
-      this.drawMapDesignGuides(ctx, theme);
+      ctx.restore();
+    }
 
-      if (key === 'river') {
-        ctx.fillStyle = 'rgba(110, 76, 44, 0.82)';
-        rounded(ctx, wx(246), wy(478), wx(88), wy(24), 8);
-        ctx.fill();
-        rounded(ctx, wx(286), wy(344), wx(92), wy(22), 8);
-        ctx.fill();
-      }
+    drawWorldRouteVisibilityGuide(ctx, layer, routePaths) {
+      if (!routePaths || !routePaths.length) return;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = layer.guideOuterColor || 'rgba(46, 35, 24, 0.18)';
+      ctx.lineWidth = layer.guideOuterWidth || 62;
+      for (const path of routePaths) this.drawPathLine(ctx, path);
+      ctx.strokeStyle = layer.guideInnerColor || 'rgba(255, 231, 169, 0.12)';
+      ctx.lineWidth = layer.guideInnerWidth || 40;
+      for (const path of routePaths) this.drawPathLine(ctx, path);
+      ctx.strokeStyle = layer.guideCenterColor || 'rgba(31, 77, 52, 0.24)';
+      ctx.lineWidth = layer.guideCenterWidth || 3;
+      for (const path of routePaths) this.drawPathLine(ctx, path);
+      ctx.restore();
+    }
 
+    drawWorldTerritory(ctx) {
       const territoryRadius = ([0, 205, 280, 365][this.kingdom ? this.kingdom.territory : 1] || 205) * (C.worldScaleX || 1);
       ctx.fillStyle = 'rgba(255, 236, 158, 0.045)';
       ctx.beginPath();
@@ -309,16 +975,40 @@
       ctx.beginPath();
       ctx.arc(C.castle.x, C.castle.y + 44, territoryRadius, 0, Math.PI * 2);
       ctx.stroke();
+    }
 
-      if (key !== 'river') {
+    drawWorldFrontDecorations(ctx, theme, background, ww, wh, wx, wy) {
+      const layer = background && background.layers ? background.layers.decorationFront : {};
+      const assetDrawn = this.drawBackgroundAssetLayer(ctx, layer, ww, wh);
+      const partsDrawn = this.drawBackgroundPartLayer(ctx, 'decorationFront', background, ww, wh);
+      if ((assetDrawn || partsDrawn) && layer.hideProcedural) return;
+      ctx.save();
+      ctx.globalAlpha *= layer.alpha == null ? 1 : layer.alpha;
+      if (layer.waterBlob !== false) {
         ctx.fillStyle = theme.water;
         this.blob(ctx, wx(430), wy(290), wx(80), wy(130));
       }
-      ctx.fillStyle = key === 'pass' ? '#3c3b36' : '#506775';
-      ctx.fillRect(0, wh - 40, ww, 40);
-      ctx.fillStyle = key === 'pass' ? '#2b2b28' : '#31424d';
-      ctx.fillRect(0, wh - 20, ww, 20);
+      const edgeHeight = layer.edgeHeight == null ? 40 : layer.edgeHeight;
+      if (edgeHeight > 0) {
+        ctx.fillStyle = '#506775';
+        ctx.fillRect(0, wh - edgeHeight, ww, edgeHeight);
+        ctx.fillStyle = '#31424d';
+        ctx.fillRect(0, wh - Math.round(edgeHeight / 2), ww, Math.round(edgeHeight / 2));
+      }
+      ctx.restore();
+    }
 
+    drawWorldAtmosphere(ctx, background, ww, wh) {
+      const layer = background && background.layers ? background.layers.atmosphere : {};
+      this.drawBackgroundAssetLayer(ctx, layer, ww, wh);
+      this.drawBackgroundPartLayer(ctx, 'atmosphere', background, ww, wh);
+    }
+
+    drawWorldLabel(ctx, theme, background, wx, wy) {
+      const layer = background && background.layers ? background.layers.labels : {};
+      if (layer.visible === false) return;
+      ctx.save();
+      ctx.globalAlpha *= layer.alpha == null ? 1 : layer.alpha;
       ctx.fillStyle = 'rgba(10, 18, 16, 0.35)';
       rounded(ctx, wx(14), wy(136), 210, 31, 8);
       ctx.fill();
@@ -326,6 +1016,7 @@
       ctx.font = '800 12px system-ui';
       ctx.textAlign = 'left';
       ctx.fillText(`${theme.name} / ${theme.rule}`, wx(24), wy(155));
+      ctx.restore();
     }
 
 
@@ -417,7 +1108,6 @@
       for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i].x, pts[i].y);
       ctx.stroke();
     }
-
     drawRaidTrails(ctx, theme) {
       const sites = (this.discoveries || []).filter((d) => d.discovered && this.isRaidableDiscovery && this.isRaidableDiscovery(d));
       if (!sites.length || !this.raidTrailPathForSite) return;
@@ -518,7 +1208,7 @@
       const c = this.castle;
       ctx.save();
       if (c.hit > 0) ctx.translate(rand(-2, 2), rand(-2, 2));
-      if (this.drawAsset(ctx, 'buildingRoyalKeep', c.x, c.y - 3, 126, 112)) {
+      if (this.drawAsset(ctx, 'castleKeep', c.x, c.y - 3, 126, 112)) {
         this.drawBar(ctx, c.x - 56, c.y + 56, 112, 9, c.hp / c.maxHp, '#ff6b5e');
         ctx.restore();
         return;
@@ -632,6 +1322,29 @@
         ctx.save();
         ctx.translate(pad.x, pad.y);
         ctx.scale(pulse, pulse);
+        const category = this.facilityCategory ? this.facilityCategory(pad.type) : 'defense';
+        const categoryColor = this.facilityCategoryColor ? this.facilityCategoryColor(pad.type) : def.accent;
+        const padVisibility = C.padVisibility || {};
+        if (padVisibility.backgroundHalo !== false) {
+          ctx.save();
+          ctx.globalAlpha = locked ? 0.28 : nearKing ? Math.min(0.62, 0.46 + (padVisibility.nearHaloBoost || 0)) : 0.36;
+          ctx.fillStyle = padVisibility.shadowColor || 'rgba(4, 10, 8, 0.42)';
+          ctx.beginPath();
+          ctx.ellipse(0, 6, nearKing ? 46 : 40, nearKing ? 30 : 25, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = locked ? (padVisibility.lockedHaloColor || 'rgba(170, 178, 168, 0.12)') : (padVisibility.haloColor || 'rgba(255, 241, 184, 0.16)');
+          ctx.beginPath();
+          ctx.ellipse(0, 0, nearKing ? 43 : 37, nearKing ? 28 : 23, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = locked ? 'rgba(220, 220, 220, 0.24)' : categoryColor;
+          ctx.globalAlpha = padVisibility.borderAlpha == null ? 0.42 : padVisibility.borderAlpha;
+          ctx.lineWidth = nearKing ? 3 : 2;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, nearKing ? 43 : 37, nearKing ? 28 : 23, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
         const padAsset = locked ? 'tileBuildLocked' : progress > 0 ? 'tileBuildActive' : 'tileBuildEmpty';
         if (this.imageReady(padAsset)) {
           ctx.globalAlpha = locked ? 0.78 : 0.92;
@@ -642,8 +1355,6 @@
           rounded(ctx, -36, -24, 72, 48, 10);
           ctx.fill();
         }
-        const category = this.facilityCategory ? this.facilityCategory(pad.type) : 'defense';
-        const categoryColor = this.facilityCategoryColor ? this.facilityCategoryColor(pad.type) : def.accent;
         ctx.fillStyle = locked ? 'rgba(80, 86, 82, 0.58)' : categoryColor;
         ctx.globalAlpha = locked ? 0.38 : 0.22;
         ctx.beginPath();
@@ -656,7 +1367,7 @@
         ctx.arc(0, -2, nearKing ? 27 : 23, 0, Math.PI * 2);
         ctx.stroke();
         const iconText = this.facilityIcon ? this.facilityIcon(pad.type) : (def.name || '?').slice(0, 1);
-        const showNameLabel = iconText !== def.name;
+        const showNameLabel = iconText !== def.name && !(def.name || '').startsWith(iconText);
         ctx.fillStyle = locked ? '#c3c7bd' : '#fff4c8';
         ctx.font = nearKing ? '900 18px system-ui' : '900 15px system-ui';
         ctx.textAlign = 'center';
@@ -727,7 +1438,7 @@
           if (locked || showNameLabel) {
             ctx.fillStyle = locked ? '#c3c7bd' : '#fff0bb';
             ctx.font = '700 10px system-ui';
-            ctx.fillText(locked ? '未解放' : def.name, 0, -5);
+            ctx.fillText(locked ? '未解放' : def.name, 0, nearKing ? -34 : -30);
           }
         }
         ctx.restore();
@@ -738,6 +1449,31 @@
       for (const f of this.facilities) {
         ctx.save();
         if (f.hit > 0) ctx.translate(rand(-1.5, 1.5), rand(-1.5, 1.5));
+        const plate = C.facilityGroundPlate || {};
+        if (plate.enabled !== false) {
+          const levelColor = this.facilityLevelColor(f.level || 1);
+          const rx = (plate.radiusX || 33) + (f.level - 1) * 2;
+          const ry = (plate.radiusY || 13) + (f.level - 1);
+          const py = f.y + (plate.yOffset || 18);
+          ctx.save();
+          ctx.globalAlpha = plate.shadowAlpha == null ? 0.26 : plate.shadowAlpha;
+          ctx.fillStyle = 'rgb(10, 18, 16)';
+          ctx.beginPath();
+          ctx.ellipse(f.x, py, rx, ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = plate.haloAlpha == null ? 0.11 : plate.haloAlpha;
+          ctx.fillStyle = levelColor;
+          ctx.beginPath();
+          ctx.ellipse(f.x, py - 1, Math.max(18, rx - 8), Math.max(7, ry - 4), 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = plate.borderAlpha == null ? 0.18 : plate.borderAlpha;
+          ctx.strokeStyle = levelColor;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(f.x, py, rx, ry, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
         if (distXY(this.king.x, this.king.y, f.x, f.y) < 38) {
           ctx.strokeStyle = 'rgba(255,236,158,0.34)';
           ctx.lineWidth = 2;
@@ -802,7 +1538,7 @@
           ctx.restore();
         }
         const blinkVisible = levelFlashT <= 0 || Math.floor(this.time / 90) % 2 === 0;
-        const drawOpts = { yOffset: f.type === 'trap' ? 6 : -4 };
+        const drawOpts = { yOffset: -4 };
         const drawX = f.x + Math.cos(f.fireAngle || -Math.PI / 2) * recoil;
         const drawY = f.y + floatY;
         const drawW = assetSize[0] * baseScale * popScale;
@@ -835,20 +1571,10 @@
         }
         if (!usedAsset) {
           if (f.type === 'palisade') this.drawPalisade(ctx, f);
-          else if (f.type === 'wall') this.drawWall(ctx, f);
           else if (f.type === 'archer') this.drawTower(ctx, f, true);
           else if (f.type === 'cannon') this.drawTower(ctx, f, false);
           else if (f.type === 'barracks') this.drawHouse(ctx, f);
           else if (f.type === 'mine') this.drawMine(ctx, f);
-          else if (f.type === 'repair') this.drawRepair(ctx, f);
-          else if (f.type === 'trap') this.drawTrap(ctx, f);
-          else if (f.type === 'banner') this.drawBanner(ctx, f);
-          else if (f.type === 'beacon') this.drawBeacon(ctx, f);
-          else if (f.type === 'village') this.drawVillage(ctx, f);
-          else if (f.type === 'market') this.drawMarket(ctx, f);
-          else if (f.type === 'outpost') this.drawOutpost(ctx, f);
-          else if (f.type === 'training') this.drawTraining(ctx, f);
-          else if (f.type === 'keep') this.drawKeep(ctx, f);
         }
         if (upgradeTransitionT > 0) {
           const upgradeText = f.level >= this.facilityMaxLevel(f.type) ? 'MAX LEVEL!' : 'LEVEL UP!';
@@ -900,7 +1626,7 @@
         }
         if (workT > 0) {
           ctx.globalAlpha = 0.4 + workT * 0.28;
-          ctx.strokeStyle = f.repair ? '#9ee1bb' : '#ffd35b';
+          ctx.strokeStyle = '#ffd35b';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(f.x, f.y - 8, 24 + (1 - workT) * 16, 0, Math.PI * 2);
@@ -979,23 +1705,6 @@
         ctx.stroke();
         ctx.restore();
       }
-      if (f.type === 'trap' && fireT > 0) {
-        ctx.save();
-        ctx.strokeStyle = f.branch === 'frost' ? 'rgba(189, 238, 255, 0.80)' : 'rgba(255, 168, 96, 0.78)';
-        ctx.lineWidth = 3;
-        for (let i = 0; i < 6; i += 1) {
-          const a = (Math.PI * 2 / 6) * i + this.time * 0.004;
-          ctx.beginPath();
-          ctx.moveTo(f.x + Math.cos(a) * 8, f.y + Math.sin(a) * 2);
-          ctx.lineTo(f.x + Math.cos(a) * (18 + (1 - fireT) * 10), f.y + Math.sin(a) * (18 + (1 - fireT) * 10));
-          ctx.stroke();
-        }
-        ctx.fillStyle = f.branch === 'frost' ? 'rgba(189, 238, 255, 0.18)' : 'rgba(255, 168, 96, 0.18)';
-        ctx.beginPath();
-        ctx.arc(f.x, f.y, f.range * (0.55 + (1 - fireT) * 0.45), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
       if (f.type === 'barracks' && spawnT > 0) {
         ctx.save();
         ctx.strokeStyle = `rgba(214, 191, 130, ${0.20 + spawnT * 0.45})`;
@@ -1031,133 +1740,12 @@
         ctx.stroke();
         ctx.restore();
       }
-      if (f.type === 'repair' && workT > 0) {
-        const target = this.facilities.filter((o) => o.id !== f.id && o.hp < o.maxHp && distXY(o.x, o.y, f.x, f.y) <= (f.range || 0)).sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
-        if (target) {
-          ctx.save();
-          ctx.strokeStyle = `rgba(158, 225, 187, ${0.28 + workT * 0.52})`;
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(f.x, f.y - 10);
-          ctx.lineTo(target.x, target.y - 6);
-          ctx.stroke();
-          ctx.fillStyle = 'rgba(210, 255, 228, 0.70)';
-          ctx.beginPath();
-          ctx.arc(target.x, target.y - 6, 6 + workT * 6, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
-      }
-      if (f.type === 'banner') {
-        ctx.save();
-        const wave = Math.sin(this.time * 0.008 + f.x * 0.01) * 8;
-        ctx.strokeStyle = 'rgba(255, 214, 162, 0.36)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(f.x + 2, f.y - 28);
-        ctx.quadraticCurveTo(f.x + 18 + wave * 0.2, f.y - 38, f.x + 28, f.y - 22 + wave * 0.1);
-        ctx.stroke();
-        ctx.restore();
-      }
-      if (f.type === 'beacon') {
-        ctx.save();
-        ctx.strokeStyle = `rgba(215, 190, 255, ${0.15 + 0.10 * Math.sin(this.time * 0.006)})`;
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 3; i += 1) {
-          ctx.beginPath();
-          ctx.arc(f.x, f.y - 34, 20 + i * 12 + Math.sin(this.time * 0.004 + i) * 4, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
     }
 
-    drawVillage(ctx, f) {
-      ctx.fillStyle = '#6f5338';
-      ctx.fillRect(f.x - 22, f.y - 11, 44, 32);
-      ctx.fillStyle = f.accent;
-      ctx.beginPath();
-      ctx.moveTo(f.x - 27, f.y - 10);
-      ctx.lineTo(f.x, f.y - 35);
-      ctx.lineTo(f.x + 27, f.y - 10);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#2b2118';
-      ctx.fillRect(f.x - 5, f.y + 5, 10, 16);
-      ctx.fillStyle = '#d6f2a3';
-      ctx.font = '900 13px system-ui';
-      ctx.textAlign = 'center';
-      ctx.fillText('人口', f.x, f.y - 40);
-    }
 
-    drawMarket(ctx, f) {
-      ctx.fillStyle = '#49365f';
-      rounded(ctx, f.x - 27, f.y - 15, 54, 36, 6);
-      ctx.fill();
-      ctx.fillStyle = f.accent;
-      ctx.fillRect(f.x - 30, f.y - 26, 60, 12);
-      ctx.fillStyle = '#ffd35b';
-      ctx.beginPath();
-      ctx.arc(f.x, f.y + 2, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#5b3d16';
-      ctx.font = '900 10px system-ui';
-      ctx.textAlign = 'center';
-      ctx.fillText('$', f.x, f.y + 6);
-    }
 
-    drawOutpost(ctx, f) {
-      ctx.strokeStyle = f.color;
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.moveTo(f.x, f.y + 25);
-      ctx.lineTo(f.x, f.y - 32);
-      ctx.stroke();
-      ctx.fillStyle = f.accent;
-      ctx.beginPath();
-      ctx.moveTo(f.x + 3, f.y - 33);
-      ctx.lineTo(f.x + 34, f.y - 24);
-      ctx.lineTo(f.x + 3, f.y - 10);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(169,227,180,0.28)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.range || 120, 0, Math.PI * 2);
-      ctx.stroke();
-    }
 
-    drawTraining(ctx, f) {
-      ctx.fillStyle = '#59372d';
-      rounded(ctx, f.x - 30, f.y - 18, 60, 38, 7);
-      ctx.fill();
-      ctx.strokeStyle = f.accent;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(f.x - 20, f.y + 14);
-      ctx.lineTo(f.x + 20, f.y - 20);
-      ctx.moveTo(f.x + 20, f.y + 14);
-      ctx.lineTo(f.x - 20, f.y - 20);
-      ctx.stroke();
-    }
 
-    drawKeep(ctx, f) {
-      ctx.fillStyle = '#475064';
-      ctx.fillRect(f.x - 25, f.y - 22, 50, 46);
-      ctx.fillStyle = f.accent;
-      ctx.fillRect(f.x - 31, f.y - 34, 62, 14);
-      ctx.fillStyle = '#2a3140';
-      ctx.fillRect(f.x - 7, f.y + 2, 14, 22);
-      ctx.fillStyle = '#ffd35b';
-      ctx.beginPath();
-      ctx.moveTo(f.x - 12, f.y - 40);
-      ctx.lineTo(f.x - 4, f.y - 51);
-      ctx.lineTo(f.x + 2, f.y - 41);
-      ctx.lineTo(f.x + 10, f.y - 51);
-      ctx.lineTo(f.x + 13, f.y - 40);
-      ctx.closePath();
-      ctx.fill();
-    }
 
     drawPalisade(ctx, f) {
       ctx.strokeStyle = '#5a3a22';
@@ -1177,20 +1765,6 @@
       }
     }
 
-    drawWall(ctx, f) {
-      ctx.fillStyle = f.color;
-      rounded(ctx, f.x - 34, f.y - 15, 68, 30, 6);
-      ctx.fill();
-      ctx.fillStyle = f.accent;
-      for (let i = -27; i <= 27; i += 18) {
-        ctx.fillRect(f.x + i, f.y - 14, 3, 28);
-      }
-      if (f.branch === 'gate') {
-        ctx.fillStyle = '#3d2a1d';
-        rounded(ctx, f.x - 12, f.y - 12, 24, 24, 4);
-        ctx.fill();
-      }
-    }
 
     drawTower(ctx, f, archer) {
       ctx.fillStyle = 'rgba(0,0,0,0.18)';
@@ -1244,72 +1818,9 @@
       ctx.stroke();
     }
 
-    drawRepair(ctx, f) {
-      ctx.fillStyle = f.color;
-      ctx.fillRect(f.x - 23, f.y - 14, 46, 36);
-      ctx.fillStyle = f.accent;
-      ctx.fillRect(f.x - 5, f.y - 28, 10, 42);
-      ctx.fillRect(f.x - 20, f.y - 13, 40, 10);
-    }
 
-    drawTrap(ctx, f) {
-      ctx.fillStyle = 'rgba(0,0,0,0.24)';
-      ctx.beginPath();
-      ctx.ellipse(f.x, f.y + 6, 28, 10, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = f.branch === 'frost' ? '#9edcf5' : f.accent;
-      for (let i = -18; i <= 18; i += 9) {
-        ctx.beginPath();
-        ctx.moveTo(f.x + i, f.y - 12);
-        ctx.lineTo(f.x + i - 5, f.y + 12);
-        ctx.lineTo(f.x + i + 5, f.y + 12);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
 
-    drawBanner(ctx, f) {
-      ctx.strokeStyle = '#38291f';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(f.x, f.y + 24);
-      ctx.lineTo(f.x, f.y - 35);
-      ctx.stroke();
-      ctx.fillStyle = f.color;
-      ctx.beginPath();
-      ctx.moveTo(f.x + 2, f.y - 34);
-      ctx.lineTo(f.x + 33, f.y - 24);
-      ctx.lineTo(f.x + 2, f.y - 11);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = f.accent;
-      ctx.beginPath();
-      ctx.arc(f.x + 14, f.y - 23, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,214,162,0.22)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.range, 0, Math.PI * 2);
-      ctx.stroke();
-    }
 
-    drawBeacon(ctx, f) {
-      ctx.strokeStyle = f.color;
-      ctx.lineWidth = 7;
-      ctx.beginPath();
-      ctx.moveTo(f.x, f.y + 25);
-      ctx.lineTo(f.x, f.y - 28);
-      ctx.stroke();
-      ctx.fillStyle = f.accent;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y - 34, 12 + Math.sin(this.time * 0.006) * 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(215,190,255,0.25)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y - 34, 30 + Math.sin(this.time * 0.003) * 10, 0, Math.PI * 2);
-      ctx.stroke();
-    }
 
     drawSoldiers(ctx) {
       for (const s of this.soldiers) {
@@ -2084,6 +2595,12 @@
       return this.facilityMeta(type).timing || this.facilityRoleText(type);
     }
 
+    facilityMatchupText(type) {
+      const meta = this.facilityMeta(type);
+      if (!meta.good && !meta.weak) return '';
+      return `${meta.good ? '得意: ' + meta.good : ''}${meta.good && meta.weak ? ' / ' : ''}${meta.weak ? '注意: ' + meta.weak : ''}`;
+    }
+
     facilityUpgradeDeltaText(type, fromLevel) {
       const def = C.facilityTypes[type];
       if (!def || !def.levelStats) return '';
@@ -2103,6 +2620,9 @@
       addDelta('range', '射程');
       addDelta('splash', '爆風');
       addDelta('blockRadius', '足止め');
+      addDelta('blockArmor', '軽減');
+      addDelta('soldierCap', '兵士上限');
+      addDelta('soldierDamage', '兵士攻撃');
       addDelta('income', '収入');
       addDelta('cooldown', '連射', true);
       addDelta('spawnTime', '出撃', true);
@@ -2126,7 +2646,7 @@
       const compact = this.isMobileView && this.isMobileView();
       const mini = compact && this.miniMapBounds ? this.miniMapBounds() : null;
       const w = compact ? Math.min(320, Math.max(270, (mini ? mini.x - 24 : 320))) : 302;
-      const h = compact ? 168 : 154;
+      const h = compact ? 168 : 172;
       const x = compact ? 12 : C.w - w - 14;
       const y = compact ? 548 : C.h - h - 18;
       const categoryColor = this.facilityCategoryColor(pad.type);
@@ -2181,12 +2701,18 @@
       ctx.font = compact ? '800 13px system-ui' : '800 12px system-ui';
       const timing = this.facilityTimingText(pad.type);
       ctx.fillText(timing.slice(0, compact ? 30 : 38), x + 16, y + (compact ? 130 : 116));
+      const matchup = this.facilityMatchupText ? this.facilityMatchupText(pad.type) : '';
+      if (matchup && !compact) {
+        ctx.fillStyle = '#dce5ff';
+        ctx.font = '800 11px system-ui';
+        ctx.fillText(matchup.slice(0, 40), x + 16, y + 134);
+      }
       if (this.padStrategicAdvice && !locked && !existing) {
         const advice = this.padStrategicAdvice(pad);
         if (advice) {
           ctx.fillStyle = '#fff3a3';
           ctx.font = compact ? '900 14px system-ui' : '900 12px system-ui';
-          ctx.fillText(`判断: ${advice}`.slice(0, compact ? 30 : 38), x + 16, y + (compact ? 152 : 136));
+          ctx.fillText(`判断: ${advice}`.slice(0, compact ? 30 : 38), x + 16, y + (compact ? 152 : 154));
         }
       }
       if (!locked && !(existing && existing.level >= maxLevel)) {

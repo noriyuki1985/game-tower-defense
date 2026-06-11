@@ -17,6 +17,8 @@
       this.keys = new Set();
       this.speed = 1;
       this.paused = false;
+      this.backgroundDebug = this.initialBackgroundDebug();
+      this.backgroundPartDebug = this.initialBackgroundPartDebug();
       this.audio = this.loadAudioSettings();
       this.audioContext = null;
       this.masterGain = null;
@@ -28,7 +30,7 @@
       this.message = '開始を押してください。';
       this.notice = { text: '', kind: 'info', life: 0, priority: 0 };
       this.save = loadSave();
-      this.selectedStage = this.save.selectedStage || 'meadow';
+      this.selectedStage = C.stages[this.save.selectedStage] ? this.save.selectedStage : 'meadow';
       this.selectedDifficulty = this.save.selectedDifficulty || 'normal';
       this.currentStage = C.stages[this.selectedStage] || C.stages.meadow;
       this.currentDifficulty = C.difficulties[this.selectedDifficulty] || C.difficulties.normal;
@@ -137,6 +139,7 @@
     }
 
     stageKey() {
+      if (this.tutorialMode) return 'tutorial';
       return (this.currentStage && this.currentStage.key) || this.selectedStage || 'meadow';
     }
 
@@ -145,7 +148,7 @@
     }
 
     stagePads() {
-      return C.stagePadLayouts[this.stageKey()] || C.pads;
+      return (C.stagePadLayouts[this.stageKey()] || C.pads).filter((pad) => C.facilityTypes[pad.type]);
     }
 
     stageDiscoveries() {
@@ -167,13 +170,7 @@
       const kind = typeof d === 'string' ? d : (d && d.kind);
       return {
         cache: 0,
-        resource: 135,
-        market: 145,
-        village: 165,
-        outpost: 210,
-        repair: 175,
-        beacon: 160,
-        shrine: 150
+        resource: 135
       }[kind] || 140;
     }
 
@@ -181,13 +178,7 @@
       const kind = typeof d === 'string' ? d : (d && d.kind);
       return {
         cache: '物資',
-        resource: '金鉱',
-        market: '市場',
-        village: '村',
-        outpost: '前哨',
-        repair: '修理',
-        beacon: '狼煙',
-        shrine: '祠'
+        resource: '金鉱'
       }[kind] || '拠点';
     }
 
@@ -214,7 +205,7 @@
       this.discoveryToast = {
         title: `${d.name}を発見`,
         note: d.note || '',
-        lines: lines && lines.length ? lines : ['周辺を開拓しました'],
+        lines: lines && lines.length ? lines : ['周辺を展開しました'],
         life: 4200,
         max: 4200
       };
@@ -275,7 +266,7 @@
       this.addBurst(site.x, site.y, '#ff8b5e', 10, 'warning');
       this.playSfx('raidHit', 260);
       if (site.siteDamageNotice <= 0) {
-        this.addFloater(`${this.discoverySiteLabel(site)}襲撃`, site.x, site.y - 42, '#ffb08a');
+        this.addFloater(`${this.discoverySiteLabel(site)}進軍`, site.x, site.y - 42, '#ffb08a');
         site.siteDamageNotice = 1800;
       }
       if (site.siteHp <= 0 && !site.siteDisabled) {
@@ -283,11 +274,11 @@
         site.siteDisabledTimer = 12000;
         const lost = Math.min(30, Math.floor(this.king.coins * 0.12));
         this.king.coins = Math.max(0, this.king.coins - lost);
-        this.message = `${site.name}が襲撃され、一時停止しました。失ったコイン: ${lost}`;
+        this.message = `${site.name}が進軍され、一時停止しました。失ったコイン: ${lost}`;
         this.addFloater(`-${lost}`, site.x, site.y - 60, '#ff6b5e');
         this.shake = Math.max(this.shake, 110);
       } else {
-        this.message = `${site.name}が襲撃されています。王や防衛施設で周辺を守ってください。`;
+        this.message = `${site.name}が進軍されています。王や防衛施設で周辺を守ってください。`;
       }
     }
 
@@ -334,7 +325,7 @@
         const rewardLines = this.discoveryRewardLines ? this.discoveryRewardLines(d, revealedPads) : [];
         this.showDiscoveryToast(d, rewardLines);
         this.addBurst(d.x, d.y, '#fff3a3', 24, 'upgrade');
-        this.message = `${d.name}を発見。${rewardLines.join(' / ') || rewardText || '周辺を開拓'}`;
+        this.message = `${d.name}を発見。${rewardLines.join(' / ') || rewardText || '周辺を展開'}`;
         this.playSfx('discovery', 180);
       }
     }
@@ -361,7 +352,7 @@
       this.hideOverlay();
       this.hideUpgradeOverlay();
       this.closeMobileMenu();
-      this.message = '王だけが操作対象です。次の襲撃と床アイコンを見て、守るか開拓するか選んでください。';
+      this.message = '主人公だけが操作対象です。次の進軍と床アイコンを見て、守るか金鉱へ投資するか選んでください。';
       this.updateHud();
     }
 
@@ -372,13 +363,13 @@
       this.selectedDifficulty = 'normal';
       this.currentStage = C.stages.meadow;
       this.currentDifficulty = C.difficulties.normal;
-      this.resetState();
       this.tutorialMode = true;
+      this.resetState();
       this.tutorial = { step: 0, spawned: {}, rejectedTimer: 0, completed: false, coinsPicked: 0, coinsPickedAtStep: 0 };
       this.status = 'playing';
       this.paused = false;
       this.speed = 1;
-      this.king.coins = Math.max(this.king.coins, 180);
+      this.king.coins = Math.max(this.king.coins, 720);
       this.wave.active = false;
       this.wave.done = false;
       this.wave.index = -1;
@@ -397,12 +388,15 @@
 
     tutorialSteps() {
       return [
-        { id: 'move', title: '移動', text: '光る円まで王を動かしてください。クリック/タップ、またはWASD・矢印キーで移動できます。', target: { x: 244, y: 600 }, radius: 38 },
-        { id: 'buildArcher', title: '弓塔を建てる', text: '光っている「弓」の建設床へ移動し、完成するまでその場に留まってください。他の床では進みません。', targetPadId: 'p2' },
-        { id: 'collectAfterArcher', title: '敵を倒して拾う', text: '弓塔が敵を倒します。落ちたコインを王で拾ってください。拾い終わるまで次へ進みません。', spawnGroup: 'first' },
-        { id: 'buildPalisade', title: '柵を建てる', text: '次は「柵」の建設床へ移動し、足止め施設を完成させてください。他の床では進みません。', targetPadId: 'p1' },
-        { id: 'defend', title: '小さな襲撃を防ぐ', text: '柵と弓塔で小さな襲撃を防ぎます。敵が全滅するまで防衛を見てください。', spawnGroup: 'second' },
-        { id: 'discover', title: '探索する', text: '右下の「?」へ移動して隠れ金鉱を発見してください。指定地点に近づくまで次へ進みません。', targetDiscoveryId: 'meadow_mine' }
+        { id: 'move', complete: 'move', title: '移動', text: '赤い円まで主人公を動かしてください。まずは移動だけ確認します。', target: { x: 244, y: 600 }, radius: 38 },
+        { id: 'buildPalisade', complete: 'build', title: '柵で止める', text: '道の中央にある「柵」を建てます。敵を止める場所を作ってください。', targetPadId: 't_palisade_gate', requireType: 'palisade' },
+        { id: 'buildArcher', complete: 'build', title: '弓塔で削る', text: '柵の近くに「弓塔」を建てます。止めた敵を遠くから倒す施設です。', targetPadId: 't_archer_gate', requireType: 'archer' },
+        { id: 'collectAfterArcher', complete: 'collect', title: '倒して拾う', text: '小さな敵軍が来ます。弓塔が倒した後、落ちたコインを主人公で拾ってください。', spawnGroup: 'first' },
+        { id: 'upgradeArcher', complete: 'upgrade', title: '弓塔をLv2へ', text: '同じ弓塔にもう一度投資し、Lv2へ強化してください。青から緑へ変わります。', targetPadId: 't_archer_gate', requireType: 'archer', requireLevel: 2 },
+        { id: 'buildMine', complete: 'build', title: '金鉱で収入を作る', text: '右下の金鉱を建てます。戦闘力はありませんが、強化資金を作れます。', targetPadId: 't_mine_east', requireType: 'mine' },
+        { id: 'buildBarracks', complete: 'build', title: '兵舎で側道を守る', text: '左側道の脇に兵舎を建てます。兵士が出て敵を足止めします。', targetPadId: 't_barracks_left', requireType: 'barracks' },
+        { id: 'buildCannon', complete: 'build', title: '大砲で群れを処理', text: '合流地点の脇に大砲を建てます。敵がまとまる場所に強い施設です。', targetPadId: 't_cannon_merge', requireType: 'cannon' },
+        { id: 'finalDefense', complete: 'defend', title: '総合防衛', text: '最後に小さな三路進軍を防ぎます。柵・弓塔・兵舎・大砲・金鉱の役割を確認してください。', spawnGroup: 'final', finish: true }
       ];
     }
 
@@ -436,6 +430,7 @@
         const d = (this.discoveries || []).find((x) => x.id === step.targetDiscoveryId);
         return d ? { x: d.x, y: d.y } : null;
       }
+      if (step.complete === 'collect' && this.coins && this.coins.length) return { x: this.coins[0].x, y: this.coins[0].y };
       if (step.spawnGroup && this.enemies.length) return { x: this.enemies[0].x, y: this.enemies[0].y };
       return null;
     }
@@ -481,18 +476,19 @@
       if (!this.tutorial || this.tutorial.spawned[key]) return;
       this.tutorial.spawned[key] = true;
       if (key === 'first') {
-        this.tutorialSpawnEnemy('grunt', 'main', 5, 0.42);
-        this.tutorialSpawnEnemy('grunt', 'main', 5, 0.42);
-        this.tutorialSpawnEnemy('runner', 'main', 5, 0.38);
-        this.message = '敵が来ました。弓塔が倒したら、落ちたコインを王で拾ってください。';
-      } else if (key === 'second') {
-        this.tutorialSpawnEnemy('grunt', 'main', 4, 0.55);
-        this.tutorialSpawnEnemy('grunt', 'main', 4, 0.55);
-        this.tutorialSpawnEnemy('runner', 'side', 5, 0.48);
-        this.tutorialSpawnEnemy('shield', 'main', 4, 0.40);
-        this.message = '小さな襲撃です。柵で足止めし、弓塔で削ります。';
+        this.tutorialSpawnEnemy('grunt', 'main', 5, 0.36);
+        this.tutorialSpawnEnemy('grunt', 'main', 5, 0.36);
+        this.tutorialSpawnEnemy('runner', 'main', 5, 0.32);
+        this.message = '敵軍が来ました。弓塔が倒したら、落ちたコインを主人公で拾ってください。';
+      } else if (key === 'final') {
+        this.tutorialSpawnEnemy('grunt', 'main', 5, 0.50);
+        this.tutorialSpawnEnemy('grunt', 'main', 5, 0.50);
+        this.tutorialSpawnEnemy('runner', 'side', 5, 0.44);
+        this.tutorialSpawnEnemy('shield', 'main', 4, 0.36);
+        this.tutorialSpawnEnemy('runner', 'side', 6, 0.38);
+        this.message = '最後の練習進軍です。施設の役割を見ながら防衛してください。';
       }
-      this.setNotice(this.message, 'warning', 2200, 7);
+      this.setNotice(this.message, 'warning', 2400, 7);
     }
 
     tutorialRevealDiscovery(id) {
@@ -527,24 +523,30 @@
       if (step.spawnGroup) this.tutorialSpawnGroup(step.spawnGroup);
       if (this.tutorial.rejectedTimer > 0) this.tutorial.rejectedTimer = Math.max(0, this.tutorial.rejectedTimer - dt);
 
-      if (step.id === 'move') {
+      const advance = () => {
+        if (step.finish) this.finishTutorial();
+        else this.setTutorialStep(this.tutorial.step + 1);
+      };
+      if (step.complete === 'move') {
         const target = step.target;
-        if (target && distXY(this.king.x, this.king.y, target.x, target.y) <= (step.radius || 36)) this.setTutorialStep(1);
-      } else if (step.id === 'buildArcher') {
+        if (target && distXY(this.king.x, this.king.y, target.x, target.y) <= (step.radius || 36)) advance();
+      } else if (step.complete === 'build') {
         const pad = this.pads.find((p) => p.id === step.targetPadId);
-        if (pad && pad.facilityId && this.facilities.some((f) => f.id === pad.facilityId && f.type === 'archer')) this.setTutorialStep(2);
-      } else if (step.id === 'collectAfterArcher') {
-        if (this.tutorial.spawned.first && this.enemies.length === 0 && this.coins.length === 0 && (this.tutorial.coinsPicked || 0) > (this.tutorial.coinsPickedAtStep || 0)) this.setTutorialStep(3);
-      } else if (step.id === 'buildPalisade') {
+        const facility = pad && pad.facilityId ? this.facilities.find((f) => f.id === pad.facilityId) : null;
+        if (facility && (!step.requireType || facility.type === step.requireType)) advance();
+      } else if (step.complete === 'upgrade') {
         const pad = this.pads.find((p) => p.id === step.targetPadId);
-        if (pad && pad.facilityId && this.facilities.some((f) => f.id === pad.facilityId && f.type === 'palisade')) this.setTutorialStep(4);
-      } else if (step.id === 'defend') {
-        if (this.tutorial.spawned.second && this.enemies.length === 0) this.setTutorialStep(5);
-      } else if (step.id === 'discover') {
+        const facility = pad && pad.facilityId ? this.facilities.find((f) => f.id === pad.facilityId) : null;
+        if (facility && (!step.requireType || facility.type === step.requireType) && facility.level >= (step.requireLevel || 2)) advance();
+      } else if (step.complete === 'collect') {
+        if (step.spawnGroup && this.tutorial.spawned[step.spawnGroup] && this.enemies.length === 0 && this.coins.length === 0 && (this.tutorial.coinsPicked || 0) > (this.tutorial.coinsPickedAtStep || 0)) advance();
+      } else if (step.complete === 'defend') {
+        if (step.spawnGroup && this.tutorial.spawned[step.spawnGroup] && this.enemies.length === 0) advance();
+      } else if (step.complete === 'discover') {
         const d = (this.discoveries || []).find((x) => x.id === step.targetDiscoveryId);
         if (d && distXY(this.king.x, this.king.y, d.x, d.y) <= (C.discoveryRevealRadius || 76)) {
           this.tutorialRevealDiscovery(d.id);
-          this.finishTutorial();
+          advance();
         }
       }
       if (this.tutorialMode && this.tutorial.rejectedTimer <= 0) {
@@ -561,7 +563,7 @@
       this.stopBgm();
       this.startResultFx('win');
       this.playSfx('victory');
-      this.showOverlay('チュートリアル完了', '基本操作は完了です。通常ステージでは、次の襲撃を見て投資先を選んでください。\n\n覚えること: 王を動かす / 建設床で待つ / 敵のコインを拾う / 防衛線を作る / ?を探索する', '通常ステージへ', 'win');
+      this.showOverlay('チュートリアル完了', '5つの建物と強化の基本を確認しました。\n\n覚えること: 柵で止める / 弓塔で削る / コインを拾う / Lv2へ強化する / 金鉱で資金を作る / 兵舎で側道を守る / 大砲で群れを処理する', '通常ステージへ', 'win');
       this.updateHud();
     }
 
@@ -605,20 +607,68 @@
       if (body.length > (compact ? 30 : 42)) ctx.fillText(body.slice(compact ? 30 : 42, compact ? 60 : 84), C.w / 2, y + 62);
       const target = this.tutorialTargetPoint();
       if (target) {
-        const p = this.worldToScreen(target.x, target.y);
+        const raw = this.worldToScreen(target.x, target.y);
+        const kingScreen = this.worldToScreen(this.king.x, this.king.y);
         const pulse = 0.5 + 0.5 * Math.sin((this.time || 0) * 0.010);
-        ctx.strokeStyle = `rgba(255, 211, 91, ${0.55 + pulse * 0.35})`;
-        ctx.lineWidth = 5;
+        const marker = {
+          x: clamp(raw.x, 38, C.w - 38),
+          y: clamp(raw.y, 112, C.h - 38)
+        };
+        const dx = marker.x - kingScreen.x;
+        const dy = marker.y - kingScreen.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = dx / len;
+        const ny = dy / len;
+        const ringRadius = 28 + pulse * 10;
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = `rgba(255, 68, 68, ${0.72 + pulse * 0.26})`;
+        ctx.lineWidth = 6;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 30 + pulse * 10, 0, Math.PI * 2);
+        ctx.arc(marker.x, marker.y, ringRadius, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.fillStyle = `rgba(255, 211, 91, ${0.16 + pulse * 0.10})`;
+        ctx.strokeStyle = `rgba(255, 225, 225, ${0.50 + pulse * 0.25})`;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 28 + pulse * 8, 0, Math.PI * 2);
+        ctx.arc(marker.x, marker.y, ringRadius + 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(255, 38, 38, ${0.10 + pulse * 0.08})`;
+        ctx.beginPath();
+        ctx.arc(marker.x, marker.y, ringRadius - 2, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#fff0bb';
-        ctx.font = '900 13px system-ui';
-        ctx.fillText('ここ', p.x, p.y - 38);
+
+        const arrowEnd = {
+          x: marker.x - nx * (ringRadius + 10),
+          y: marker.y - ny * (ringRadius + 10)
+        };
+        const arrowStart = {
+          x: arrowEnd.x - nx * 72,
+          y: arrowEnd.y - ny * 72
+        };
+        const head = 15;
+        const wing = 0.72;
+        const angle = Math.atan2(ny, nx);
+        ctx.strokeStyle = 'rgba(255, 42, 42, 0.92)';
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(arrowStart.x, arrowStart.y);
+        ctx.lineTo(arrowEnd.x, arrowEnd.y);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 236, 236, 0.72)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(arrowStart.x, arrowStart.y);
+        ctx.lineTo(arrowEnd.x, arrowEnd.y);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 42, 42, 0.96)';
+        ctx.beginPath();
+        ctx.moveTo(arrowEnd.x, arrowEnd.y);
+        ctx.lineTo(arrowEnd.x - Math.cos(angle - wing) * head, arrowEnd.y - Math.sin(angle - wing) * head);
+        ctx.lineTo(arrowEnd.x - Math.cos(angle + wing) * head, arrowEnd.y - Math.sin(angle + wing) * head);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
       }
       ctx.restore();
     }
@@ -656,6 +706,9 @@
         if (k === 'escape') this.closeMobileMenu();
         else if (k === ' ') this.togglePause();
         else if (k === 'f') this.toggleSpeed();
+        else if (k === ((C.backgroundDebug && C.backgroundDebug.toggleKey) || 'b')) this.toggleBackgroundDebug();
+        else if (k === ((C.backgroundPartDebug && C.backgroundPartDebug.toggleKey) || 'p')) this.toggleBackgroundPartDebug();
+        else if (k === ((C.backgroundDebug && C.backgroundDebug.labelToggleKey) || 'n')) this.toggleBackgroundDebugLabels();
         else this.keys.add(k);
       });
       window.addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()));
@@ -748,11 +801,17 @@
           const st = C.stages[key];
           const opt = document.createElement('option');
           opt.value = key;
-          opt.textContent = `${st.name}${this.save.unlockedStages.includes(key) ? '' : ' - 未解放'}`;
+          const meta = this.stageUiMeta(key);
+          const routeCount = this.stageRouteCount(key);
+          const lockText = this.save.unlockedStages.includes(key) ? '' : ' - 未解放';
+          opt.textContent = `${st.name} / ${meta.stageType} / ${routeCount}ルート / ${meta.difficultyLabel}${lockText}`;
           opt.disabled = !this.save.unlockedStages.includes(key);
           stageSelect.appendChild(opt);
         }
-        stageSelect.value = this.save.unlockedStages.includes(this.selectedStage) ? this.selectedStage : 'meadow';
+        const selectableStage = C.stages[this.selectedStage] && this.save.unlockedStages.includes(this.selectedStage) ? this.selectedStage : 'meadow';
+        stageSelect.value = selectableStage;
+        this.selectedStage = selectableStage;
+        this.currentStage = C.stages[this.selectedStage] || C.stages.meadow;
       }
       if (difficultySelect) {
         difficultySelect.innerHTML = '';
@@ -837,6 +896,91 @@
       this.updateHud();
     }
 
+    stageUiMeta(stageKey) {
+      const stage = C.stages[stageKey] || C.stages.meadow;
+      const paths = C.stagePaths[stageKey] || C.stagePaths.meadow || {};
+      const routeKeys = Object.keys(paths).filter((key) => Array.isArray(paths[key]) && paths[key].length);
+      const fallbackRouteNames = C.routeLabels[stageKey] || C.routeLabels.meadow || {};
+      const meta = (C.stageUiMeta && C.stageUiMeta[stageKey]) || {};
+      return {
+        stageType: meta.stageType || '通常',
+        stageTypeKey: meta.stageTypeKey || 'normal',
+        difficultyLabel: meta.difficultyLabel || '標準',
+        difficultyRank: meta.difficultyRank || 1,
+        routeCount: meta.routeCount || routeKeys.length || 1,
+        routeNames: meta.routeNames || routeKeys.map((key) => fallbackRouteNames[key] || key),
+        recommendedFacilities: meta.recommendedFacilities || ['柵', '弓塔'],
+        recommendedFacilityKeys: meta.recommendedFacilityKeys || [],
+        purpose: meta.purpose || (stage && stage.desc) || '',
+        summary: meta.summary || (stage && stage.desc) || ''
+      };
+    }
+
+    stageRouteCount(stageKey) {
+      const meta = C.stageUiMeta && C.stageUiMeta[stageKey];
+      if (meta && meta.routeCount) return meta.routeCount;
+      const paths = C.stagePaths[stageKey] || C.stagePaths.meadow || {};
+      return Math.max(1, Object.keys(paths).filter((key) => Array.isArray(paths[key]) && paths[key].length).length);
+    }
+
+    stageBalanceDiagnostics(stageKey) {
+      const stage = C.stages[stageKey] || C.stages.meadow;
+      const waveDefs = (C.waves || []).slice(0, stage.waveCount || (C.waves || []).length);
+      const labels = C.routeLabels[stageKey] || C.routeLabels.meadow || {};
+      const routeCounts = {};
+      let totalEnemies = 0;
+      for (const wave of waveDefs) {
+        for (const group of (wave.groups || [])) {
+          const route = group.route || 'main';
+          const count = group.count || 0;
+          routeCounts[route] = (routeCounts[route] || 0) + count;
+          totalEnemies += count;
+        }
+      }
+      const routeText = Object.entries(routeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([route, count]) => `${labels[route] || route}:${count}`)
+        .join(' / ');
+      const pads = (C.stagePadLayouts && C.stagePadLayouts[stageKey]) || [];
+      const hiddenPads = pads.filter((pad) => pad.requiresDiscovery).length;
+      const visiblePads = Math.max(0, pads.length - hiddenPads);
+      return {
+        startCoins: C.startCoins + (stage.startCoinsBonus || 0),
+        enemyHp: stage.enemyHp || 1,
+        enemyDamage: stage.enemyDamage || 1,
+        enemySpeed: stage.enemySpeed || 1,
+        padTotal: pads.length,
+        visiblePads,
+        hiddenPads,
+        totalEnemies,
+        routeText,
+        waveCount: waveDefs.length
+      };
+    }
+
+    updateStageSummary() {
+      const stageKey = this.selectedStage || this.stageKey();
+      const stage = C.stages[stageKey] || C.stages.meadow;
+      const meta = this.stageUiMeta(stageKey);
+      const routeNames = (meta.routeNames || []).join(' / ');
+      if ($('stageSummaryName')) $('stageSummaryName').textContent = stage.name;
+      if ($('stageTypeBadge')) {
+        $('stageTypeBadge').textContent = meta.stageType;
+        $('stageTypeBadge').className = `stage-badge ${meta.stageTypeKey === 'background-test' ? 'is-background-test' : meta.stageTypeKey === 'candidate' ? 'is-candidate' : ''}`.trim();
+      }
+      if ($('stageSummaryText')) $('stageSummaryText').textContent = meta.summary || stage.desc;
+      if ($('stageRouteCountText')) $('stageRouteCountText').textContent = `${meta.routeCount}ルート${routeNames ? ` / ${routeNames}` : ''}`;
+      if ($('stageDifficultyText')) $('stageDifficultyText').textContent = `${meta.difficultyLabel}${'★'.repeat(Math.max(1, meta.difficultyRank || 1))}`;
+      if ($('stageRecommendedText')) $('stageRecommendedText').textContent = (meta.recommendedFacilities || []).join(' / ');
+      if ($('stagePurposeText')) $('stagePurposeText').textContent = meta.purpose || stage.desc;
+      const diag = this.stageBalanceDiagnostics(stageKey);
+      if ($('stageDiagnosticTotalText')) $('stageDiagnosticTotalText').textContent = `${diag.waveCount}波 / 敵${diag.totalEnemies}`;
+      if ($('stageStartCoinsText')) $('stageStartCoinsText').textContent = `${diag.startCoins}`;
+      if ($('stageEnemyRateText')) $('stageEnemyRateText').textContent = `HP${diag.enemyHp.toFixed(2)} / 攻${diag.enemyDamage.toFixed(2)} / 速${diag.enemySpeed.toFixed(2)}`;
+      if ($('stagePadCountText')) $('stagePadCountText').textContent = `${diag.padTotal}床${diag.hiddenPads ? `（発見${diag.hiddenPads}）` : ''}`;
+      if ($('stageRouteCountsText')) $('stageRouteCountsText').textContent = diag.routeText || '-';
+    }
+
     updateSetupHud() {
       if ($('crownText')) $('crownText').textContent = `${this.save.crowns}`;
       if ($('bestText')) {
@@ -848,6 +992,7 @@
         const st = C.stageThemes[this.selectedStage] || C.stageThemes.meadow;
         $('stageRuleText').textContent = st.rule;
       }
+      this.updateStageSummary();
     }
 
 
@@ -1046,7 +1191,7 @@
       const minorThird = root * 1.2;
       const raid = this.wave && this.wave.active;
       const boss = this.enemies && this.enemies.some((enemy) => enemy.def && enemy.def.boss);
-      const stageShift = this.selectedStage === 'river' ? 1.125 : this.selectedStage === 'pass' ? 0.875 : 1;
+      const stageShift = 1;
 
       if (this.bgmFilter && this.audioContext) {
         const target = boss ? 6600 : raid ? 5900 : 5100;
@@ -1295,11 +1440,6 @@
         this.vibrate(18);
         return;
       }
-      if (name === 'trap') {
-        this.playTactileClick(now, 0.70);
-        this.playNoiseAt(now + 0.018, 0.055, 0.045, 'bandpass', 2100, 3.2);
-        return;
-      }
       if (name === 'spawn') {
         this.playToneAt(now, 340, 510, 0.070, 0.030, 'triangle');
         this.playTactileClick(now + 0.018, 0.40);
@@ -1367,6 +1507,65 @@
       };
     }
 
+
+    initialBackgroundDebug() {
+      const cfg = C.backgroundDebug || {};
+      let enabled = !!cfg.defaultEnabled;
+      let labels = true;
+      try {
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('bgdebug') === '1') enabled = true;
+        if (params.get('bgdebug') === '0') enabled = false;
+        if (params.get('bglabels') === '0') labels = false;
+      } catch (_) {}
+      return { enabled, labels };
+    }
+
+
+    initialBackgroundPartDebug() {
+      const cfg = C.backgroundPartDebug || {};
+      let enabled = !!cfg.defaultEnabled;
+      let labels = true;
+      try {
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('bgparts') === '1') enabled = true;
+        if (params.get('bgparts') === '0') enabled = false;
+        if (params.get('bgpartlabels') === '0') labels = false;
+      } catch (_) {}
+      return { enabled, labels };
+    }
+
+    toggleBackgroundDebug() {
+      this.backgroundDebug = this.backgroundDebug || { enabled: false, labels: true };
+      this.backgroundDebug.enabled = !this.backgroundDebug.enabled;
+      const text = this.backgroundDebug.enabled ? '背景レイヤー可視化: ON' : '背景レイヤー可視化: OFF';
+      this.message = text;
+      if (this.showNotice) this.showNotice(text, 'info', 1500, 5);
+      this.updateHud();
+    }
+
+
+    toggleBackgroundPartDebug() {
+      this.backgroundPartDebug = this.backgroundPartDebug || { enabled: false, labels: true };
+      this.backgroundPartDebug.enabled = !this.backgroundPartDebug.enabled;
+      const text = this.backgroundPartDebug.enabled ? '背景パーツ確認: ON' : '背景パーツ確認: OFF';
+      this.message = text;
+      if (this.showNotice) this.showNotice(text, 'info', 1500, 5);
+      this.updateHud();
+    }
+
+    toggleBackgroundDebugLabels() {
+      this.backgroundDebug = this.backgroundDebug || { enabled: false, labels: true };
+      this.backgroundPartDebug = this.backgroundPartDebug || { enabled: false, labels: true };
+      const next = !(this.backgroundDebug.labels !== false || this.backgroundPartDebug.labels !== false);
+      this.backgroundDebug.labels = next;
+      this.backgroundPartDebug.labels = next;
+      const text = next ? '背景デバッグラベル: ON' : '背景デバッグラベル: OFF';
+      this.message = text;
+      if (this.showNotice) this.showNotice(text, 'info', 1300, 5);
+      this.updateHud();
+    }
+
     togglePause() {
       if (this.status !== 'playing') return;
       this.paused = !this.paused;
@@ -1414,9 +1613,9 @@
       if (wasKingStunned && this.king.stunned <= 0 && this.king.reviveInvulnPending > 0) {
         this.king.invuln = Math.max(this.king.invuln, this.king.reviveInvulnPending);
         this.king.reviveInvulnPending = 0;
-        this.message = '王が復帰しました。2秒間は敵からダメージを受けません。HPは少しずつ自動回復します。';
+        this.message = '主人公が復帰しました。2秒間は敵からダメージを受けません。HPは少しずつ自動回復します。';
         if (this.setNotice) this.setNotice(this.message, 'info', 3200, 8);
-        this.addFloater('王、復帰', this.king.x, this.king.y - 52, '#fff3a3');
+        this.addFloater('主人公、復帰', this.king.x, this.king.y - 52, '#fff3a3');
         if (this.addAuraRipple) this.addAuraRipple(this.king.x, this.king.y, '#fff3a3', 76, 4, 760);
       }
 
@@ -1453,7 +1652,7 @@
       }
       if (this.wave.active && this.routeAlert.life <= 0) {
         const living = this.enemies.length;
-        if (living >= 12) this.message = `敵が${living}体います。王を危険地帯に置きすぎず、防衛床へ投資してください。`;
+        if (living >= 12) this.message = `敵が${living}体います。主人公を危険地帯に置きすぎず、防衛床へ投資してください。`;
       }
     }
 
@@ -1485,7 +1684,7 @@
 
     nextWaveShortSummary() {
       if (!this.waves || !this.waves.length) return '-';
-      if (this.wave.done) return '襲撃完了';
+      if (this.wave.done) return '進軍完了';
       const nextIndex = this.wave.active ? this.wave.index : this.wave.index + 1;
       const wave = this.waves[nextIndex];
       if (!wave) return '最終確認中';
@@ -1497,16 +1696,15 @@
       const main = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
       const major = main ? `${main[0]}多め` : wave.title;
       const labels = C.routeLabels[this.stageKey()] || C.routeLabels.meadow;
-      const hasMain = wave.groups.some((g) => (g.route || 'main') === 'main');
-      const hasSide = wave.groups.some((g) => g.route === 'side');
-      const routeText = hasMain && hasSide ? '二方向' : hasSide ? labels.side : labels.main;
+      const routes = [...new Set(wave.groups.map((g) => g.route || 'main'))];
+      const routeText = routes.length >= 3 ? '三方向' : routes.length === 2 ? '二方向' : (labels[routes[0]] || labels.main || routes[0]);
       const rest = this.wave.active ? '進行中' : `${Math.ceil(Math.max(0, this.wave.rest) / 1000)}秒`;
       return `次:${major} / ${routeText} / ${rest}`;
     }
 
     nextWaveSummary() {
       if (!this.waves || !this.waves.length) return '-';
-      if (this.wave.done) return '襲撃完了';
+      if (this.wave.done) return '進軍完了';
       const nextIndex = this.wave.active ? this.wave.index : this.wave.index + 1;
       const wave = this.waves[nextIndex];
       if (!wave) return '最終確認中';
@@ -1517,7 +1715,8 @@
       }
       const major = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => `${name}${count}`).join(' / ');
       const labels = C.routeLabels[this.stageKey()] || C.routeLabels.meadow;
-      const routeText = wave.groups.some((g) => g.route === 'side') && wave.groups.some((g) => (g.route || 'main') === 'main') ? '二方向' : (wave.groups.some((g) => g.route === 'side') ? labels.side : labels.main);
+      const routes = [...new Set(wave.groups.map((g) => g.route || 'main'))];
+      const routeText = routes.length >= 3 ? '三方向' : routes.length === 2 ? '二方向' : (labels[routes[0]] || labels.main || routes[0]);
       const rest = this.wave.active ? '進行中' : `あと${Math.ceil(Math.max(0, this.wave.rest) / 1000)}秒`;
       return `${nextIndex + 1}/${this.waves.length} ${wave.title}｜${routeText}｜${major}｜${rest}`;
     }
@@ -1533,7 +1732,7 @@
       if (!nearest) return '';
       const def = C.facilityTypes[nearest.type];
       const existing = nearest.facilityId ? this.facilities.find((f) => f.id === nearest.facilityId) : null;
-      if (!this.isPadUnlocked(nearest)) return `${def.name}: 領土${nearest.territory}が必要。前哨基地で領土を広げる。`;
+      if (!this.isPadUnlocked(nearest)) return `${def.name}: 前線${nearest.territory}が必要。前哨基地で前線を広げる。`;
       if (!existing) {
         const remain = Math.max(0, Math.ceil(def.cost - nearest.invested));
         const short = this.facilityShortText ? this.facilityShortText(nearest.type) : (def.desc || '');
@@ -1541,10 +1740,13 @@
         const advice = this.padStrategicAdvice ? this.padStrategicAdvice(nearest) : '';
         return `${def.name} / ${label}: 残り${remain}コイン。${short}${advice ? ' / ' + advice : ''}`;
       }
-      if (existing.level >= 3) return `${def.name}: 最大レベル。別の床へ向かう。`;
+      const maxLevel = this.facilityMaxLevel ? this.facilityMaxLevel(existing.type) : 4;
+      if (existing.level >= maxLevel) return `${def.name}: Lv.${maxLevel} MAX。別の床へ向かう。`;
       const need = this.getUpgradeNeed(existing);
       const remain = Math.max(0, Math.ceil(need - nearest.upgradeInvested));
-      return `${def.name} Lv.${existing.level}: 残り${remain}コインで強化。`;
+      const nextLevel = existing.level + 1;
+      const colorName = C.levelColorNames && C.levelColorNames[nextLevel] ? C.levelColorNames[nextLevel] : '';
+      return `${def.name} Lv.${existing.level}: 残り${remain}コインでLv.${nextLevel}${colorName ? '（' + colorName + '）' : ''}へ強化。`;
     }
 
     stageGoal() {
@@ -1554,13 +1756,13 @@
     nextWaveProfile() {
       const nextIndex = this.wave && this.wave.active ? this.wave.index : (this.wave ? this.wave.index + 1 : 0);
       const wave = this.waves && this.waves[nextIndex];
-      const profile = { total: 0, main: 0, side: 0, raid: 0, fast: 0, heavy: 0, swarm: 0, siege: 0, boss: 0, support: 0 };
+      const profile = { total: 0, main: 0, left: 0, side: 0, raid: 0, fast: 0, heavy: 0, swarm: 0, siege: 0, boss: 0, support: 0 };
       if (!wave) return profile;
       for (const group of wave.groups || []) {
         const count = group.count || 0;
         const def = C.enemyTypes[group.type] || {};
         profile.total += count;
-        if ((group.route || 'main') === 'side') profile.side += count; else profile.main += count;
+        if ((group.route || 'main') === 'side') profile.side += count; else if ((group.route || 'main') === 'left') profile.left += count; else profile.main += count;
         if (group.raid) profile.raid += count;
         if (group.type === 'runner') profile.fast += count;
         if (group.type === 'shield' || group.type === 'brute') profile.heavy += count;
@@ -1583,7 +1785,8 @@
 
     distanceToNearestRoute(x, y) {
       let best = Infinity;
-      const routes = ['main', 'side'];
+      const paths = (C.stagePaths && C.stagePaths[this.stageKey()]) || C.stagePaths.meadow || {};
+      const routes = Object.keys(paths).length ? Object.keys(paths) : ['main', 'side'];
       for (const route of routes) {
         const path = this.routePath ? this.routePath(route) : [];
         for (let i = 1; i < path.length; i += 1) {
@@ -1640,25 +1843,28 @@
       if (routeD > 170 && (category === 'attack' || category === 'defense')) score -= 16;
       if (category === 'attack') {
         if (this.builtCategoryCount('attack') < 1) { score += 18; reasons.push('火力不足'); }
-        if (profile.heavy || profile.support) { score += 14; reasons.push('硬い敵/支援敵に有効'); }
-        if (profile.swarm && pad.type === 'cannon') { score += 16; reasons.push('群れ対策'); }
-        if (pad.type === 'archer' && early) { score += 8; reasons.push('序盤安定'); }
+        if (pad.type === 'archer' && (profile.fast || early)) { score += 12; reasons.push(profile.fast ? '走り兵対策' : '序盤安定'); }
+        if (pad.type === 'archer' && profile.heavy && !profile.swarm) { score += 8; reasons.push('単体処理'); }
+        if (pad.type === 'cannon' && (profile.swarm || profile.left + profile.side + profile.main >= 22)) { score += 18; reasons.push('群れ対策'); }
+        if (pad.type === 'cannon' && profile.heavy) { score += 10; reasons.push('硬い敵をまとめて削る'); }
+        if (profile.support) { score += 8; reasons.push('支援敵を早く倒す'); }
       }
       if (category === 'defense') {
         if (this.builtCategoryCount('defense') < 1) { score += 16; reasons.push('足止め不足'); }
-        if (profile.fast || profile.siege || profile.swarm) { score += 15; reasons.push('進軍を遅らせる'); }
-        if (pad.type === 'trap' && profile.swarm) { score += 10; reasons.push('密集に強い'); }
+        if (profile.fast || profile.siege || profile.swarm) { score += 17; reasons.push('進軍を止める'); }
+        if (this.builtCount('cannon') > 0 || this.builtCount('archer') > 0) { score += 7; reasons.push('火力の前で止める'); }
       }
       if (category === 'economy') {
-        if (early) { score += 18; reasons.push('早いほど得'); }
-        if (this.king && this.king.coins < 90) { score += 8; reasons.push('資金不足対策'); }
+        if (early) { score += 20; reasons.push('早いほど得'); }
+        if (this.king && this.king.coins < 90) { score += 8; reasons.push('強化資金'); }
+        if (this.builtCategoryCount('attack') < 1 && this.builtCategoryCount('defense') < 1) { score -= 18; reasons.push('防衛不足に注意'); }
         if (this.builtCategoryCount('economy') >= 2) score -= 18;
-        if (profile.siege || profile.boss) score -= 8;
+        if (profile.siege || profile.boss || profile.swarm) score -= 10;
       }
       if (category === 'support') {
         if (this.facilities.length >= 2) { score += 10; reasons.push('既存防衛を伸ばす'); }
-        if (pad.type === 'repair' && this.facilities.some((f) => f.block || f.type === 'cannon')) { score += 16; reasons.push('前線維持'); }
-        if (pad.type === 'outpost' && (this.discoveries || []).some((d) => !d.discovered)) { score += 10; reasons.push('開拓継続'); }
+        if (pad.type === 'barracks' && (profile.left || profile.side)) { score += 14; reasons.push('側道対応'); }
+        if (pad.type === 'barracks' && profile.left && profile.side) { score += 8; reasons.push('複数ルート対応'); }
         if (pad.type === 'barracks' && this.kingdom && this.soldiers.length < this.kingdom.popCap) { score += 8; reasons.push('自動防衛'); }
       }
       if (profile.raid && category !== 'economy') { score += 8; reasons.push('略奪隊対応'); }
@@ -1682,10 +1888,10 @@
         return `略奪隊が${target}を狙っています。守るか、城防衛を優先するか判断。`;
       }
       const profile = this.nextWaveProfile();
-      if (profile.side && profile.main) return '次は二方向。片方は施設、片方は王で補助。';
-      if (profile.swarm) return '次は数が多い。柵・罠・大砲が効く。';
-      if (profile.heavy) return '次は硬い敵。火力不足に注意。';
-      return (this.stageGoal().opening || '次の襲撃に合わせて投資先を選ぶ。');
+      if ((profile.side && profile.main) || (profile.left && profile.main) || (profile.left && profile.side)) return '次は複数ルート。片方は施設、危険な側は主人公で補助。';
+      if (profile.swarm) return '次は数が多い。柵で止め、大砲でまとめて削る。兵舎は側道維持に回す。';
+      if (profile.heavy) return '次は硬い敵。弓塔で削り、柵で止める。群れなら大砲も必要。';
+      return (this.stageGoal().opening || '次の進軍に合わせて投資先を選ぶ。');
     }
 
     runAssessment(won) {
@@ -1702,10 +1908,10 @@
       const economyScore = Math.round(clamp(economy * 26 + (this.kingdom.economyBonus - 1) * 120, 0, 100));
       const grade = (s) => s >= 85 ? 'S' : s >= 70 ? 'A' : s >= 55 ? 'B' : s >= 40 ? 'C' : 'D';
       const tips = [];
-      if (defense < 1) tips.push('足止め施設が不足。柵・壁で敵を止める。');
+      if (defense < 1) tips.push('足止め施設が不足。柵で敵を止める。');
       if (attack < 1) tips.push('火力施設が不足。弓塔か大砲を早めに置く。');
-      if (economy < 1 && found >= 2) tips.push('開拓後の経済化が弱い。金鉱・市場の価値を見直す。');
-      if (found < Math.ceil(totalDiscoveries / 2)) tips.push('開拓が少ない。安全な合間に「?」へ向かう。');
+      if (economy < 1 && found >= 2) tips.push('金鉱への投資が弱い。防衛が安定したら早めに金鉱を建てる。');
+      if (found < Math.ceil(totalDiscoveries / 2)) tips.push('金鉱エリアへの展開が少ない。安全な合間に右下を確認する。');
       if (!tips.length) tips.push(won ? (this.stageGoal().winTip || '次は別の配置を試す。') : (this.stageGoal().loseTip || '城近くの防衛線を見直す。'));
       return {
         defendScore, developScore, economyScore,
@@ -1718,27 +1924,27 @@
 
     resultText(won, reward) {
       const a = this.runAssessment ? this.runAssessment(won) : null;
-      if (!a) return `${won ? 'ステージクリア' : '城が陥落しました'}。スコア: ${this.score}。獲得クラウン: ${reward}`;
+      if (!a) return `${won ? '防衛成功' : '城が陥落しました'}。スコア: ${this.score}。獲得クラウン: ${reward}`;
       const goal = this.stageGoal();
       if (won) {
-        return `ステージクリア
+        return `防衛成功
 スコア: ${this.score} / 獲得クラウン: ${reward}
-防衛 ${a.defendGrade} / 開拓 ${a.developGrade} / 経済 ${a.economyGrade}
+防衛 ${a.defendGrade} / 展開 ${a.developGrade} / 経済 ${a.economyGrade}
 施設 ${a.builtCount} / 発見 ${a.found}/${a.totalDiscoveries}
 次の改善: ${a.tips[0]}
-ステージ方針: ${goal.winTip}`;
+防衛方針: ${goal.winTip}`;
       }
       const causes = [];
       if (a.defense < 1) causes.push('城前の足止め施設が不足');
       if (a.attack < 1) causes.push('敵を削る火力施設が不足');
-      if (a.kingDownCount > 0) causes.push(`王が${a.kingDownCount}回倒れ、建設と回収が停止`);
-      if (a.economy < 1 && a.found >= 2) causes.push('開拓後の経済化が遅れた');
+      if (a.kingDownCount > 0) causes.push(`主人公が${a.kingDownCount}回倒れ、建設と回収が停止`);
+      if (a.economy < 1 && a.found >= 2) causes.push('展開後の経済化が遅れた');
       if (!causes.length) causes.push('防衛線の維持が追いつかなかった');
       const tips = a.tips.slice(0, 3);
       if (!tips.includes(goal.loseTip)) tips.push(goal.loseTip || '城近くの防衛線を見直す。');
       return `城が陥落しました
 スコア: ${this.score} / 獲得クラウン: ${reward}
-防衛 ${a.defendGrade} / 開拓 ${a.developGrade} / 経済 ${a.economyGrade}
+防衛 ${a.defendGrade} / 展開 ${a.developGrade} / 経済 ${a.economyGrade}
 
 主な敗因:
 - ${causes.slice(0, 3).join('\n- ')}

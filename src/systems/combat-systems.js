@@ -47,8 +47,8 @@
     if (f.economy) {
       f.incomeTimer -= dt;
       if (f.incomeTimer <= 0) {
-        f.incomeTimer = Math.max(900, f.incomeTime - (f.level - 1) * 420);
-        const coin = Math.round(f.income * (1 + (f.level - 1) * 0.35));
+        f.incomeTimer = Math.max(900, f.incomeTime);
+        const coin = Math.round(f.income);
         this.coins.push({ x: f.x + rand(-14, 14), y: f.y + rand(-14, 14), value: coin, r: 8, life: 22000, animSeed: rand(0, Math.PI * 2) });
         f.work = 420;
         this.addBurst(f.x, f.y - 20, '#ffd35b', 5, 'coinPickup');
@@ -56,33 +56,12 @@
         this.addFloater(`+${coin}`, f.x, f.y - 30, '#ffd35b');
       }
     }
-    if (f.trap) {
-      f.cooldown -= dt;
-      if (f.cooldown <= 0) {
-        const target = this.nearestEnemy(f.x, f.y, f.range);
-        if (target) {
-          f.cooldown = f.baseCooldown;
-          f.fire = 360;
-          const radius = f.branch === 'barbed' ? f.range + 8 : f.range;
-          for (const e of this.enemies) {
-            const d = distXY(e.x, e.y, f.x, f.y);
-            if (d <= radius) {
-              this.damageEnemy(e, f.damage * (1 - d / (radius * 1.8)), 'trap');
-              e.slow = Math.max(e.slow, f.slow || 0);
-            }
-          }
-          this.addBurst(f.x, f.y, f.branch === 'frost' ? '#bdeeff' : '#f08b59', 16, f.branch === 'frost' ? 'hit' : 'explosion');
-          if (this.addAuraRipple) this.addAuraRipple(f.x, f.y, f.branch === 'frost' ? '#bdeeff' : '#f08b59', f.range + 22, 4, 480);
-          this.playSfx('trap', 180);
-        }
-      }
-    }
     if (f.spawn) {
       f.spawnTimer -= dt;
-      const max = 3 + f.level;
+      const max = f.soldierCap || (3 + f.level);
       const current = this.soldiers.filter((s) => s.homeId === f.id).length;
       if (f.spawnTimer <= 0 && current < max && this.soldiers.length < this.kingdom.popCap) {
-        f.spawnTimer = Math.max(1500, f.spawnTime - (f.level - 1) * 550);
+        f.spawnTimer = Math.max(1200, f.spawnTime);
         const soldierDef = this.soldierStatsFor(f);
         this.soldiers.push({
           id: cryptoRandom(), homeId: f.id, type: soldierDef.type, x: f.x + rand(-18, 18), y: f.y + 24 + rand(-8, 8),
@@ -97,31 +76,17 @@
         this.playSfx('spawn', 220);
       }
     }
-    if (f.repair) {
-      let healed = false;
-      for (const other of this.facilities) {
-        if (other === f || other.hp >= other.maxHp) continue;
-        if (dist(f, other) <= f.range) {
-          other.hp = Math.min(other.maxHp, other.hp + f.repairRate * (1 + (f.level - 1) * 0.35) * dt / 1000);
-          healed = true;
-        }
-      }
-      if (healed) {
-        f.work = 260;
-        if (this.time % 560 < dt) this.addBurst(f.x, f.y - 16, '#9ee1bb', 4, 'heal');
-      }
-    }
   }
 },
 
     soldierStatsFor(f) {
   const base = {
-    type: 'militia', r: 9,
-    hp: 48 + f.level * 10,
-    damage: 9 + f.level * 3,
-    range: 31,
-    sense: 102 + f.level * 12,
-    chase: 74 + f.level * 8
+    type: f.level >= 4 ? 'shield' : f.level >= 3 ? 'spear' : 'militia', r: f.level >= 4 ? 10 : 9,
+    hp: f.soldierHp || (48 + f.level * 10),
+    damage: f.soldierDamage || (9 + f.level * 3),
+    range: f.level >= 3 ? 36 : 31,
+    sense: f.soldierSense || (102 + f.level * 12),
+    chase: f.soldierChase || (74 + f.level * 8)
   };
   if (f.branch === 'shield') {
     base.type = 'shield';

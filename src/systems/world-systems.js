@@ -138,6 +138,7 @@
   }
   if (stats.range != null) f.range = stats.range;
   if (stats.blockRadius != null) f.blockRadius = stats.blockRadius;
+  if (stats.blockArmor != null) f.blockArmor = stats.blockArmor;
   if (stats.damage != null) f.damage = stats.damage;
   if (stats.cooldown != null) {
     f.baseCooldown = stats.cooldown;
@@ -153,6 +154,11 @@
     f.incomeTimer = Math.min(f.incomeTimer || stats.incomeTime, stats.incomeTime);
   }
   if (stats.income != null) f.income = stats.income;
+  if (stats.soldierCap != null) f.soldierCap = stats.soldierCap;
+  if (stats.soldierHp != null) f.soldierHp = stats.soldierHp;
+  if (stats.soldierDamage != null) f.soldierDamage = stats.soldierDamage;
+  if (stats.soldierSense != null) f.soldierSense = stats.soldierSense;
+  if (stats.soldierChase != null) f.soldierChase = stats.soldierChase;
   f.accent = this.levelColor ? this.levelColor(level) : ((C.levelColors && C.levelColors[level]) || f.accent);
 },
 
@@ -204,6 +210,12 @@
   this.paused = true;
   $('upgradeTitle').textContent = `${def.name}の強化を選択`;
   $('upgradeText').textContent = 'どちらか1つを選択してください。施設の役割が変わります。';
+  if (!def.options || def.options.length < 2) {
+    this.hideUpgradeOverlay();
+    this.paused = this.wasPausedBeforeChoice;
+    this.upgradeChoice = null;
+    return;
+  }
   $('upgradeChoiceA').innerHTML = `<b>${def.options[0].name}</b><span>${def.options[0].desc}</span>`;
   $('upgradeChoiceB').innerHTML = `<b>${def.options[1].name}</b><span>${def.options[1].desc}</span>`;
   $('upgradeOverlay').classList.remove('is-hidden');
@@ -242,25 +254,7 @@
 },
 
     applyBranchUpgrade(f, key) {
-  f.maxHp = Math.round(f.maxHp * 1.24);
-  if (key === 'thorns') { f.damage = 5; }
-  if (key === 'reinforced') { f.maxHp = Math.round(f.maxHp * 1.9); f.blockRadius += 6; }
-  if (key === 'bastion') { f.maxHp = Math.round(f.maxHp * 1.8); f.blockRadius += 10; }
-  if (key === 'gate') { f.damage = 8; f.maxHp = Math.round(f.maxHp * 1.3); }
-  if (key === 'longbow') { f.range += 58; f.damage = Math.round(f.damage * 1.12); }
-  if (key === 'rapid') { f.baseCooldown = Math.max(240, Math.round(f.baseCooldown * 0.62)); f.damage = Math.round(f.damage * 1.05); }
-  if (key === 'heavy') { f.damage = Math.round(f.damage * 1.65); f.splash = Math.round((f.splash || 0) * 0.9); }
-  if (key === 'scatter') { f.splash = Math.round((f.splash || 0) * 1.65); f.baseCooldown = Math.round(f.baseCooldown * 1.08); }
-  if (key === 'tax') { f.income = Math.round(f.income * 1.75); }
-  if (key === 'vault') { f.income = Math.round(f.income * 2.45); f.incomeTime = Math.round(f.incomeTime * 1.35); }
-  if (key === 'fieldwork') { f.range += 62; }
-  if (key === 'workshop') { f.repairRate = Math.round(f.repairRate * 1.85); }
-  if (key === 'barbed') { f.damage = Math.round(f.damage * 1.65); }
-  if (key === 'frost') { f.slow = Math.round((f.slow || 700) * 2.1); f.damage = Math.round(f.damage * 0.85); }
-  if (key === 'morale') { f.range += 20; }
-  if (key === 'command') { f.range += 52; }
-  if (key === 'scout') { f.range += 70; }
-  if (key === 'rally') { f.range += 36; }
+  return;
 },
 
     spendIntoPad(pad, need, dt, onComplete) {
@@ -293,8 +287,9 @@
     hit: 0,
     color: def.color, accent: def.accent,
     block: !!def.block,
-    blockRadius: def.block ? 31 : 0,
-    attack: !!def.damage && !def.trap,
+    blockRadius: def.block ? (def.blockRadius || 36) : 0,
+    blockArmor: def.blockArmor || 0,
+    attack: !!def.damage,
     damage: def.damage || 0,
     range: def.range || 0,
     baseCooldown: def.cooldown || 999999,
@@ -305,17 +300,18 @@
     spawn: !!def.spawn,
     spawnTime: def.spawnTime || 999999,
     spawnTimer: 800,
+    soldierCap: def.soldierCap || 0,
+    soldierHp: def.soldierHp || 0,
+    soldierDamage: def.soldierDamage || 0,
+    soldierSense: def.soldierSense || 0,
+    soldierChase: def.soldierChase || 0,
     economy: !!def.economy,
     incomeTime: def.incomeTime || 999999,
     incomeTimer: 1000,
     income: def.income || 0,
-    repair: !!def.repair,
-    repairRate: def.repairRate || 0,
     aura: !!def.aura,
     development: !!def.development,
-    trap: !!def.trap,
     baseCooldown: def.cooldown || 999999,
-    slow: def.slow || 0,
     branch: null,
     branchName: '',
     fire: 0,

@@ -696,7 +696,8 @@ body.mobile-menu-open {
 
 .overlay-card { max-height: calc(100% - 28px); overflow: auto; }
 .overlay-summary { font-size: 14px; }
-.start-primary { width: 100%; min-height: 52px; margin: 8px 0 12px; font-size: 20px; border-radius: 16px; }
+.start-primary { width: 100%; min-height: 52px; margin: 8px 0 8px; font-size: 20px; border-radius: 16px; }
+.tutorial-primary { width: 100%; min-height: 46px; margin: 0 0 12px; font-size: 17px; border-radius: 14px; background: linear-gradient(180deg, #d8efad, #79a75a); }
 .tutorial-details { margin-top: 4px; text-align: left; }
 .tutorial-details summary { cursor: pointer; color: #ffd35b; font-weight: 900; text-align: center; padding: 8px 0; list-style-position: inside; }
 
@@ -705,7 +706,8 @@ body.mobile-menu-open {
   .overlay-card { width: min(390px, 100%); max-height: calc(100dvh - 112px); padding: 16px; }
   .overlay-card h2 { font-size: 24px; }
   .overlay-summary { font-size: 14px; margin-bottom: 8px; }
-  .start-primary { min-height: 58px; font-size: 22px; margin: 8px 0 10px; }
+  .start-primary { min-height: 58px; font-size: 22px; margin: 8px 0 8px; }
+  .tutorial-primary { min-height: 52px; font-size: 19px; margin-bottom: 10px; }
   .tutorial-list { padding: 10px; gap: 5px; }
   .tutorial-list p { font-size: 12px; line-height: 1.35; margin-bottom: 0; }
 }
@@ -715,7 +717,7 @@ body.mobile-menu-open {
 .overlay-card {
   max-height: min(86dvh, 640px);
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, auto);
+  grid-template-rows: auto auto auto auto minmax(0, auto);
   gap: 10px;
 }
 .overlay-summary {
@@ -758,4 +760,230 @@ body.mobile-menu-open {
   .start-primary { min-height: 56px; font-size: 20px; }
   .tutorial-details { max-height: 190px; }
   .tutorial-list p { font-size: 12px; }
+}
+
+
+/* v3.12.1: stage selection summary */
+.stage-summary {
+  border: 1px solid rgba(255, 236, 176, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 236, 176, 0.06), rgba(12, 20, 16, 0.28));
+  padding: 10px;
+  margin: 4px 0 10px;
+}
+
+.stage-summary-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.stage-summary-head strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.stage-badge {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #161d16;
+  background: #dfead1;
+}
+
+.stage-badge.is-background-test {
+  background: #d7beff;
+  color: #20122e;
+}
+
+.stage-badge.is-candidate {
+  background: #9ee1bb;
+  color: #102018;
+}
+
+#stageSummaryText,
+.stage-purpose {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.stage-purpose {
+  margin-top: 8px;
+  color: rgba(231, 245, 221, 0.78);
+}
+
+.stage-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.stage-stat-grid div {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 10px;
+  padding: 7px 8px;
+  background: rgba(0,0,0,0.15);
+}
+
+.stage-stat-grid div.wide {
+  grid-column: 1 / -1;
+}
+
+.stage-stat-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+
+.stage-stat-grid strong {
+  display: block;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+
+/* v3.12.2: balance diagnostics in stage selection */
+.stage-diagnostic {
+  margin-top: 9px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+  padding-top: 8px;
+}
+
+.stage-diagnostic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.stage-diagnostic-head strong {
+  color: #ffd35b;
+  font-size: 12px;
+}
+
+.stage-diagnostic-head span {
+  color: rgba(231,245,221,0.82);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.stage-diagnostic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.stage-diagnostic-grid div {
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 9px;
+  padding: 6px 6px;
+  background: rgba(0,0,0,0.13);
+}
+
+.stage-diagnostic-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+
+.stage-diagnostic-grid strong,
+.stage-route-counts {
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.stage-route-counts {
+  margin-top: 6px;
+  color: rgba(231,245,221,0.80);
+}
+
+/* v3.12.3: compact stage card on mobile */
+@media (max-width: 860px) {
+  .stage-summary {
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+
+  .stage-summary-head {
+    margin-bottom: 5px;
+  }
+
+  .stage-summary-head strong {
+    font-size: 13px;
+  }
+
+  .stage-badge {
+    padding: 2px 7px;
+    font-size: 10px;
+  }
+
+  #stageSummaryText,
+  .stage-purpose {
+    display: none;
+  }
+
+  .stage-stat-grid,
+  .stage-diagnostic-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .stage-stat-grid div,
+  .stage-stat-grid div.wide,
+  .stage-diagnostic-grid div {
+    grid-column: auto;
+    padding: 5px 5px;
+    min-width: 0;
+  }
+
+  .stage-stat-grid span,
+  .stage-diagnostic-grid span {
+    font-size: 9px;
+  }
+
+  .stage-stat-grid strong,
+  .stage-diagnostic-grid strong,
+  .stage-route-counts {
+    font-size: 10px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .stage-diagnostic {
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+
+  .stage-diagnostic-head {
+    margin-bottom: 4px;
+  }
+
+  .stage-route-counts {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 430px) {
+  .stage-stat-grid strong,
+  .stage-diagnostic-grid strong,
+  .stage-route-counts {
+    font-size: 9px;
+  }
 }

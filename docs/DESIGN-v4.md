@@ -99,3 +99,111 @@
 - 攻撃値・射程・クールダウンは `BAL.kingAttackDamage` / `BAL.kingAttackRange` / `BAL.kingAttackCd` に集約した。
 - 王の攻撃は主火力ではなく、前線に立つ意味を補強する副次火力として扱う。
 - 今後、王が強すぎる場合はダメージよりも射程・クールダウンを先に調整する。
+
+## v4.0.5 / v4.1.0 追記
+
+### 設置メニュー誤操作対策
+
+- 建設メニューはボタンを大きくし、メニュー全体に安全領域を持たせる。
+- メニュー内またはスロット近傍のタップ/クリックは移動指示に変換しない。
+- 建設・強化・修理直後は短時間だけ追加入力を無視し、二重入力や誤爆を抑制する。
+- 金不足メッセージは短く「金不足」とし、表示時間も短くする。
+
+### v4コアへのステージ選択復帰
+
+- `meadow` / `crossroads` / `ridge` を `STAGE_DEFS` に集約し、ルート、スロット、ウェーブ、初期資金、敵倍率をステージごとに保持する。
+- 実行時は選択ステージを `setActiveStage()` で `ROUTE` / `SLOTS` / `WAVES` に反映する。
+- v4の単一HTML構成は維持し、v3系のステージ選択・診断表示の考え方だけを戻す。
+- 診断表示は、初期資金、敵HP倍率、建設床数、ルート別敵数に限定し、説明過多にならないよう短く表示する。
+
+
+## v4.2.0 追記 — ステージ拡張
+
+`v4.2.0` では、v4コアに追加ステージ3種を実装した。画像生成は行わず、既存素材・Canvas手続き描画・ステージ別ルート定義で差分を作る。
+
+### 追加ステージ
+
+- `rivergate` / 橋門の前線
+  - 3ルートが橋周辺へ集中する。
+  - 柵と大砲の役割を確認しやすい。
+  - 橋・川はCanvas上の簡易地形演出で表現する。
+
+- `forest` / 森陰の前線
+  - 曲がり道が多く、走り兵・破壊兵が抜けやすい。
+  - 王の移動、弓塔配置、兵舎の前線維持を試す。
+  - 森の影は背景色と半透明ブロブで表現する。
+
+- `bastion` / 廃砦の前線
+  - 2ルートだが重兵・盾兵・破城槌が多い。
+  - 火力不足と柵修理判断を診断しやすい。
+  - 廃砦の壁・石畳はCanvas上の簡易地形演出で表現する。
+
+### 設計方針
+
+- 新ステージ追加時は `ROUTES` / `SLOTS` / `WAVES` / `STAGE_DEFS` の4点を追加する。
+- ステージ選択UIは `STAGE_DEFS` を列挙するため、追加したステージは自動で選択肢に出る。
+- 画像を増やす前に、ルート構造とゲーム性の差分を先に検証する。
+
+
+## v4.3.1: Stage map progression
+
+The game now starts from a stage-select map rather than a long instruction card. The purpose is to make the game feel like a multi-stage campaign and to let the player advance continuously after clearing each stage.
+
+### Rules
+
+- `STAGE_ORDER` defines the campaign order.
+- `meadow` is unlocked by default.
+- Clearing a stage records it in `clearedStages`.
+- The next stage is added to `unlockedStages`.
+- The result screen offers direct progression to the next stage.
+- Progress is persisted in `localStorage` under `kbd-v4-save`.
+- The stage-select map is CSS/DOM only. No new image assets are required.
+
+
+## v4.3.1 敵アニメーション設計
+
+敵は従来の静止画 `assets/images/enemies/enemy_*.png` をフォールバックとして残しつつ、通常描画では `assets/images/enemies/walk/enemy_*_walk.png` の4フレームシートを使う。
+
+- 1シート = 横4フレーム
+- 描画時に `spriteFrame()` で該当フレームだけを切り出す
+- `enemy.anim` を各敵ごとに保持し、移動更新中に進める
+- `runner / saboteur` は速め、`siege` は遅め、ボス系は重めのアニメーション速度にする
+- 読み込み失敗時は従来の静止画描画へフォールバックする
+
+これにより、敵が滑っているように見える問題を軽減し、進軍中の存在感を上げる。
+
+
+## v4.3.3 敵攻撃・被弾・破壊演出
+
+- 敵は `assets/images/enemies/attack/enemy_<type>_attack.png` を持ち、施設や柵に接敵している間は攻撃シートを4分割再生する。
+- 被弾時は `stun` を使って短い硬直を与え、通常描画の上から `lighter` / `screen` 合成で白フラッシュを重ねて視認性を上げる。
+- `siege` 撃破時は `assets/images/enemies/destroy/enemy_siege_destroy.png` を4分割再生し、木片色のパーティクルと画面シェイクを重ねる。
+- 歩行シートは継続利用し、攻撃していない時間帯だけ歩行アニメーションを表示する。
+
+
+## v4.3.4 主人公の弓攻撃
+
+- 主人公は短距離弓兵として振る舞う。
+- 射程は `BAL.kingAttackRange` を使用し、従来の近接斬撃より長い。
+- 攻撃開始時に `attackWindup` をセットし、予備動作後に `S.projectiles` へ王専用の矢を追加する。
+- 描画は `assets/images/king/attack/king_attack_bow.png` の4フレームを `spriteFrame` で再生する。
+- 既存の移動 / 待機アニメは維持しつつ、攻撃中のみ弓アニメへ切り替える。
+
+
+## v4.3.5 主人公の被弾リアクション
+
+- 主人公にHPは持たせず、敵との近接接触時に短い被弾リアクションだけを発生させる。
+- `assets/images/king/hit/king_hit.png` の4フレームを使い、`drawKing()` で被弾中に優先表示する。
+- `updateKingHurt()` が接触判定を行い、短いノックバック、フラッシュ、リング演出を発生させる。
+- 被弾中は `updateKingAttack()` を止め、見た目の分かりやすさを優先する。
+
+
+## v4.3.6 主人公の待機 / 移動アニメ統一
+
+- `assets/images/king/idle/king_idle_1.png` 〜 `king_idle_4.png` を新規生成画像へ差し替える。
+- `assets/images/king/run/king_run_1.png` 〜 `king_run_4.png` も新規生成画像へ差し替え、弓攻撃・被弾と同じ絵柄に寄せる。
+- `drawKing()` の待機処理は2フレーム切替から4フレーム循環へ変更する。
+- 主人公は弓兵として見えるよう、待機・移動の両方で弓を保持した姿に統一する。
+
+
+- v4.4.2: 弓塔/大砲の攻撃アニメーション追加、兵舎の出撃演出追加。

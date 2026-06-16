@@ -1,7 +1,7 @@
 {
-  "version": "3.12.4",
+  "version": "4.3.6",
   "game_definition_to_asset_key": {
-    "king.idle": "kingIdle",
+    "king.idle": "king_idle1..4",
     "king.run_1": "kingRun1",
     "king.run_2": "kingRun2",
     "soldier.militia": "allyMilitia",
@@ -76,7 +76,31 @@
     "background.parts.ridge_cliff": "partRidgeCliffEdge01",
     "background.parts.ridge_rock_cluster": "partRidgeRockCluster01",
     "background.parts.ridge_plateau": "partRidgePlateau01",
-    "background.parts.ridge_grass_clump": "partRidgeGrassClump01"
+    "background.parts.ridge_grass_clump": "partRidgeGrassClump01",
+    "enemy.grunt.walk_sheet": "enemyGruntWalkSheet",
+    "enemy.runner.walk_sheet": "enemyRunnerWalkSheet",
+    "enemy.brute.walk_sheet": "enemyBruteWalkSheet",
+    "enemy.shield.walk_sheet": "enemyShieldWalkSheet",
+    "enemy.saboteur.walk_sheet": "enemySaboteurWalkSheet",
+    "enemy.bomber.walk_sheet": "enemyBomberWalkSheet",
+    "enemy.shaman.walk_sheet": "enemyShamanWalkSheet",
+    "enemy.siege.walk_sheet": "enemySiegeWalkSheet",
+    "enemy.warlord.walk_sheet": "enemyWarlordWalkSheet",
+    "enemy.overlord.walk_sheet": "enemyOverlordWalkSheet",
+    "enemy.grunt.attack_sheet": "enemyGruntAttackSheet",
+    "enemy.brute.attack_sheet": "enemyBruteAttackSheet",
+    "enemy.runner.attack_sheet": "enemyRunnerAttackSheet",
+    "enemy.saboteur.attack_sheet": "enemySaboteurAttackSheet",
+    "enemy.shield.attack_sheet": "enemyShieldAttackSheet",
+    "enemy.bomber.attack_sheet": "enemyBomberAttackSheet",
+    "enemy.shaman.attack_sheet": "enemyShamanAttackSheet",
+    "enemy.siege.attack_sheet": "enemySiegeAttackSheet",
+    "enemy.warlord.attack_sheet": "enemyWarlordAttackSheet",
+    "enemy.overlord.attack_sheet": "enemyOverlordAttackSheet",
+    "enemy.siege.destroy_sheet": "enemySiegeDestroySheet",
+    "king.attack_bow": "kingAttackBow",
+    "king.hit": "kingHit",
+    "king.run": "king_run1..4"
   },
   "animation": {
     "enemy.display": {
@@ -93,7 +117,14 @@
         "enemyOverlord"
       ],
       "files": "canonical assets/images/enemies/enemy_*.png only"
-    }
+    },
+    "enemy.walk_sheets": "4-frame generated sprite sheets in assets/images/enemies/walk; frame index is advanced from enemy movement time and speed profile.",
+    "enemy.attack_sheets": "4-frame generated sprite sheets in assets/images/enemies/attack; used while an enemy is damaging palisades or facilities.",
+    "enemy.siege_destroy": "4-frame generated destruction sheet in assets/images/enemies/destroy; used when the siege ram is killed.",
+    "king.attack_bow": "4-frame generated bow attack sprite sheet used while the king performs a ranged attack.",
+    "king.hit": "4-frame generated hurt reaction sprite sheet used when the king is touched by enemies.",
+    "king.idle": "4-frame generated idle animation matching the updated bow-king look.",
+    "king.run": "4-frame generated run animation matching the updated bow-king look."
   },
-  "note": "v3.12.4 consolidates stage explanation text and compresses stage diagnostics/mobile UI without adding image assets."
+  "note": "v4.3.6 replaces the king idle and run frames with newly generated art consistent with the updated bow-attack and hit-reaction animations."
 }

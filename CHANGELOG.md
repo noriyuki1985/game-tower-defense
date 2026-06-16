@@ -1,4 +1,91 @@
+
+## v4.4.2
+- 弓塔の発射4フレームを画像生成し、攻撃時に専用アニメーションへ切替。
+- 大砲の発射4フレームを画像生成し、点火→発射→煙の流れを反映。
+- 兵舎の出撃/召喚演出を追加。兵士出現時に光輪・エフェクト・発生パルスを表示。
+
+# Changelog
+
+## v4.3.9 - Ally spear move / attack / battle FX polish
+- 味方槍兵の移動4フレーム画像を生成し、ゲーム内の移動アニメに反映
+- 味方槍兵の攻撃4フレーム画像を生成し、ゲーム内の攻撃アニメに反映
+- 味方兵の待機/移動/攻撃の切り替えを調整
+- 矢の軌跡を強化し、槍突きのスラスト感と被弾フラッシュ演出を改善
+- SAVE_KEY を `kbd-v439-save` に更新
+
+## v4.3.6 - King idle / run animation unify
+- 画像生成あり
+- 主人公の待機4フレーム画像を新規生成し、既存の旧絵柄を差し替え
+- 主人公の移動4フレーム画像を新規生成し、弓攻撃 / 被弾と絵柄を統一
+- 待機アニメを4フレーム循環へ変更
+- セーブキーを `kbd-v436-save` に更新
+
+## v4.3.5 - King hit reaction animation
+- 画像生成あり
+- 主人公の4フレーム被弾スプライトシートを追加
+- 敵接触時に主人公の被弾リアクションと短いフラッシュを再生
+- 主人公の被弾中は一瞬だけ攻撃を中断し、リアクションが見えるように調整
+
+## v4.3.4 - King bow attack animation
+- 画像生成あり
+- 主人公の攻撃を近接斬撃から短距離の弓攻撃へ変更
+- 王の4フレーム弓攻撃スプライトシートを追加
+- 攻撃予備動作のあとに矢プロジェクタイルを発射する方式へ変更
+- 主人公攻撃射程を延長し、少し離れた敵にも対応
+
+## v4.3.3 - Enemy attack / hit / siege destruction animations
+- 画像生成あり
+- 敵攻撃用の4フレームアニメーションシートを追加し、接敵中は歩行ではなく攻撃モーションを再生
+- 被弾時に短い硬直を追加し、白フラッシュを強化
+- 攻城車撃破時に専用の破壊スプライト演出を追加
+
+## v4.3.1 - Enemy walk animation sheets
+
+- Generated and added 4-frame walk sprite sheets for all enemy types.
+- Added `assets/images/enemies/walk/` as the enemy animation asset directory.
+- Switched enemy rendering from static enemy PNGs to frame-based walk sheets.
+- Added movement-speed-based frame advancement: runners animate faster, siege engines animate slower, boss enemies move heavily.
+- Kept static enemy images as fallback assets.
+- No external communication code added.
+
+
+## v4.3.0 - Stage select map and progression
+
+- Changed the initial screen into a dedicated stage-select map.
+- Added stage unlock progression: clearing a stage unlocks the next stage.
+- Added cleared/unlocked stage persistence via localStorage.
+- Added next-stage flow on the victory screen.
+- Added stage-select return and same-stage retry buttons on the result screen.
+- Added a progress reset button on the stage-select screen.
+- Kept this as a code-only update; no image assets were added.
+
 # CHANGELOG
+
+## v4.2.0 — 新ステージ3種追加
+
+- `rivergate` / 橋門の前線 を追加。橋に敵が集中する3ルート構成で、柵と大砲の価値を確認しやすいステージ。
+- `forest` / 森陰の前線 を追加。曲がり道と高速敵が多く、王の移動・兵舎・弓塔配置を試すステージ。
+- `bastion` / 廃砦の前線 を追加。2ルートだが重兵・破城槌・盾兵が多く、火力不足を診断しやすい高難度ステージ。
+- 開始画面・設定メニューのステージ選択に新3ステージを自動表示。
+- 各新ステージにルート、建設スロット、ウェーブ構成、初期資金、敵倍率、診断表示を追加。
+- 背景色と簡易地形演出をステージ別に追加。画像生成・画像追加はなし。
+
+## v4.1.0 — ステージ選択復帰・診断表示再統合
+
+- v4コアに `meadow` / `crossroads` / `ridge` のステージ選択を再統合。
+- ステージごとのルート、建設スロット、ウェーブ構成、初期資金、敵倍率を切り替え可能にした。
+- 開始画面にステージ選択、短い概要、診断値（初期資金、敵倍率、建設床数、ルート別敵数）を表示。
+- 設定メニューにもステージ選択を追加し、「最初からやり直す」で選択ステージを反映できるようにした。
+- 背景色とルート描画をステージ別に切り替え、v4の単一HTML構成を維持したまま複数ステージ運用へ戻した。
+
+## v4.0.5 — 設置メニュー誤操作対策
+
+- 建設メニューのボタンサイズを拡大し、PC/スマホ両方で押しやすく調整。
+- 建設メニュー全体に安全領域を設け、メニューボタン付近のタップ/クリックが移動指示に化けにくいよう修正。
+- 建設・強化・修理直後の短時間入力を無視し、同一操作の誤爆を抑制。
+- 金不足時のメッセージを「金不足」に短縮し、表示時間も短くした。
+- 建設メニューの表記を短くし、情報密度を下げた。
+
 
 ## v4.0.2 — 主人公攻撃復旧・改善提案反映
 

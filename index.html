@@ -17,7 +17,7 @@
   #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     background:radial-gradient(120% 80% at 50% 0%,#33402a,#161d12 70%);}
   #frame{position:relative;height:100%;aspect-ratio:480/800;max-width:100%;}
-  canvas{display:block;width:100%;height:100%;image-rendering:auto;
+  canvas{display:block;width:100%;height:100%;image-rendering:auto;cursor:crosshair;
     border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 0 0 3px rgba(0,0,0,.25);}
   /* top HUD */
   #hud{position:absolute;left:0;right:0;top:0;padding:8px 10px;display:flex;gap:8px;align-items:center;
@@ -33,12 +33,64 @@
     background:linear-gradient(180deg,#ff8a6f,#d2483f);transition:width .18s;}
   #hptext{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:11px;font-weight:800;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.6);}
-  /* controls bottom-right */
-  #ctrls{position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;gap:6px;}
+  /* menu button / settings */
   .btn{pointer-events:auto;cursor:pointer;width:42px;height:42px;border-radius:12px;border:2px solid var(--wood-d);
     background:rgba(243,227,191,.94);font-size:18px;font-weight:800;color:var(--ink);
     display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 rgba(94,60,32,.55);}
   .btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(94,60,32,.55);}
+  #bMenu{margin-left:auto;flex:0 0 auto;}
+  .settings-card{max-width:350px;}
+  .settings-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px;}
+  .setting-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:rgba(255,250,235,.52);border:2px solid rgba(94,60,32,.55);border-radius:12px;padding:9px 10px;}
+  .setting-row strong{font-size:13px;color:#4a331d;}
+  .setting-row span{font-size:12px;color:#6b5436;font-weight:800;}
+  .mini-btn{cursor:pointer;border:2px solid var(--wood-d);border-radius:10px;min-width:92px;padding:8px 10px;
+    background:linear-gradient(180deg,#fff2ca,#dfc389);font-weight:900;color:#2c2016;box-shadow:0 3px 0 rgba(94,60,32,.45);}
+  .mini-btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(94,60,32,.45);}
+  .menu-note{font-size:12px;line-height:1.45;color:#5e3c20;text-align:left;margin:10px 0 0;font-weight:700;}
+
+  .stage-panel{margin:10px 0 14px;padding:10px;border:2px solid rgba(94,60,32,.55);border-radius:14px;background:rgba(255,250,235,.54);text-align:left;}
+  .stage-panel label{display:block;font-size:12px;font-weight:900;color:#5e3c20;margin-bottom:6px;}
+  .stage-panel select,.stage-select-mini{width:100%;border:2px solid var(--wood-d);border-radius:10px;background:#fff4cf;color:#2c2016;font-weight:900;padding:9px 10px;font-size:13px;}
+  .stage-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .stage-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;border:1.5px solid rgba(94,60,32,.45);border-radius:999px;background:rgba(255,255,255,.45);padding:3px 7px;font-size:11px;font-weight:900;color:#4a331d;white-space:nowrap;}
+  .stage-desc{margin-top:7px;font-size:12px;line-height:1.35;color:#4a3a26;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .stage-diag{margin-top:7px;font-size:11px;line-height:1.35;color:#6b5436;font-weight:800;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .stage-map{position:relative;height:268px;margin:12px 0 12px;border:2px solid rgba(94,60,32,.55);border-radius:24px;overflow:hidden;
+    background:radial-gradient(ellipse at 42% 48%,#d9c68d 0 26%,#87c57b 27% 47%,#5ab0c6 48% 64%,#3c82a5 100%);
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.22), inset 0 -18px 28px rgba(30,70,80,.22);}
+  .stage-map:before{content:"";position:absolute;left:8%;right:8%;top:8%;bottom:8%;border-radius:48% 42% 50% 44%;
+    background:radial-gradient(circle at 25% 30%,rgba(255,245,180,.45),transparent 18%),radial-gradient(circle at 72% 25%,rgba(255,255,255,.46),transparent 20%),
+      linear-gradient(135deg,rgba(116,178,92,.72),rgba(205,180,98,.72) 50%,rgba(221,226,235,.72));
+    filter:blur(.2px);box-shadow:0 8px 18px rgba(0,0,0,.20);}
+  .stage-map:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 78% 22%,rgba(255,255,255,.55),transparent 18%),radial-gradient(circle at 12% 82%,rgba(255,238,164,.42),transparent 18%);pointer-events:none;}
+  .stage-map-line{position:absolute;height:6px;transform-origin:left center;background:repeating-linear-gradient(90deg,rgba(255,255,255,.75) 0 8px,rgba(255,255,255,0) 8px 16px);
+    border-radius:999px;filter:drop-shadow(0 2px 1px rgba(60,70,60,.35));z-index:1;}
+  .stage-map-line.done{background:linear-gradient(90deg,#ffe389,#fff7c7);}
+  .stage-node{position:absolute;z-index:2;min-width:76px;max-width:86px;transform:translate(-50%,-50%);border:3px solid #5e3c20;border-radius:18px;
+    background:linear-gradient(180deg,#fff7c7,#f1c86e);box-shadow:0 5px 0 rgba(94,60,32,.55),0 0 0 3px rgba(255,255,255,.28);
+    color:#2c2016;font-weight:900;font-size:11px;line-height:1.05;padding:7px 5px;cursor:pointer;text-align:center;}
+  .stage-node .stage-node-mark{display:block;font-size:18px;line-height:1;margin-bottom:2px;}
+  .stage-node .stage-node-name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .stage-node.locked{cursor:not-allowed;filter:grayscale(.85);opacity:.62;background:linear-gradient(180deg,#d5d0c2,#a5a196);box-shadow:0 4px 0 rgba(75,70,62,.48);}
+  .stage-node.cleared{background:linear-gradient(180deg,#fff3a8,#f0b84b);}
+  .stage-node.selected{outline:4px solid rgba(88,196,255,.75);box-shadow:0 5px 0 rgba(94,60,32,.55),0 0 18px rgba(111,212,255,.90);}
+  .stage-node.next{animation:stagePulse 1.6s ease-in-out infinite;}
+  @keyframes stagePulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
+  .stage-map-note{margin:-3px 0 8px;font-size:11px;line-height:1.35;font-weight:800;color:#5e3c20;text-align:left;}
+  .progress-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;font-size:11px;font-weight:900;color:#5e3c20;}
+  .link-btn{border:none;background:transparent;color:#5e3c20;text-decoration:underline;font-weight:900;cursor:pointer;padding:2px 0;font-size:11px;}
+  @media (max-width:520px){
+    .card{padding:18px 16px 16px;max-width:332px;}
+    .stage-panel{padding:8px;margin:8px 0 12px;}
+    .stage-map{height:232px;margin:8px 0 10px;border-radius:20px;}
+    .stage-node{min-width:64px;max-width:70px;font-size:10px;padding:6px 4px;border-radius:15px;}
+    .stage-node .stage-node-mark{font-size:16px;}
+    .stage-desc{display:none;}
+    .stage-diag{-webkit-line-clamp:1;}
+    .stage-chip{font-size:10.5px;padding:2px 6px;}
+  }
   /* wave banner / hint */
   #hint{position:absolute;left:10px;right:60px;bottom:12px;pointer-events:none;
     background:rgba(44,32,22,.82);color:#f3e3bf;border-radius:10px;padding:7px 11px;font-size:12.5px;
@@ -74,32 +126,45 @@
     <div class="pill"><img id="coinIcon" alt="">‎<span id="coinVal">0</span></div>
     <div id="hpwrap"><div id="hpbar"><div id="hpfill"></div><div id="hptext">城 100%</div></div></div>
     <div class="pill"><img id="waveIcon" alt="">‎<span id="waveVal">0/8</span></div>
-  </div>
-
-  <div id="ctrls">
-    <button class="btn" id="bSpeed" title="速度">1x</button>
-    <button class="btn" id="bPause" title="一時停止">⏸</button>
-    <button class="btn" id="bMute" title="音">🔊</button>
+    <button class="btn" id="bMenu" title="設定メニュー" aria-label="設定メニュー">☰</button>
   </div>
 
   <div id="hint"></div>
 
-  <!-- Start -->
-  <div class="ov show" id="ovStart">
-    <div class="card">
-      <h1>King Builder Defense</h1>
-      <p class="sub">王みずから前線を駆ける防衛戦</p>
-      <p>
-        盤面をタップで<b>王が移動</b>。近くの敵は王が自動で斬る。<b>道</b>には柵だけ置けて敵を食い止め、<b>脇の高所</b>に弓塔・大砲・兵舎を建てて道を狙い撃つ。
-        建設床に立つとメニューが出る。費用は<b>その場で一括</b>。一度建てる/強化すると、<b>離れて戻るまで再操作できない</b>——使いすぎを防ぐためだ。
-        <br><br>後方の<b>金鉱</b>はウェーブ後に金を生むが、建てる間は前線を離れる。経済を伸ばすか、いま武装を固めるか——毎ウェーブの選択がすべて。
-      </p>
-      <div class="legend">
-        <span><i class="dot" style="background:#caa46a"></i>道：柵のみ</span>
-        <span><i class="dot" style="background:#7fc77f"></i>高所：塔/兵舎</span>
-        <span><i class="dot" style="background:var(--gold)"></i>後方：金鉱</span>
+  <!-- Settings -->
+  <div class="ov" id="ovSettings">
+    <div class="card settings-card">
+      <h1>設定</h1>
+      <p class="sub">メニュー表示中はゲームを一時停止</p>
+      <div class="settings-grid">
+        <div class="setting-row"><div><strong>ステージ</strong><br><span id="sStageVal">再開始時に反映</span></div><select class="stage-select-mini" id="sStageSelect" aria-label="ステージ選択"></select></div>
+        <div class="setting-row"><div><strong>速度</strong><br><span id="sSpeedVal">1x</span></div><button class="mini-btn" id="sSpeed">速度 1x</button></div>
+        <div class="setting-row"><div><strong>一時停止</strong><br><span id="sPauseVal">進行中</span></div><button class="mini-btn" id="sPause">一時停止</button></div>
+        <div class="setting-row"><div><strong>音</strong><br><span id="sMuteVal">ON</span></div><button class="mini-btn" id="sMute">音: ON</button></div>
       </div>
-      <button class="cta" id="bStart">出陣する</button>
+      <p class="menu-note">誤操作を避けるため、倍速・停止・音量はこのメニューに集約しています。</p>
+      <button class="cta alt" id="sRetry">最初からやり直す</button>
+      <button class="cta" id="sClose">ゲームに戻る</button>
+    </div>
+  </div>
+
+  <!-- Start / Stage Select -->
+  <div class="ov show" id="ovStart">
+    <div class="card stage-select-card">
+      <h1>ステージ選択</h1>
+      <p class="sub">クリアすると次の前線が解放される</p>
+      <div class="stage-map" id="stageMap" aria-label="ステージマップ"></div>
+      <p class="stage-map-note">王冠はクリア済み、鍵は未解放。ステージを選び、出陣すると防衛戦が始まる。</p>
+
+      <div class="stage-panel" id="stagePanel">
+        <label for="stageSelect">選択中のステージ</label>
+        <select id="stageSelect" aria-label="ステージ選択"></select>
+        <div class="stage-chips" id="stageChips"></div>
+        <div class="stage-desc" id="stageDesc"></div>
+        <div class="stage-diag" id="stageDiag"></div>
+        <div class="progress-row"><span id="progressText">進行状況</span><button class="link-btn" id="bResetProgress" type="button">進行リセット</button></div>
+      </div>
+      <button class="cta" id="bStart">このステージへ出陣</button>
       <div id="loadbar"><div id="loadfill"></div></div>
     </div>
   </div>
@@ -110,7 +175,9 @@
       <h1 id="endTitle">勝利</h1>
       <p class="sub" id="endSub"></p>
       <p id="endBody"></p>
-      <button class="cta" id="bRetry">もう一度</button>
+      <button class="cta" id="bNext">次のステージへ</button>
+      <button class="cta alt" id="bRetry">もう一度</button>
+      <button class="cta alt" id="bMap">ステージ選択へ</button>
     </div>
   </div>
 </div></div>
@@ -119,13 +186,13 @@
 "use strict";
 (function(){
 /* =====================================================================
- * King Builder Defense  v4.0.0  (core rebuild)
+ * King Builder Defense  v4.3.9  (ally spear move / attack / battle fx polish)
  * 単一ファイル / vanilla JS / Canvas2D / localStorageのみ / 外部通信なし
  * ===================================================================== */
 
-const VERSION = "v4.0.2";
+const VERSION = "v4.3.9";
 const W = 480, H = 800;
-const SAVE_KEY = "kbd-v4-save";
+const SAVE_KEY = "kbd-v439-save";
 
 /* ---------------- assets ---------------- */
 const A = "assets/images/";
@@ -133,10 +200,14 @@ const IMG_SRC = {
   castle: A+"castle/castle_keep.png",
   king_idle1: A+"king/idle/king_idle_1.png",
   king_idle2: A+"king/idle/king_idle_2.png",
+  king_idle3: A+"king/idle/king_idle_3.png",
+  king_idle4: A+"king/idle/king_idle_4.png",
   king_run1: A+"king/run/king_run_1.png",
   king_run2: A+"king/run/king_run_2.png",
   king_run3: A+"king/run/king_run_3.png",
   king_run4: A+"king/run/king_run_4.png",
+  king_attack_bow: A+"king/attack/king_attack_bow.png",
+  king_hit: A+"king/hit/king_hit.png",
   king_down: A+"king/king_down.png",
   king_hurt: A+"king/king_hurt.png",
   coin: A+"ui/ui_coin.png",
@@ -147,10 +218,19 @@ const IMG_SRC = {
 const BUILD_TYPES = ["palisade","archer","cannon","barracks","mine"];
 const BUILD_FILE = {palisade:"palisade",archer:"archer_tower",cannon:"cannon",barracks:"barracks",mine:"gold_mine"};
 BUILD_TYPES.forEach(t=>{ for(let L=1;L<=4;L++) IMG_SRC[`b_${t}_${L}`]=A+`buildings/levels/building_${BUILD_FILE[t]}_lv${L}.png`; });
+IMG_SRC.b_attack_archer=A+"buildings/attack/building_archer_tower_attack.png";
+IMG_SRC.b_attack_cannon=A+"buildings/attack/building_cannon_attack.png";
 const ENEMY_KINDS = ["grunt","runner","brute","shield","saboteur","bomber","shaman","siege","warlord","overlord"];
 ENEMY_KINDS.forEach(k=> IMG_SRC[`e_${k}`]=A+`enemies/enemy_${k==="siege"?"siege_ram":k}.png`);
+ENEMY_KINDS.forEach(k=> IMG_SRC[`e_walk_${k}`]=A+`enemies/walk/enemy_${k}_walk.png`);
+ENEMY_KINDS.forEach(k=> IMG_SRC[`e_attack_${k}`]=A+`enemies/attack/enemy_${k}_attack.png`);
+IMG_SRC.e_destroy_siege=A+"enemies/destroy/enemy_siege_destroy.png";
 IMG_SRC.ally1=A+"allies/ally_spear.png";
+["1","2","3","4"].forEach(n=> IMG_SRC[`ally_w${n}`]=A+`allies/walk/ally_spear_walk_${n}.png`);
 ["1","2","3","4"].forEach(n=> IMG_SRC[`ally_a${n}`]=A+`allies/attack/ally_spear_attack_${n}.png`);
+IMG_SRC.ally_archer=A+"allies/ally_archer.png";
+["1","2","3","4"].forEach(n=> IMG_SRC[`ally_archer_w${n}`]=A+`allies/walk/ally_archer_walk_${n}.png`);
+["1","2","3","4"].forEach(n=> IMG_SRC[`ally_archer_a${n}`]=A+`allies/attack/ally_archer_attack_${n}.png`);
 ["explosion","hit","upgrade","build","coin_pickup"].forEach(f=>{ for(let i=1;i<=3;i++) IMG_SRC[`fx_${f}_${i}`]=A+`effects/frames/fx_${f}_${i}.png`; });
 IMG_SRC.tree=A+"backgrounds/parts/part_tree_round_soft_01.png";
 IMG_SRC.rock=A+"backgrounds/parts/part_rock_cluster_soft_01.png";
@@ -185,6 +265,23 @@ function sprite(k,x,y,h,o){
   return true;
 }
 
+function spriteFrame(k,x,y,h,frames,frame,o){
+  o=o||{}; const im=IMG[k]; if(!im||!im.naturalWidth) return false;
+  frames=frames||4; frame=((Math.floor(frame||0)%frames)+frames)%frames;
+  const sw=im.naturalWidth/frames, sh=im.naturalHeight;
+  const w=sw/sh*h;
+  ctx.save();
+  ctx.translate(x,y);
+  if(o.rot) ctx.rotate(o.rot);
+  const sx=(o.flip?-1:1)*(o.sx||1), sy=(o.sy||1);
+  ctx.scale(sx,sy);
+  if(o.alpha!=null) ctx.globalAlpha=o.alpha;
+  const ax=o.ax!=null?o.ax:0.5, ay=o.ay!=null?o.ay:1.0;
+  ctx.drawImage(im, sw*frame, 0, sw, sh, -w*ax, -h*ay, w, h);
+  ctx.restore();
+  return true;
+}
+
 /* ---------------- audio (synth, no assets) ---------------- */
 const Audio2={ ctx:null, muted:false,
   init(){ if(this.ctx) return; try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} },
@@ -214,10 +311,16 @@ const BAL = {
   kingSpeed: 188,
   kingRally: 96,          // towers within this radius of king get fire-rate buff
   kingRallyBonus: 0.30,
-  kingAttackRange: 54,
+  kingAttackRange: 118,
   kingAttackDamage: 22,
-  kingAttackCd: 390,
-  kingAttackWindup: 120,
+  kingAttackCd: 460,
+  kingAttackWindup: 170,
+  kingAttackAnim: 340,
+  kingArrowSpeed: 620,
+  kingHurtAnim: 320,
+  kingHurtCooldown: 720,
+  kingHurtContact: 22,
+  kingHurtKnockback: 8,
   coinPickupRange: 46,
   coinLife: 9000,
   slotRadius: 30,         // king must be this close to operate a slot
@@ -256,44 +359,54 @@ const E = {
   overlord:{name:"大将軍",hp:920,spd:20,dmg:50,coin:130,r:30,armor:0.25,boss:true,aura:90},
 };
 
-/* ---------------- routes ---------------- */
-const ROUTE = {
+/* ---------------- stages / routes / slots / waves ---------------- */
+const CASTLE={x:122,y:150};
+let MERGE={x:240,y:452};
+
+const MEADOW_ROUTES = {
   main:[{x:452,y:792},{x:430,y:690},{x:380,y:602},{x:318,y:548},{x:262,y:500},{x:240,y:452},
         {x:206,y:382},{x:188,y:300},{x:158,y:226},{x:132,y:176}],
   side:[{x:40,y:794},{x:74,y:706},{x:104,y:616},{x:150,y:540},{x:206,y:494},{x:240,y:452},
         {x:206,y:382},{x:188,y:300},{x:158,y:226},{x:132,y:176}],
 };
-const CASTLE={x:122,y:150};
-const MERGE={x:240,y:452};
-
-/* slots: kind decides allowed buildings. positions hand-placed against routes. */
-const SLOTS = [
-  // road (palisade only) — sit ON the road at chokepoints
-  {id:"r1",kind:"road",x:402,y:646},
-  {id:"r2",kind:"road",x:295,y:524},
-  {id:"r3",kind:"road",x:88,y:660},
-  {id:"r4",kind:"road",x:182,y:516},
-  {id:"r5",kind:"road",x:222,y:418},   // just after merge — the kill-box gate
-  {id:"r6",kind:"road",x:172,y:262},
-  // ground (towers/barracks) — beside the road, overlooking it
-  {id:"g1",kind:"ground",x:448,y:582},
-  {id:"g2",kind:"ground",x:358,y:506},
-  {id:"g3",kind:"ground",x:300,y:440},  // flanks the kill-box
-  {id:"g4",kind:"ground",x:36,y:586},
-  {id:"g5",kind:"ground",x:118,y:474},
-  {id:"g6",kind:"ground",x:178,y:430},  // flanks the kill-box (other side)
-  {id:"g7",kind:"ground",x:262,y:352},
-  {id:"g8",kind:"ground",x:108,y:248},
-  {id:"g9",kind:"ground",x:230,y:230},
-  // economy (mine only) — rear corners, far from the front
-  {id:"m1",kind:"economy",x:252,y:716},
-  {id:"m2",kind:"economy",x:412,y:250},
-  {id:"m3",kind:"economy",x:454,y:432},
+const MEADOW_SLOTS = [
+  {id:"r1",kind:"road",x:402,y:646},{id:"r2",kind:"road",x:295,y:524},{id:"r3",kind:"road",x:88,y:660},
+  {id:"r4",kind:"road",x:182,y:516},{id:"r5",kind:"road",x:222,y:418},{id:"r6",kind:"road",x:172,y:262},
+  {id:"g1",kind:"ground",x:448,y:582},{id:"g2",kind:"ground",x:358,y:506},{id:"g3",kind:"ground",x:300,y:440},
+  {id:"g4",kind:"ground",x:36,y:586},{id:"g5",kind:"ground",x:118,y:474},{id:"g6",kind:"ground",x:178,y:430},
+  {id:"g7",kind:"ground",x:262,y:352},{id:"g8",kind:"ground",x:108,y:248},{id:"g9",kind:"ground",x:230,y:230},
+  {id:"m1",kind:"economy",x:252,y:716},{id:"m2",kind:"economy",x:412,y:250},{id:"m3",kind:"economy",x:454,y:432},
 ];
-const ALLOWED = { road:["palisade"], ground:["archer","cannon","barracks"], economy:["mine"] };
 
-/* ---------------- waves (meadow arc, boss finale) ---------------- */
-const WAVES = [
+const CROSS_ROUTES = {
+  main:[{x:238,y:798},{x:238,y:704},{x:238,y:622},{x:238,y:540},{x:238,y:464},{x:218,y:390},{x:188,y:300},{x:158,y:226},{x:132,y:176}],
+  left:[{x:36,y:786},{x:72,y:706},{x:112,y:630},{x:154,y:554},{x:204,y:500},{x:238,y:464},{x:218,y:390},{x:188,y:300},{x:158,y:226},{x:132,y:176}],
+  right:[{x:448,y:786},{x:410,y:706},{x:372,y:626},{x:330,y:554},{x:278,y:500},{x:238,y:464},{x:218,y:390},{x:188,y:300},{x:158,y:226},{x:132,y:176}],
+};
+const CROSS_SLOTS = [
+  {id:"cr1",kind:"road",x:238,y:620},{id:"cr2",kind:"road",x:238,y:468},{id:"cr3",kind:"road",x:112,y:632},
+  {id:"cr4",kind:"road",x:372,y:626},{id:"cr5",kind:"road",x:206,y:388},{id:"cr6",kind:"road",x:168,y:260},
+  {id:"cg1",kind:"ground",x:184,y:612},{id:"cg2",kind:"ground",x:292,y:612},{id:"cg3",kind:"ground",x:150,y:520},
+  {id:"cg4",kind:"ground",x:330,y:520},{id:"cg5",kind:"ground",x:290,y:438},{id:"cg6",kind:"ground",x:150,y:410},
+  {id:"cg7",kind:"ground",x:250,y:328},{id:"cg8",kind:"ground",x:96,y:272},{id:"cg9",kind:"ground",x:248,y:238},
+  {id:"cm1",kind:"economy",x:72,y:724},{id:"cm2",kind:"economy",x:404,y:724},{id:"cm3",kind:"economy",x:414,y:274},
+];
+
+const RIDGE_ROUTES = {
+  main:[{x:250,y:792},{x:248,y:730},{x:250,y:678},{x:256,y:624},{x:252,y:576},{x:242,y:526},{x:228,y:470},{x:202,y:412},{x:176,y:340},{x:148,y:214},{x:132,y:176}],
+  left:[{x:46,y:760},{x:78,y:714},{x:106,y:662},{x:136,y:614},{x:164,y:566},{x:194,y:528},{x:242,y:526},{x:228,y:470},{x:202,y:412},{x:176,y:340},{x:148,y:214},{x:132,y:176}],
+  right:[{x:444,y:756},{x:420,y:718},{x:396,y:674},{x:370,y:628},{x:340,y:594},{x:304,y:560},{x:252,y:576},{x:242,y:526},{x:228,y:470},{x:202,y:412},{x:176,y:340},{x:148,y:214},{x:132,y:176}],
+};
+const RIDGE_SLOTS = [
+  {id:"rr1",kind:"road",x:252,y:576},{id:"rr2",kind:"road",x:228,y:470},{id:"rr3",kind:"road",x:176,y:340},
+  {id:"rr4",kind:"road",x:106,y:662},{id:"rr5",kind:"road",x:396,y:674},{id:"rr6",kind:"road",x:148,y:214},
+  {id:"rg1",kind:"ground",x:202,y:602},{id:"rg2",kind:"ground",x:310,y:552},{id:"rg3",kind:"ground",x:132,y:592},
+  {id:"rg4",kind:"ground",x:316,y:474},{id:"rg5",kind:"ground",x:160,y:364},{id:"rg6",kind:"ground",x:266,y:364},
+  {id:"rg7",kind:"ground",x:236,y:296},{id:"rg8",kind:"ground",x:348,y:574},{id:"rg9",kind:"ground",x:186,y:500},
+  {id:"rm1",kind:"economy",x:404,y:682},{id:"rm2",kind:"economy",x:380,y:732},{id:"rm3",kind:"economy",x:66,y:716},
+];
+
+const MEADOW_WAVES = [
   { note:"先遣隊が主街道から来る。城前の道に柵、脇に弓塔で防衛線を作る。", groups:[
     {type:"grunt",count:8,gap:560,route:"main"} ]},
   { note:"左側道にも小隊。兵舎を側道の脇に置くと楽になる。", groups:[
@@ -317,6 +430,7 @@ const WAVES = [
   { note:"三方向同時。呪術兵が敵を回復する。王をどこへ走らせるかが鍵。", groups:[
     {type:"grunt",count:14,gap:280,route:"main"},
     {type:"runner",count:10,gap:300,route:"side"},
+    {type:"runner",count:10,gap:300,route:"side"},
     {type:"shaman",count:2,gap:900,route:"main",delay:1500},
     {type:"shield",count:6,gap:500,route:"side",delay:2000} ]},
   { note:"最終決戦。破城槌の後ろから将軍が来る。総力で迎え撃て。", boss:true, groups:[
@@ -326,6 +440,147 @@ const WAVES = [
     {type:"shield",count:8,gap:420,route:"side",delay:2500},
     {type:"warlord",count:1,gap:0,route:"main",delay:5000} ]},
 ];
+const CROSS_WAVES = [
+  {note:"中央の直線から偵察隊。柵の基本を確認する。",groups:[{type:"grunt",count:7,gap:540,route:"main"}]},
+  {note:"左右の道から走り兵。分岐の片側を放置しない。",groups:[{type:"runner",count:5,gap:520,route:"left"},{type:"runner",count:5,gap:520,route:"right",delay:900}]},
+  {note:"三方向から雑兵。合流点の前に火力を置く。",groups:[{type:"grunt",count:8,gap:420,route:"main"},{type:"grunt",count:6,gap:480,route:"left"},{type:"grunt",count:6,gap:480,route:"right"}]},
+  {note:"盾兵が中央、走り兵が側道。大砲か兵舎で受ける。",groups:[{type:"shield",count:5,gap:620,route:"main"},{type:"runner",count:7,gap:360,route:"left",delay:1200},{type:"runner",count:7,gap:360,route:"right",delay:1200}]},
+  {note:"破壊兵が左右へ散る。王の移動判断が重要。",groups:[{type:"saboteur",count:4,gap:660,route:"left"},{type:"saboteur",count:4,gap:660,route:"right"},{type:"grunt",count:10,gap:360,route:"main",delay:800}]},
+  {note:"重兵の圧力。合流点の柵を厚くする。",groups:[{type:"brute",count:4,gap:820,route:"main"},{type:"shield",count:4,gap:640,route:"left"},{type:"shield",count:4,gap:640,route:"right"}]},
+  {note:"三方向同時の本隊。呪術兵を先に落とす。",groups:[{type:"grunt",count:10,gap:300,route:"main"},{type:"runner",count:8,gap:300,route:"left"},{type:"runner",count:8,gap:300,route:"right"},{type:"shaman",count:2,gap:900,route:"main",delay:1400}]},
+  {note:"分岐路の最終波。左右の抜けを王で止める。",boss:true,groups:[{type:"siege",count:1,gap:0,route:"main"},{type:"bomber",count:4,gap:640,route:"left",delay:1000},{type:"bomber",count:4,gap:640,route:"right",delay:1000},{type:"warlord",count:1,gap:0,route:"main",delay:4200}]},
+];
+const RIDGE_WAVES = [
+  {note:"中央坂道から先遣隊。高台の火力を試す。",groups:[{type:"grunt",count:8,gap:560,route:"main"}]},
+  {note:"左崖道から走り兵。側面の床を使う。",groups:[{type:"grunt",count:8,gap:500,route:"main"},{type:"runner",count:6,gap:520,route:"left",delay:1000}]},
+  {note:"右斜面路から盾兵。大砲の角度が効く。",groups:[{type:"shield",count:4,gap:700,route:"right"},{type:"runner",count:7,gap:360,route:"main",delay:800}]},
+  {note:"三坂合流。中央柵を抜かれると城前が崩れる。",groups:[{type:"grunt",count:10,gap:340,route:"main"},{type:"grunt",count:7,gap:420,route:"left"},{type:"grunt",count:7,gap:420,route:"right"}]},
+  {note:"破壊兵と爆弾兵。前線の柵を守る。",groups:[{type:"saboteur",count:4,gap:700,route:"left"},{type:"bomber",count:4,gap:760,route:"right"},{type:"shield",count:5,gap:560,route:"main",delay:1200}]},
+  {note:"重兵が坂を登る。兵舎で時間を作る。",groups:[{type:"brute",count:5,gap:800,route:"main"},{type:"shield",count:5,gap:600,route:"right"},{type:"runner",count:8,gap:340,route:"left",delay:1800}]},
+  {note:"呪術兵が後続を支える。王で狙いに行く。",groups:[{type:"grunt",count:12,gap:300,route:"main"},{type:"runner",count:8,gap:300,route:"left"},{type:"shield",count:6,gap:520,route:"right"},{type:"shaman",count:2,gap:900,route:"main",delay:1500}]},
+  {note:"高台の最終防衛。破城槌と将軍を合流前に削る。",boss:true,groups:[{type:"siege",count:2,gap:1300,route:"main"},{type:"bomber",count:4,gap:700,route:"right",delay:1300},{type:"runner",count:12,gap:260,route:"left"},{type:"warlord",count:1,gap:0,route:"main",delay:5200}]},
+];
+
+
+const RIVERGATE_ROUTES = {
+  main:[{x:238,y:798},{x:238,y:724},{x:238,y:654},{x:238,y:588},{x:238,y:520},{x:238,y:456},{x:218,y:382},{x:188,y:300},{x:158,y:226},{x:132,y:176}],
+  west:[{x:34,y:776},{x:74,y:710},{x:112,y:650},{x:152,y:594},{x:194,y:548},{x:238,y:520},{x:238,y:456},{x:218,y:382},{x:188,y:300},{x:158,y:226},{x:132,y:176}],
+  east:[{x:448,y:776},{x:410,y:710},{x:372,y:650},{x:330,y:594},{x:284,y:548},{x:238,y:520},{x:238,y:456},{x:218,y:382},{x:188,y:300},{x:158,y:226},{x:132,y:176}],
+};
+const RIVERGATE_SLOTS = [
+  {id:"vr1",kind:"road",x:238,y:588},{id:"vr2",kind:"road",x:238,y:520},{id:"vr3",kind:"road",x:238,y:456},
+  {id:"vr4",kind:"road",x:152,y:594},{id:"vr5",kind:"road",x:330,y:594},{id:"vr6",kind:"road",x:188,y:300},
+  {id:"vg1",kind:"ground",x:184,y:628},{id:"vg2",kind:"ground",x:292,y:628},{id:"vg3",kind:"ground",x:164,y:528},
+  {id:"vg4",kind:"ground",x:314,y:528},{id:"vg5",kind:"ground",x:292,y:430},{id:"vg6",kind:"ground",x:150,y:414},
+  {id:"vg7",kind:"ground",x:260,y:330},{id:"vg8",kind:"ground",x:104,y:260},{id:"vg9",kind:"ground",x:250,y:238},
+  {id:"vm1",kind:"economy",x:70,y:720},{id:"vm2",kind:"economy",x:408,y:720},{id:"vm3",kind:"economy",x:404,y:300},
+];
+const RIVERGATE_WAVES = [
+  {note:"橋の中央から先遣隊。橋前に柵を置いて基本線を作る。",groups:[{type:"grunt",count:8,gap:540,route:"main"}]},
+  {note:"左右の渡河路から走り兵。橋周辺の弓塔で受ける。",groups:[{type:"grunt",count:8,gap:480,route:"main"},{type:"runner",count:5,gap:500,route:"west",delay:900},{type:"runner",count:5,gap:500,route:"east",delay:1200}]},
+  {note:"盾兵が橋を押す。大砲を合流点へ向ける。",groups:[{type:"shield",count:5,gap:640,route:"main"},{type:"grunt",count:7,gap:420,route:"west"},{type:"grunt",count:7,gap:420,route:"east"}]},
+  {note:"橋上で群れが詰まる。柵と大砲の価値が高い。",groups:[{type:"grunt",count:14,gap:300,route:"main"},{type:"runner",count:7,gap:340,route:"west"},{type:"runner",count:7,gap:340,route:"east"}]},
+  {note:"爆弾兵が橋柵を壊しに来る。修理判断が重要。",groups:[{type:"bomber",count:5,gap:720,route:"main"},{type:"saboteur",count:4,gap:640,route:"west"},{type:"saboteur",count:4,gap:640,route:"east",delay:900}]},
+  {note:"重兵と盾兵の橋突破。兵舎で時間を作る。",groups:[{type:"brute",count:5,gap:820,route:"main"},{type:"shield",count:5,gap:620,route:"west"},{type:"shield",count:5,gap:620,route:"east"}]},
+  {note:"呪術兵が橋上の本隊を回復する。王で狙いに行く。",groups:[{type:"grunt",count:12,gap:300,route:"main"},{type:"runner",count:8,gap:300,route:"west"},{type:"runner",count:8,gap:300,route:"east"},{type:"shaman",count:2,gap:900,route:"main",delay:1400}]},
+  {note:"橋門の最終波。破城槌を橋上で止める。",boss:true,groups:[{type:"siege",count:2,gap:1300,route:"main"},{type:"bomber",count:4,gap:700,route:"west",delay:1200},{type:"bomber",count:4,gap:700,route:"east",delay:1400},{type:"warlord",count:1,gap:0,route:"main",delay:5200}]},
+];
+
+const FOREST_ROUTES = {
+  main:[{x:446,y:792},{x:402,y:716},{x:360,y:656},{x:312,y:604},{x:270,y:552},{x:236,y:498},{x:218,y:424},{x:194,y:340},{x:160,y:238},{x:132,y:176}],
+  shade:[{x:54,y:790},{x:82,y:720},{x:116,y:656},{x:150,y:600},{x:188,y:548},{x:236,y:498},{x:218,y:424},{x:194,y:340},{x:160,y:238},{x:132,y:176}],
+  grove:[{x:250,y:798},{x:232,y:730},{x:212,y:668},{x:214,y:606},{x:236,y:548},{x:236,y:498},{x:218,y:424},{x:194,y:340},{x:160,y:238},{x:132,y:176}],
+};
+const FOREST_SLOTS = [
+  {id:"fr1",kind:"road",x:236,y:498},{id:"fr2",kind:"road",x:218,y:424},{id:"fr3",kind:"road",x:150,y:600},
+  {id:"fr4",kind:"road",x:312,y:604},{id:"fr5",kind:"road",x:194,y:340},
+  {id:"fg1",kind:"ground",x:376,y:636},{id:"fg2",kind:"ground",x:292,y:548},{id:"fg3",kind:"ground",x:168,y:532},
+  {id:"fg4",kind:"ground",x:96,y:612},{id:"fg5",kind:"ground",x:286,y:438},{id:"fg6",kind:"ground",x:142,y:404},
+  {id:"fg7",kind:"ground",x:246,y:324},{id:"fg8",kind:"ground",x:94,y:260},{id:"fg9",kind:"ground",x:224,y:236},
+  {id:"fm1",kind:"economy",x:394,y:734},{id:"fm2",kind:"economy",x:64,y:716},{id:"fm3",kind:"economy",x:400,y:310},
+];
+const FOREST_WAVES = [
+  {note:"森道から小隊。曲がり角の火力確認。",groups:[{type:"grunt",count:8,gap:540,route:"main"}]},
+  {note:"木陰から走り兵。王の補助攻撃で抜けを止める。",groups:[{type:"runner",count:7,gap:420,route:"shade"},{type:"grunt",count:7,gap:500,route:"main",delay:800}]},
+  {note:"奥の小道から雑兵。道が曲がるため射程配置が重要。",groups:[{type:"grunt",count:8,gap:420,route:"grove"},{type:"runner",count:6,gap:380,route:"shade"},{type:"grunt",count:6,gap:440,route:"main"}]},
+  {note:"破壊兵が森の脇から来る。施設を守る。",groups:[{type:"saboteur",count:5,gap:620,route:"shade"},{type:"runner",count:8,gap:340,route:"grove"},{type:"shield",count:3,gap:700,route:"main",delay:1200}]},
+  {note:"爆弾兵と盾兵。柵を一点に寄せすぎない。",groups:[{type:"bomber",count:4,gap:760,route:"main"},{type:"shield",count:5,gap:600,route:"grove"},{type:"grunt",count:10,gap:340,route:"shade"}]},
+  {note:"森の重兵隊。曲がり道に兵舎を置くと耐えやすい。",groups:[{type:"brute",count:4,gap:840,route:"main"},{type:"shield",count:6,gap:560,route:"shade"},{type:"runner",count:8,gap:320,route:"grove",delay:1600}]},
+  {note:"呪術兵が後方から支援。速攻で落とす。",groups:[{type:"runner",count:10,gap:280,route:"shade"},{type:"grunt",count:12,gap:300,route:"grove"},{type:"shaman",count:2,gap:900,route:"main",delay:1500},{type:"shield",count:5,gap:520,route:"main"}]},
+  {note:"森陰の最終波。走り兵の抜けと将軍を同時に見る。",boss:true,groups:[{type:"runner",count:14,gap:240,route:"shade"},{type:"siege",count:1,gap:0,route:"main",delay:900},{type:"bomber",count:5,gap:660,route:"grove",delay:1300},{type:"warlord",count:1,gap:0,route:"main",delay:5200}]},
+];
+
+const BASTION_ROUTES = {
+  breach:[{x:74,y:790},{x:110,y:708},{x:150,y:630},{x:188,y:560},{x:218,y:498},{x:222,y:430},{x:202,y:350},{x:164,y:236},{x:132,y:176}],
+  court:[{x:420,y:790},{x:382,y:708},{x:340,y:630},{x:296,y:560},{x:250,y:506},{x:222,y:430},{x:202,y:350},{x:164,y:236},{x:132,y:176}],
+};
+const BASTION_SLOTS = [
+  {id:"br1",kind:"road",x:188,y:560},{id:"br2",kind:"road",x:222,y:430},{id:"br3",kind:"road",x:202,y:350},
+  {id:"br4",kind:"road",x:296,y:560},{id:"br5",kind:"road",x:164,y:236},{id:"br6",kind:"road",x:110,y:708},
+  {id:"bg1",kind:"ground",x:132,y:600},{id:"bg2",kind:"ground",x:252,y:582},{id:"bg3",kind:"ground",x:340,y:538},
+  {id:"bg4",kind:"ground",x:276,y:442},{id:"bg5",kind:"ground",x:146,y:430},{id:"bg6",kind:"ground",x:266,y:330},
+  {id:"bg7",kind:"ground",x:96,y:318},{id:"bg8",kind:"ground",x:230,y:240},{id:"bg9",kind:"ground",x:360,y:650},
+  {id:"bm1",kind:"economy",x:410,y:722},{id:"bm2",kind:"economy",x:58,y:724},{id:"bm3",kind:"economy",x:392,y:292},
+];
+const BASTION_WAVES = [
+  {note:"廃砦の裂け目から偵察隊。合流前で削る。",groups:[{type:"grunt",count:8,gap:560,route:"breach"}]},
+  {note:"中庭側から盾兵。早めに柵を置く。",groups:[{type:"grunt",count:8,gap:480,route:"breach"},{type:"shield",count:3,gap:700,route:"court",delay:900}]},
+  {note:"重兵が砦道を押す。大砲の準備が必要。",groups:[{type:"brute",count:3,gap:900,route:"breach"},{type:"grunt",count:10,gap:360,route:"court"}]},
+  {note:"爆弾兵が柵を壊す。修理と差し替えを意識する。",groups:[{type:"bomber",count:5,gap:760,route:"court"},{type:"shield",count:5,gap:620,route:"breach"}]},
+  {note:"破城槌の予行。城前ではなく砦前で止める。",groups:[{type:"siege",count:1,gap:0,route:"breach"},{type:"runner",count:8,gap:320,route:"court",delay:900},{type:"grunt",count:10,gap:340,route:"breach",delay:1400}]},
+  {note:"呪術兵と重兵。火力不足が露呈しやすい。",groups:[{type:"brute",count:4,gap:850,route:"court"},{type:"shield",count:6,gap:580,route:"breach"},{type:"shaman",count:2,gap:900,route:"court",delay:1600}]},
+  {note:"両門から本隊。柵の修理タイミングが重要。",groups:[{type:"shield",count:8,gap:460,route:"breach"},{type:"bomber",count:4,gap:700,route:"court"},{type:"runner",count:8,gap:300,route:"court",delay:1200}]},
+  {note:"廃砦の最終防衛。将軍と破城槌の同時圧力。",boss:true,groups:[{type:"siege",count:2,gap:1300,route:"breach"},{type:"brute",count:4,gap:820,route:"court",delay:1200},{type:"bomber",count:4,gap:700,route:"court",delay:2400},{type:"warlord",count:1,gap:0,route:"breach",delay:5600}]},
+];
+
+const STAGE_DEFS = {
+  meadow:{id:"meadow",name:"草地の前線",type:"本番候補",difficulty:"標準",recommended:"柵・弓塔",summary:"2ルートの基準ステージ。柵で足止めし、脇の火力で削る基本を確認する。",startCoins:120,enemyMul:{hp:1,damage:1,speed:1},merge:{x:240,y:452},routes:MEADOW_ROUTES,routeLabels:{main:"主街道",side:"左側道"},slots:MEADOW_SLOTS,waves:MEADOW_WAVES},
+  crossroads:{id:"crossroads",name:"分岐路の前線",type:"検証用",difficulty:"やや難",recommended:"大砲・兵舎",summary:"中央・左右の3ルートが合流する。分岐の見落としと誤配置を検証するステージ。",startCoins:132,enemyMul:{hp:1.04,damage:1,speed:1.02},merge:{x:238,y:464},routes:CROSS_ROUTES,routeLabels:{main:"中央路",left:"左分岐",right:"右分岐"},slots:CROSS_SLOTS,waves:CROSS_WAVES},
+  ridge:{id:"ridge",name:"高台の前線",type:"本番候補",difficulty:"難",recommended:"柵・大砲・兵舎",summary:"高台の3ルート。合流前に削り、中央坂道の柵を維持することが重要。",startCoins:140,enemyMul:{hp:1.10,damage:1.03,speed:0.98},merge:{x:242,y:526},routes:RIDGE_ROUTES,routeLabels:{main:"中央坂道",left:"左崖道",right:"右斜面路"},slots:RIDGE_SLOTS,waves:RIDGE_WAVES},
+  rivergate:{id:"rivergate",name:"橋門の前線",type:"本番候補",difficulty:"難",recommended:"柵・大砲",summary:"橋に敵が集中する3ルート。橋上で止めて範囲攻撃を当てるステージ。",startCoins:146,enemyMul:{hp:1.08,damage:1.03,speed:0.99},merge:{x:238,y:520},routes:RIVERGATE_ROUTES,routeLabels:{main:"中央橋",west:"西渡河路",east:"東渡河路"},slots:RIVERGATE_SLOTS,waves:RIVERGATE_WAVES},
+  forest:{id:"forest",name:"森陰の前線",type:"本番候補",difficulty:"やや難",recommended:"弓塔・兵舎",summary:"曲がり道が多く走り兵が抜けやすい。王の移動と兵舎配置を試すステージ。",startCoins:128,enemyMul:{hp:1.02,damage:1.0,speed:1.08},merge:{x:236,y:498},routes:FOREST_ROUTES,routeLabels:{main:"東森道",shade:"木陰道",grove:"奥小道"},slots:FOREST_SLOTS,waves:FOREST_WAVES},
+  bastion:{id:"bastion",name:"廃砦の前線",type:"本番候補",difficulty:"高難度",recommended:"大砲・兵舎・柵",summary:"ルート数は少ないが重兵と破城槌が多い。火力不足を診断しやすいステージ。",startCoins:158,enemyMul:{hp:1.16,damage:1.08,speed:0.94},merge:{x:222,y:430},routes:BASTION_ROUTES,routeLabels:{breach:"裂け門",court:"中庭路"},slots:BASTION_SLOTS,waves:BASTION_WAVES},
+};
+const STAGE_ORDER=["meadow","crossroads","ridge","rivergate","forest","bastion"];
+const STAGE_NODE_POS={
+  meadow:{x:19,y:69,icon:"🏕️",short:"草地"},
+  crossroads:{x:34,y:47,icon:"⭐",short:"分岐"},
+  ridge:{x:51,y:29,icon:"⛰️",short:"高台"},
+  rivergate:{x:68,y:48,icon:"🌉",short:"橋門"},
+  forest:{x:78,y:72,icon:"🌲",short:"森陰"},
+  bastion:{x:55,y:82,icon:"🏰",short:"廃砦"}
+};
+function getSaveData(){
+  try{ return JSON.parse(localStorage.getItem(SAVE_KEY)||"{}"); }catch(e){ return {}; }
+}
+function saveGameData(patch){
+  try{ const prev=getSaveData(); localStorage.setItem(SAVE_KEY,JSON.stringify({...prev,...patch})); }catch(e){}
+}
+function normalizeProgress(data){
+  const unlocked=new Set(Array.isArray(data.unlockedStages)?data.unlockedStages:["meadow"]);
+  const cleared=new Set(Array.isArray(data.clearedStages)?data.clearedStages:[]);
+  unlocked.add("meadow");
+  for(const id of [...cleared]){ const i=STAGE_ORDER.indexOf(id); if(i>=0){ unlocked.add(id); if(STAGE_ORDER[i+1]) unlocked.add(STAGE_ORDER[i+1]); } }
+  return {unlockedStages:[...unlocked].filter(id=>STAGE_DEFS[id]), clearedStages:[...cleared].filter(id=>STAGE_DEFS[id])};
+}
+function isStageUnlocked(id){ return normalizeProgress(getSaveData()).unlockedStages.includes(id); }
+function firstUnlockedStage(){ return normalizeProgress(getSaveData()).unlockedStages.find(id=>STAGE_DEFS[id])||"meadow"; }
+function normalizeSelectedStage(id){ return (STAGE_DEFS[id] && isStageUnlocked(id)) ? id : firstUnlockedStage(); }
+function getNextStageId(id){ const i=STAGE_ORDER.indexOf(id); return i>=0 ? (STAGE_ORDER[i+1]||null) : null; }
+const bootSaveData=getSaveData();
+let selectedStageId=normalizeSelectedStage(bootSaveData.selectedStageId||"meadow"), activeStageId="meadow", ROUTE={}, SLOTS=[], WAVES=[], ROUTE_LABELS={};
+function clone(v){ return JSON.parse(JSON.stringify(v)); }
+function setActiveStage(id){
+  const st=STAGE_DEFS[id]||STAGE_DEFS.meadow;
+  activeStageId=st.id;
+  ROUTE=clone(st.routes); SLOTS=clone(st.slots); WAVES=clone(st.waves); ROUTE_LABELS=clone(st.routeLabels||{}); MERGE=clone(st.merge||{x:240,y:452});
+  BAL.startCoins=st.startCoins||120;
+  return st;
+}
+function currentStage(){ return STAGE_DEFS[activeStageId]||STAGE_DEFS.meadow; }
+function selectedStage(){ return STAGE_DEFS[selectedStageId]||STAGE_DEFS.meadow; }
+setActiveStage(selectedStageId);
+const ALLOWED = { road:["palisade"], ground:["archer","cannon","barracks"], economy:["mine"] };
 
 /* ---------------- helpers ---------------- */
 const $=id=>document.getElementById(id);
@@ -335,13 +590,15 @@ const dist=(a,b,c,d)=>Math.hypot(a-c,b-d);
 function mulberry(seed){ return function(){ let t=seed+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
 
 /* ---------------- state ---------------- */
-let ctx, S, last=0, speed=1, paused=false;
+let ctx, S, last=0, speed=1, paused=false, settingsOpen=false, settingsPausedBefore=false;
 function newState(){
+  const st=setActiveStage(selectedStageId);
   return {
-    status:"playing", coins:BAL.startCoins, castleHp:BAL.castleHp, castleMax:BAL.castleHp,
+    status:"playing", stageId:st.id, stageName:st.name, coins:BAL.startCoins, castleHp:BAL.castleHp, castleMax:BAL.castleHp,
     waveIdx:-1, waveTimer:BAL.firstRest, between:true, spawnQueue:[], spawning:false,
     king:{x:CASTLE.x+34,y:CASTLE.y+70,tx:CASTLE.x+34,ty:CASTLE.y+70,facing:1,moving:false,anim:0,squash:1,build:0,dust:0,
-      attackCd:0,attackFlash:0,attackWindup:0,attackTarget:null,attackX:0,attackY:0},
+      attackCd:0,attackFlash:0,attackWindup:0,attackTarget:null,attackX:0,attackY:0,attackReleased:false,
+      hurt:0,hurtCd:0,hurtFlash:0},
     enemies:[], facilities:[], soldiers:[], projectiles:[], coinsOnGround:[],
     particles:[], rings:[], floaters:[], slots:SLOTS.map(s=>({...s,facilityId:null,acted:false,inRange:false,pulse:Math.random()*1000})),
     menu:null, hitstop:0, shake:0, flash:0, banner:null, time:0,
@@ -371,7 +628,11 @@ function distToSeg(px,py,ax,ay,bx,by){
 function distToRoute(px,py,pts){
   let m=1e9; for(let i=0;i<pts.length-1;i++) m=Math.min(m,distToSeg(px,py,pts[i].x,pts[i].y,pts[i+1].x,pts[i+1].y)); return m;
 }
-function distToAnyRoute(x,y){ return Math.min(distToRoute(x,y,ROUTE.main),distToRoute(x,y,ROUTE.side)); }
+function distToAnyRoute(x,y){
+  const routes=Object.values(ROUTE);
+  if(!routes.length) return 1e9;
+  return Math.min(...routes.map(r=>distToRoute(x,y,r)));
+}
 
 /* =====================================================================
  * UPDATE
@@ -392,6 +653,7 @@ function update(dt){
   updateFacilities(wdt);
   updateSoldiers(wdt);
   updateEnemies(wdt);
+  updateKingHurt(wdt);
   updateKingAttack(wdt);
   updateProjectiles(wdt);
   updateCoins(dt);
@@ -424,27 +686,67 @@ function updateKing(dt){
   if(k.build>0) k.build-=dt;
   k.attackCd=Math.max(0,(k.attackCd||0)-dt);
   k.attackFlash=Math.max(0,(k.attackFlash||0)-dt);
+  k.hurt=Math.max(0,(k.hurt||0)-dt);
+  k.hurtCd=Math.max(0,(k.hurtCd||0)-dt);
+  k.hurtFlash=Math.max(0,(k.hurtFlash||0)-dt);
+  const prevWindup=k.attackWindup||0;
   k.attackWindup=Math.max(0,(k.attackWindup||0)-dt);
+  if(prevWindup>0 && !k.attackReleased && k.attackWindup<=BAL.kingAttackWindup*0.38){
+    const target=(S.enemies||[]).find(e=>e.id===k.attackTarget && !e.dead) || nearestEnemy(k.x,k.y,BAL.kingAttackRange*1.15);
+    if(target){
+      const dx=target.x-k.x;
+      if(Math.abs(dx)>1) k.facing=dx<0?-1:1;
+      const sx=k.x + (k.facing||1)*12;
+      const sy=k.y - 28;
+      S.projectiles.push({x:sx,y:sy,tx:target.x,ty:target.y,target,spd:BAL.kingArrowSpeed,dmg:BAL.kingAttackDamage,c:"#ffe08a",king:true,source:"kingArrow",originX:sx,originY:sy});
+      burst(sx,sy,'#fff2b5',4);
+      Audio2.hit();
+    }
+    k.attackReleased=true;
+  }
 }
 
-/* king combat: the king auto-slashes nearby enemies while he is not building. */
+/* king combat: the king auto-attacks nearby enemies with a short-range bow while he is not building. */
 function updateKingAttack(dt){
   const k=S.king;
-  if(!k || k.build>0 || k.attackCd>0 || !S.enemies.length) return;
+  if(!k || k.build>0 || k.hurt>0 || k.attackCd>0 || k.attackWindup>0 || !S.enemies.length) return;
   const target=nearestEnemy(k.x,k.y,BAL.kingAttackRange);
   if(!target) return;
   const dx=target.x-k.x;
   if(Math.abs(dx)>1) k.facing=dx<0?-1:1;
   k.attackCd=BAL.kingAttackCd;
-  k.attackFlash=190;
+  k.attackFlash=BAL.kingAttackAnim;
   k.attackWindup=BAL.kingAttackWindup;
   k.attackTarget=target.id;
   k.attackX=target.x;
   k.attackY=target.y;
-  damageEnemy(target,BAL.kingAttackDamage,k.x,'king');
-  burst(target.x,target.y,'#fff2a8',7);
-  ring(target.x,target.y,'#fff2a8',28,220);
-  addFloater('斬撃',target.x,target.y-18,'#fff2a8');
+  k.attackReleased=false;
+  ring(target.x,target.y,'#fff2a8',22,180);
+}
+
+function updateKingHurt(dt){
+  const k=S.king;
+  if(!k || k.hurtCd>0) return;
+  let hitter=null, best=1e9;
+  for(const e of S.enemies){
+    if(e.dead) continue;
+    const d=dist(k.x,k.y,e.x,e.y) - (e.r||10);
+    if(d < BAL.kingHurtContact && d < best){ best=d; hitter=e; }
+  }
+  if(!hitter) return;
+  const dx=k.x-hitter.x, dy=k.y-hitter.y;
+  const len=Math.hypot(dx,dy)||1;
+  k.hurt=BAL.kingHurtAnim;
+  k.hurtCd=BAL.kingHurtCooldown;
+  k.hurtFlash=BAL.kingHurtAnim*0.72;
+  k.attackWindup=0;
+  k.attackFlash=0;
+  k.attackReleased=true;
+  k.x=clamp(k.x + dx/len*BAL.kingHurtKnockback,14,W-14);
+  k.y=clamp(k.y + dy/len*BAL.kingHurtKnockback,96,H-14);
+  if(Math.abs(dx)>1) k.facing=dx<0?-1:1;
+  burst(k.x,k.y-10,'rgba(255,245,190,0.95)',5);
+  ring(k.x,k.y-12,'rgba(255,240,175,0.9)',18,180);
   Audio2.hit();
 }
 
@@ -483,16 +785,16 @@ function buildMenu(slot){
   if(!f){
     for(const t of ALLOWED[slot.kind]){
       const d=DEF[t];
-      buttons.push({label:`${d.name}を建設`, cost:d.cost, type:"build", t, enabled:S.coins>=d.cost});
+      buttons.push({label:d.name, cost:d.cost, type:"build", t, enabled:S.coins>=d.cost});
     }
   } else {
     if(f.level<4){
       const c=upgradeCost(f);
-      buttons.push({label:`強化 → Lv.${f.level+1}`, cost:c, type:"upgrade", enabled:S.coins>=c, color:LVCOLOR[f.level+1]});
+      buttons.push({label:`強化 Lv.${f.level+1}`, cost:c, type:"upgrade", enabled:S.coins>=c, color:LVCOLOR[f.level+1]});
     }
     if(f.hp<f.maxHp-0.5){
       const rc=Math.ceil((f.maxHp-f.hp)*BAL.repairCostPer);
-      buttons.push({label:`修理 (HP ${Math.round(f.hp)}/${Math.round(f.maxHp)})`, cost:rc, type:"repair", enabled:S.coins>=rc});
+      buttons.push({label:`修理`, cost:rc, type:"repair", enabled:S.coins>=rc});
     }
     if(f.level>=4 && f.hp>=f.maxHp-0.5){
       buttons.push({label:"最大強化・万全", cost:0, type:"none", enabled:false, info:true});
@@ -503,6 +805,7 @@ function buildMenu(slot){
 function upgradeCost(f){ const d=DEF[f.type]; return Math.round(d.baseUpgrade*Math.pow(BAL.upgradeCostMul,f.level-1)); }
 
 function doMenuAction(btn){
+  lastMenuActionAt=performance.now();
   const slot=S.menu.slot;
   if(btn.type==="build"){
     spend(btn.cost); placeFacility(slot,btn.t);
@@ -523,7 +826,7 @@ function spend(c){ S.coins=Math.max(0,S.coins-c); }
 function placeFacility(slot,type){
   const d=DEF[type];
   const f={ id:S.nextId++, type, x:slot.x, y:slot.y, level:1, fire:0, hp:d.hp, maxHp:d.hp,
-            spawnT:600, levelFlash:0, sweep:0, scale:0.2, name:d.name };
+            spawnT:600, attackT:0, spawnPulse:0, levelFlash:0, sweep:0, scale:0.2, name:d.name };
   applyLevel(f);
   S.facilities.push(f); slot.facilityId=f.id;
   burst(f.x,f.y,"#ffe087",22); ring(f.x,f.y,"#ffe087",60,560);
@@ -599,27 +902,38 @@ function endWave(){
 }
 
 function spawnEnemy(type,routeKey){
-  const e=E[type], r=ROUTE[routeKey];
+  const e=E[type], r=ROUTE[routeKey]||ROUTE.main||Object.values(ROUTE)[0];
   const mul=S.waveIdx>=4?1+(S.waveIdx-4)*0.06:1;  // gentle ramp late
+  const st=currentStage(), em=st.enemyMul||{hp:1,damage:1,speed:1};
+  const hp=e.hp*mul*(em.hp||1), spd=e.spd*(em.speed||1), dmg=e.dmg*(em.damage||1);
   S.enemies.push({ id:S.nextId++, type, route:routeKey, seg:0, t:0,
-    x:r[0].x, y:r[0].y, hp:e.hp*mul, max:e.hp*mul, spd:e.spd, base:e.spd, r:e.r,
-    dmg:e.dmg, coin:e.coin, armor:e.armor||0, boss:!!e.boss, facing:-1,
-    hit:0, bob:Math.random()*6.28, kx:0, ky:0, slow:1, dead:false, atkF:0,
-    targetFacility:!!e.targetFacility, explode:e.explode||0, heal:e.heal||0, aura:e.aura||0 });
+    x:r[0].x, y:r[0].y, hp, max:hp, spd, base:spd, r:e.r,
+    dmg, coin:e.coin, armor:e.armor||0, boss:!!e.boss, facing:-1,
+    hit:0, stun:0, bob:Math.random()*6.28, anim:Math.random()*4, kx:0, ky:0, slow:1, dead:false, atkF:0,
+    attacking:false, atkFrame:0, targetFacility:!!e.targetFacility, explode:e.explode||0, heal:e.heal||0, aura:e.aura||0 });
 }
 
 function updateEnemies(dt){
   const k=S.king;
   for(const e of S.enemies){
     if(e.dead) continue;
-    e.bob+=dt*0.01; e.hit=Math.max(0,e.hit-dt);
+    e.bob+=dt*0.01;
+    e.hit=Math.max(0,e.hit-dt);
+    e.stun=Math.max(0,e.stun-dt);
     e.kx*=0.86; e.ky*=0.86;
+    e.attacking=false;
+    e.atkFrame=0;
     // slow from palisades
     let slow=1;
     for(const f of S.facilities){ if(f.type==="palisade" && dist(e.x,e.y,f.x,f.y)<f.blockR){ slow=Math.min(slow,1-f.slow); } }
     e.slow=slow;
+    const animMul=(e.type==="runner"||e.type==="saboteur")?1.35:(e.type==="siege"?0.72:(e.boss?0.78:1));
+    const animSpeed=Math.max(0.45,e.slow||1);
+    e.anim=(e.anim||0)+dt/155*animMul*animSpeed;
+    if(e.attacking){ e.atkF+=dt; } else { e.atkF=Math.max(0,e.atkF-dt*1.4); }
     // shaman heals nearby
     if(e.heal){ for(const o of S.enemies){ if(o!==e && !o.dead && dist(e.x,e.y,o.x,o.y)<e.heal){ o.hp=Math.min(o.max,o.hp+dt*0.012*o.max*0.5); } } }
+    if(e.stun>0){ applyKnock(e); continue; }
     // saboteur: divert to nearest facility near its path
     let attacking=null;
     if(e.targetFacility){
@@ -628,11 +942,25 @@ function updateEnemies(dt){
       if(best){ attacking=best; }
     }
     // palisade contact attack (anyone touching a palisade chips it)
-    for(const f of S.facilities){ if(f.type==="palisade" && dist(e.x,e.y,f.x,f.y)<f.blockR*0.7){ damageFacility(f,e.dmg*dt/1000*1.4); e.atkF+=dt; } }
+    let didAttack=false;
+    for(const f of S.facilities){
+      if(f.type==="palisade" && dist(e.x,e.y,f.x,f.y)<f.blockR*0.7){
+        damageFacility(f,e.dmg*dt/1000*1.4);
+        e.atkF+=dt; didAttack=true;
+      }
+    }
     if(attacking){
       const d=dist(e.x,e.y,attacking.x,attacking.y);
       if(d>26){ moveTo(e,attacking.x,attacking.y,dt); }
-      else { damageFacility(attacking,e.dmg*dt/1000*2.0); e.atkF+=dt; }
+      else { damageFacility(attacking,e.dmg*dt/1000*2.0); e.atkF+=dt; didAttack=true; }
+      e.attacking=didAttack;
+      if(didAttack) e.atkFrame=Math.floor((e.atkF%420)/105)%4;
+      applyKnock(e);
+      continue;
+    }
+    if(didAttack){
+      e.attacking=true;
+      e.atkFrame=Math.floor((e.atkF%420)/105)%4;
       applyKnock(e);
       continue;
     }
@@ -661,13 +989,19 @@ function hitCastle(e){
 function damageEnemy(e,dmg,sourceX,source){
   const armor = source==="king" ? 0 : (e.armor||0);
   const real=dmg*(1-armor);
-  e.hp-=real; e.hit=130;
-  if(sourceX!=null){ const dir=e.x<sourceX?-1:1; e.kx+=dir*1.4; }
+  e.hp-=real; e.hit=Math.max(e.hit||0,180); e.stun=Math.max(e.stun||0,90);
+  if(sourceX!=null){ const dir=e.x<sourceX?-1:1; e.kx+=dir*1.6; }
   if(e.hp<=0 && !e.dead){ killEnemy(e); }
 }
 function killEnemy(e){
   e.dead=true; S.killsThisWave++;
-  burst(e.x,e.y,"#ffd9a0",e.boss?34:12);
+  const dustColor=e.type==="siege"?"#c58a54":"#ffd9a0";
+  burst(e.x,e.y,dustColor,e.boss?34:(e.type==="siege"?22:12));
+  if(e.type==="siege"){
+    spriteFx("siege_destroy",e.x,e.y+8,e.r*5.6,620);
+    S.shake=Math.max(S.shake,180);
+    S.flash=Math.max(S.flash,0.22);
+  }
   if(e.explode){ // bomber explosion hurts facilities + visual
     spriteFx("explosion",e.x,e.y,e.r*4,420); S.shake=Math.max(S.shake,150); Audio2.boom();
     for(const f of S.facilities){ if(dist(e.x,e.y,f.x,f.y)<e.explode) damageFacility(f,40); }
@@ -679,12 +1013,28 @@ function killEnemy(e){
 }
 
 /* facilities: fire / spawn soldiers */
+function spawnBarracksUnit(f){
+  const homeUnits=S.soldiers.filter(s=>s.home===f.id && !s.dead);
+  const archerCount=homeUnits.filter(s=>s.kind==="archer").length;
+  const makeArcher=f.level>=2 && archerCount<1;
+  if(makeArcher){
+    const hp=Math.round(f.sHp*0.72);
+    const dmg=Math.max(7,Math.round(f.sDmg*0.88));
+    return {id:S.nextId++,home:f.id,x:f.x+rand(-8,8),y:f.y+10,hp,max:hp,dmg,
+      facing:1,anim:0,atk:0,dead:false,kx:0,hit:0,thrust:0,moving:false,kind:"archer",range:112+(f.level-1)*8,cd:760-(f.level-1)*40,speed:58};
+  }
+  return {id:S.nextId++,home:f.id,x:f.x+rand(-8,8),y:f.y+12,hp:f.sHp,max:f.sHp,dmg:f.sDmg,
+    facing:1,anim:0,atk:0,dead:false,kx:0,hit:0,thrust:0,moving:false,kind:"spear",speed:64};
+}
+
 function updateFacilities(dt){
   const k=S.king;
   for(const f of S.facilities){
     if(f.levelFlash>0) f.levelFlash-=dt;
     if(f.sweep>0) f.sweep=Math.max(0,f.sweep-dt*0.0016);
     if(f.maxGlow>0) f.maxGlow-=dt;
+    if(f.attackT>0) f.attackT=Math.max(0,f.attackT-dt);
+    if(f.spawnPulse>0) f.spawnPulse=Math.max(0,f.spawnPulse-dt);
     f.scale+=(1-f.scale)*0.16;
     if(f.type==="archer"||f.type==="cannon"){
       const rally = dist(k.x,k.y,f.x,f.y)<BAL.kingRally ? (1-BAL.kingRallyBonus) : 1;
@@ -694,8 +1044,11 @@ function updateFacilities(dt){
         if(tgt){
           f.fire=f.cd*rally;
           S.projectiles.push({x:f.x,y:f.y-18,tx:tgt.x,ty:tgt.y,target:tgt,spd:f.type==="cannon"?300:440,
-            dmg:f.dmg,splash:f.splash||0,c:DEF[f.type].proj,cannon:f.type==="cannon",r:f.type==="cannon"?5:3});
-          if(f.type==="cannon") Audio2.cannon(); else Audio2.shoot();
+            dmg:f.dmg,splash:f.splash||0,c:DEF[f.type].proj,cannon:f.type==="cannon",r:f.type==="cannon"?5:3,
+            source:f.type==="cannon"?"cannonTower":"archerTower",originX:f.x,originY:f.y-18});
+          if(f.type==="cannon"){ Audio2.cannon(); smokeBurst(f.x,f.y-20,8,26,460,"rgba(205,210,220,0.34)"); ring(f.x,f.y-18,"rgba(255,214,148,0.38)",26,200); }
+          else { Audio2.shoot(); }
+          f.attackT = f.type==="cannon" ? 380 : 300;
           f.recoil=1;
         }
       }
@@ -706,8 +1059,11 @@ function updateFacilities(dt){
       const alive=S.soldiers.filter(s=>s.home===f.id && !s.dead).length;
       if(f.spawnT<=0 && alive<f.cap){
         f.spawnT=f.spawn;
-        S.soldiers.push({id:S.nextId++,home:f.id,x:f.x+rand(-8,8),y:f.y+10,hp:f.sHp,max:f.sHp,dmg:f.sDmg,
-          facing:1,anim:0,atk:0,dead:false,kx:0});
+        f.spawnPulse=360;
+        spriteFx("build",f.x,f.y-4,44,260);
+        ring(f.x,f.y-2,"#d8efff",34,260);
+        burst(f.x,f.y-2,"#e6f4ff",6);
+        S.soldiers.push(spawnBarracksUnit(f));
       }
     }
   }
@@ -726,26 +1082,63 @@ function updateSoldiers(dt){
     if(s.dead) continue;
     const home=S.facilities.find(f=>f.id===s.home);
     s.kx*=0.85; s.x+=s.kx;
-    let tgt=null,bd=120;
-    for(const e of S.enemies){ if(e.dead) continue; const d=dist(s.x,s.y,e.x,e.y); if(d<bd){bd=d;tgt=e;} }
+    s.hit=Math.max(0,(s.hit||0)-dt);
+    s.thrust=Math.max(0,(s.thrust||0)-dt);
     s.atk=Math.max(0,s.atk-dt);
+    s.moving=false;
+    const isArcher=s.kind==="archer";
+    const seekRange=isArcher ? (s.range||120)+24 : 120;
+    let tgt=null,bd=seekRange;
+    for(const e of S.enemies){ if(e.dead) continue; const d=dist(s.x,s.y,e.x,e.y); if(d<bd){bd=d;tgt=e;} }
     if(tgt){
       const dx=tgt.x-s.x,dy=tgt.y-s.y,d=Math.hypot(dx,dy)||1;
       if(Math.abs(dx)>1)s.facing=dx<0?-1:1;
-      if(d>20){ s.x+=dx/d*64*dt/1000; s.y+=dy/d*64*dt/1000; s.anim+=dt*0.012; }
-      else { // attack lunge
-        s.anim+=dt*0.02;
-        if(s.atk<=0){ s.atk=520; damageEnemy(tgt,s.dmg,s.x); tgt.hp-= 0; tgt.kx+= (s.x<tgt.x?-1:1)*0.6;
-          // soldier takes hits back
-          s.hp-=tgt.dmg*0.5; s.kx+=(tgt.x<s.x?1:-1)*1.2;
-          burst((s.x+tgt.x)/2,(s.y+tgt.y)/2,"#ffd9a0",4);
+      if(isArcher){
+        const range=s.range||112, retreat=54, moveSpd=s.speed||58;
+        if(d>range){
+          s.x+=dx/d*moveSpd*dt/1000; s.y+=dy/d*moveSpd*dt/1000; s.anim+=dt*0.011; s.moving=true;
+        } else if(d<retreat){
+          s.x-=dx/d*(moveSpd+12)*dt/1000; s.y-=dy/d*(moveSpd+12)*dt/1000; s.anim+=dt*0.011; s.moving=true;
+        } else {
+          s.anim+=dt*0.015;
+          if(s.atk<=0){
+            s.atk=s.cd||760;
+            const sx=s.x + (s.facing>0?8:-8), sy=s.y-16;
+            S.projectiles.push({x:sx,y:sy,tx:tgt.x,ty:tgt.y,target:tgt,spd:520,dmg:s.dmg,c:"#ffe6a6",ally:true,source:"allyArcher",originX:sx,originY:sy});
+            burst(sx,sy,"#fff2b5",3);
+            ring(sx,sy,"rgba(255,241,188,0.55)",14,160);
+            Audio2.shoot();
+            if(d<34){ s.hp-=tgt.dmg*0.18; s.hit=Math.max(s.hit||0,90); s.kx+=(tgt.x<s.x?1:-1)*0.7; }
+          }
+        }
+      } else {
+        if(d>22){
+          s.x+=dx/d*(s.speed||64)*dt/1000; s.y+=dy/d*(s.speed||64)*dt/1000; s.anim+=dt*0.012; s.moving=true;
+        } else {
+          s.anim+=dt*0.018;
+          if(s.atk<=0){
+            s.atk=520; s.thrust=180;
+            damageEnemy(tgt,s.dmg,s.x);
+            tgt.kx+= (s.x<tgt.x?-1:1)*0.6;
+            spriteFx("hit",(s.x+tgt.x)/2,(s.y+tgt.y)/2,22,180);
+            ring((s.x+tgt.x)/2,(s.y+tgt.y)/2,"#fff2b8",24,180);
+            burst((s.x+tgt.x)/2,(s.y+tgt.y)/2,"#ffd9a0",4);
+            s.hp-=tgt.dmg*0.5;
+            s.hit=Math.max(s.hit||0,120);
+            s.kx+=(tgt.x<s.x?1:-1)*1.2;
+          }
         }
       }
     } else if(home){
-      const dx=home.x-s.x,dy=home.y+12-s.y,d=Math.hypot(dx,dy);
-      if(d>10){ s.x+=dx/d*48*dt/1000; s.y+=dy/d*48*dt/1000; s.anim+=dt*0.01; if(Math.abs(dx)>1)s.facing=dx<0?-1:1; }
+      const targetX=home.x + (isArcher?16:0), targetY=home.y + (isArcher?4:12);
+      const dx=targetX-s.x,dy=targetY-s.y,d=Math.hypot(dx,dy);
+      if(d>10){
+        const rt=isArcher?52:48;
+        s.x+=dx/d*rt*dt/1000; s.y+=dy/d*rt*dt/1000; s.anim+=dt*0.01; s.moving=true;
+        if(Math.abs(dx)>1)s.facing=dx<0?-1:1;
+      }
     }
-    if(s.hp<=0){ s.dead=true; burst(s.x,s.y,"#cdb089",10); }
+    if(s.hp<=0){ s.dead=true; burst(s.x,s.y,isArcher?"#d2e8ff":"#cdb089",10); }
   }
   S.soldiers=S.soldiers.filter(s=>!s.dead || s===null);
   S.soldiers=S.soldiers.filter(s=>!s.dead);
@@ -757,17 +1150,20 @@ function updateProjectiles(dt){
     if(p.target && !p.target.dead){ tx=p.target.x; ty=p.target.y; p.tx=tx; p.ty=ty; }
     const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy)||1, step=p.spd*dt/1000;
     if(d<=step+2){
-      // impact
       if(p.splash>0){
-        spriteFx("explosion",tx,ty,p.splash*1.4,360);
+        cannonImpactFx(tx,ty,p.splash);
         for(const e of S.enemies){ if(!e.dead && dist(tx,ty,e.x,e.y)<p.splash) damageEnemy(e,p.dmg,p.x); }
-        S.shake=Math.max(S.shake,70);
+        S.shake=Math.max(S.shake,110);
       } else {
         if(p.target && !p.target.dead) damageEnemy(p.target,p.dmg,p.x);
-        spriteFx("hit",tx,ty,22,220);
+        const power=p.source==="archerTower"?1.25:(p.source==="kingArrow"?1.08:0.95);
+        arrowImpactFx(tx,ty,power,p.c||"#fff1bc");
       }
       p.dead=true;
-    } else { p.x+=dx/d*step; p.y+=dy/d*step; p.ang=Math.atan2(dy,dx); }
+    } else {
+      p.px=p.x; p.py=p.y;
+      p.x+=dx/d*step; p.y+=dy/d*step; p.ang=Math.atan2(dy,dx);
+    }
   }
   S.projectiles=S.projectiles.filter(p=>!p.dead);
 }
@@ -816,11 +1212,44 @@ function burst(x,y,c,n){ for(let i=0;i<n;i++){ const a=Math.random()*6.28,sp=ran
 function ring(x,y,c,rad,life){ S.rings.push({x,y,c,rad,life,t:0}); }
 function addFloater(text,x,y,c){ S.floaters.push({text,x,y,c,t:0,life:1000}); }
 function spriteFx(name,x,y,size,life){ if(!S.fx)S.fx=[]; S.fx.push({name,x,y,size,life,t:0}); }
+function smokeBurst(x,y,n,spread,life,c="rgba(190,195,205,0.42)"){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*6.28,sp=rand(10,spread||40);
+    S.particles.push({x:x+rand(-4,4),y:y+rand(-4,4),vx:Math.cos(a)*sp*0.45,vy:Math.sin(a)*sp*0.35-rand(8,28),life:rand(life*0.7,life*1.15),t:0,r:rand(3,8),c,grav:-0.01});
+  }
+}
+function arrowImpactFx(x,y,power,c){
+  spriteFx("hit",x,y,24+power*5,220);
+  ring(x,y,c||"#fff1bc",24+power*6,180);
+  burst(x,y,"#ffd9a0",4+Math.round(power*2));
+  for(let i=0;i<4+Math.round(power*2);i++){
+    const a=Math.random()*6.28,sp=rand(20,110)*(0.7+power*0.18);
+    S.particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-rand(5,25),life:rand(180,320),t:0,r:rand(1.4,2.8),c:i%2?"rgba(255,245,210,0.95)":"rgba(255,206,136,0.85)",grav:0.12});
+  }
+}
+function cannonImpactFx(x,y,rad){
+  spriteFx("explosion",x,y,rad*1.45,360);
+  ring(x,y,"#ffd197",rad*0.95,320);
+  ring(x,y,"rgba(90,70,55,0.45)",rad*1.35,480);
+  burst(x,y,"#ffcb8a",12);
+  burst(x,y,"rgba(120,88,52,0.85)",7);
+  smokeBurst(x,y,14,rad*0.75,520,"rgba(120,120,120,0.32)");
+}
 
 /* end states */
-function win(){ S.status="win"; Audio2.win(); saveBest(); showEnd(true); }
+function win(){ const next=clearStageProgress(S.stageId); S.nextStageId=next; if(next) selectedStageId=next; S.status="win"; Audio2.win(); saveBest(); showEnd(true); }
 function lose(){ S.status="lose"; Audio2.lose(); saveBest(); showEnd(false); }
-function saveBest(){ try{ const prev=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}"); const best=Math.max(prev.bestWave||0, S.waveIdx+(S.status==="win"?1:0)); localStorage.setItem(SAVE_KEY,JSON.stringify({bestWave:best,muted:Audio2.muted})); }catch(e){} }
+function saveBest(){ try{ const prev=getSaveData(); const best=Math.max(prev.bestWave||0, S.waveIdx+(S.status==="win"?1:0)); saveGameData({bestWave:best,muted:Audio2.muted}); }catch(e){} }
+function clearStageProgress(stageId){
+  const progress=normalizeProgress(getSaveData());
+  const cleared=new Set(progress.clearedStages);
+  const unlocked=new Set(progress.unlockedStages);
+  cleared.add(stageId); unlocked.add(stageId);
+  const next=getNextStageId(stageId);
+  if(next) unlocked.add(next);
+  saveGameData({clearedStages:[...cleared],unlockedStages:[...unlocked],selectedStageId:next||stageId});
+  return next;
+}
 
 /* =====================================================================
  * RENDER
@@ -862,16 +1291,24 @@ function render(){
 
 function drawBackground(){
   // grass gradient
+  const st=currentStage();
   const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,"#6db05f"); g.addColorStop(0.5,"#4f9a4e"); g.addColorStop(1,"#3c8042");
+  if(st.id==="ridge") { g.addColorStop(0,"#9bb36a"); g.addColorStop(0.5,"#728f56"); g.addColorStop(1,"#536d45"); }
+  else if(st.id==="rivergate") { g.addColorStop(0,"#73a977"); g.addColorStop(0.5,"#4d9564"); g.addColorStop(1,"#3f7b5b"); }
+  else if(st.id==="forest") { g.addColorStop(0,"#5f9a58"); g.addColorStop(0.5,"#3f7e42"); g.addColorStop(1,"#2f6338"); }
+  else if(st.id==="bastion") { g.addColorStop(0,"#8e986d"); g.addColorStop(0.5,"#6f7b5a"); g.addColorStop(1,"#515f4c"); }
+  else if(st.id==="crossroads") { g.addColorStop(0,"#73b969"); g.addColorStop(0.5,"#529b55"); g.addColorStop(1,"#3f8046"); }
+  else { g.addColorStop(0,"#6db05f"); g.addColorStop(0.5,"#4f9a4e"); g.addColorStop(1,"#3c8042"); }
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   // soft depth blobs
   ctx.save();
   const blobs=[[120,250,180,"rgba(40,110,70,.25)"],[360,520,200,"rgba(30,90,60,.22)"],[240,700,220,"rgba(60,130,80,.18)"]];
   for(const [x,y,r,c] of blobs){ ctx.fillStyle=c; ctx.beginPath(); ctx.ellipse(x,y,r,r*0.7,0,0,6.28); ctx.fill(); }
   ctx.restore();
+  drawStageUnderlay(st);
   // roads
-  drawRoad(ROUTE.side); drawRoad(ROUTE.main);
+  for(const pts of Object.values(ROUTE)) drawRoad(pts);
+  drawStageDetails(st);
   // merge plaza
   ctx.fillStyle="#c4a06a"; ctx.beginPath(); ctx.ellipse(MERGE.x,MERGE.y,40,30,0,0,6.28); ctx.fill();
   ctx.fillStyle="#d8b87e"; ctx.beginPath(); ctx.ellipse(MERGE.x,MERGE.y,30,22,0,0,6.28); ctx.fill();
@@ -882,6 +1319,53 @@ function drawBackground(){
     sprite(p.img,p.x+sway,p.y,p.h,{});
   }}
 }
+
+function drawStageUnderlay(st){
+  ctx.save();
+  if(st.id==="rivergate"){
+    const river=ctx.createLinearGradient(0,360,W,660);
+    river.addColorStop(0,"rgba(76,145,165,.42)");
+    river.addColorStop(0.5,"rgba(93,172,188,.50)");
+    river.addColorStop(1,"rgba(52,126,150,.42)");
+    ctx.fillStyle=river;
+    ctx.beginPath();
+    ctx.moveTo(-40,430); ctx.bezierCurveTo(90,462,150,492,244,500); ctx.bezierCurveTo(332,508,408,476,520,432);
+    ctx.lineTo(520,592); ctx.bezierCurveTo(400,638,302,664,202,644); ctx.bezierCurveTo(104,624,42,586,-40,566); ctx.closePath(); ctx.fill();
+  } else if(st.id==="forest"){
+    ctx.fillStyle="rgba(18,70,36,.16)";
+    for(const b of [[86,232,120],[368,278,140],[72,570,160],[390,650,150],[246,706,130]]){
+      ctx.beginPath(); ctx.ellipse(b[0],b[1],b[2],b[2]*0.72,0,0,6.28); ctx.fill();
+    }
+  } else if(st.id==="bastion"){
+    ctx.fillStyle="rgba(110,104,86,.22)";
+    roundRect(58,210,128,76,18); ctx.fill();
+    roundRect(270,486,150,92,20); ctx.fill();
+    ctx.fillStyle="rgba(80,72,60,.18)";
+    for(const b of [[86,248,34,18],[332,526,42,22],[398,612,28,14],[210,386,36,20]]){ roundRect(b[0],b[1],b[2],b[3],8); ctx.fill(); }
+  }
+  ctx.restore();
+}
+function drawStageDetails(st){
+  ctx.save();
+  if(st.id==="rivergate"){
+    ctx.strokeStyle="rgba(255,245,190,.55)"; ctx.lineWidth=5; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(188,514); ctx.lineTo(292,514); ctx.stroke();
+    ctx.strokeStyle="rgba(82,56,34,.45)"; ctx.lineWidth=2;
+    for(let x=198;x<=282;x+=16){ ctx.beginPath(); ctx.moveTo(x,498); ctx.lineTo(x,532); ctx.stroke(); }
+  } else if(st.id==="forest"){
+    ctx.globalAlpha=.18; ctx.fillStyle="#153b22";
+    for(const b of [[42,120,110],[420,160,130],[32,406,120],[436,452,115]]){ ctx.beginPath(); ctx.ellipse(b[0],b[1],b[2],b[2]*0.8,0,0,6.28); ctx.fill(); }
+  } else if(st.id==="bastion"){
+    ctx.strokeStyle="rgba(60,54,44,.22)"; ctx.lineWidth=8; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(54,188); ctx.lineTo(188,212); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(300,226); ctx.lineTo(426,188); ctx.stroke();
+    ctx.strokeStyle="rgba(238,220,160,.20)"; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(72,194); ctx.lineTo(180,214); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(310,222); ctx.lineTo(418,190); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawRoad(pts){
   const layers=[["#7c5a32",30],["#caa46a",22],["#dcbf86",14]];
   for(const [c,wd] of layers){
@@ -912,23 +1396,39 @@ function drawSlots(){
   for(const s of S.slots){
     if(s.facilityId) continue; // built slots drawn as facility
     const pulse=0.5+Math.sin(s.pulse*0.004)*0.5;
-    const col = s.kind==="road"?"#caa46a": s.kind==="ground"?"#7fc77f":"#f3c14a";
+    const col = s.kind==="road"?"#ffcf66": s.kind==="ground"?"#8cff9d":"#ffd84d";
+    const core = s.kind==="road" ? "rgba(255,207,102,.34)" : s.kind==="ground" ? "rgba(140,255,157,.25)" : "rgba(255,216,77,.28)";
     ctx.save();
-    ctx.globalAlpha=0.30+pulse*0.22;
-    ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.setLineDash([4,4]);
-    if(s.kind==="road"){ // square-ish for fence
-      ctx.strokeRect(s.x-15,s.y-12,30,24);
+    ctx.globalCompositeOperation="lighter";
+    ctx.globalAlpha=0.20+pulse*0.16;
+    const g=ctx.createRadialGradient(s.x,s.y,3,s.x,s.y,s.kind==="road"?34:31);
+    g.addColorStop(0,core);
+    g.addColorStop(0.55,"rgba(255,255,210,.10)");
+    g.addColorStop(1,"rgba(255,255,210,0)");
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.kind==="road"?34:31,0,6.28); ctx.fill();
+    ctx.globalCompositeOperation="source-over";
+
+    ctx.lineWidth=s.inRange?4:3;
+    ctx.strokeStyle=s.inRange?"#fff7b7":col;
+    ctx.setLineDash(s.inRange?[]:[7,6]);
+    ctx.globalAlpha=s.inRange?0.96:0.56+pulse*0.22;
+    if(s.kind==="road"){
+      roundRect(s.x-21,s.y-15,42,30,11); ctx.stroke();
+      ctx.globalAlpha=0.16+pulse*0.10;
+      ctx.fillStyle=col; roundRect(s.x-19,s.y-13,38,26,10); ctx.fill();
     } else {
-      ctx.beginPath(); ctx.ellipse(s.x,s.y,17,13,0,0,6.28); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(s.x,s.y,24,18,0,0,6.28); ctx.stroke();
+      ctx.globalAlpha=0.12+pulse*0.10;
+      ctx.fillStyle=col; ctx.beginPath(); ctx.ellipse(s.x,s.y,22,16,0,0,6.28); ctx.fill();
     }
     ctx.setLineDash([]);
-    ctx.globalAlpha=0.5+pulse*0.4;
-    ctx.fillStyle=col; ctx.font="bold 13px sans-serif"; ctx.textAlign="center";
-    const icon=s.kind==="road"?"柵":s.kind==="ground"?"塔":"鉱";
-    ctx.fillText(icon,s.x,s.y+4);
+    if(s.inRange){
+      ctx.globalAlpha=0.28; ctx.strokeStyle="#ffffff"; ctx.lineWidth=7;
+      if(s.kind==="road"){ roundRect(s.x-24,s.y-18,48,36,13); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.ellipse(s.x,s.y,29,22,0,0,6.28); ctx.stroke(); }
+    }
     ctx.restore();
-    if(s.inRange){ ctx.save(); ctx.globalAlpha=0.5; ctx.strokeStyle="#fff"; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.ellipse(s.x,s.y,20,16,0,0,6.28); ctx.stroke(); ctx.restore(); }
   }
 }
 
@@ -941,13 +1441,30 @@ function drawFacility(f){
     ctx.beginPath(); ctx.arc(f.x,f.y,f.range,0,6.28); ctx.stroke(); ctx.restore();
   }
   const h=({palisade:46,archer:58,cannon:54,barracks:56,mine:50})[f.type];
-  let yoff=0, rot=0;
-  if(f.recoil>0){ yoff=f.recoil*3; }
+  let xoff=0, yoff=0, sxMul=1, syMul=1;
+  if(f.recoil>0){
+    yoff=f.recoil*(f.type==="cannon"?4.8:3.4);
+    if(f.type==="cannon"){ xoff-=f.recoil*2.2; sxMul=1+f.recoil*0.04; syMul=1-f.recoil*0.05; }
+  }
   const key=`b_${f.type}_${f.level}`;
   const sc=f.scale||1;
+  const attackDur = f.type==="cannon" ? 380 : 300;
+  const attackKey = f.type==="archer" ? "b_attack_archer" : (f.type==="cannon" ? "b_attack_cannon" : null);
+  const attackFrame = attackKey ? Math.min(3, Math.floor((1-clamp((f.attackT||0)/attackDur,0,1))*4)) : 0;
   // hit flash tint
   ctx.save();
-  sprite(key,bx,by+yoff,h*sc,{});
+  const drewAttack = attackKey && f.attackT>0 && ready(attackKey) ? spriteFrame(attackKey,bx+xoff,by+yoff,h*sc,4,attackFrame,{sx:sxMul,sy:syMul}) : false;
+  if(!drewAttack) sprite(key,bx+xoff,by+yoff,h*sc,{sx:sxMul,sy:syMul});
+  if(f.type==="cannon" && (f.attackT||0)>0){
+    const p=clamp((f.attackT||0)/380,0,1);
+    for(let i=0;i<3;i++){
+      ctx.save();
+      ctx.globalAlpha=(0.18+0.08*i)*p;
+      ctx.fillStyle=i===0?"rgba(255,226,176,0.95)":"rgba(190,195,205,0.42)";
+      ctx.beginPath(); ctx.arc(bx+8+i*4,by-18-i*3,5+i*3+p*2,0,6.28); ctx.fill();
+      ctx.restore();
+    }
+  }
   // sweep highlight on level up
   if(f.sweep>0){
     ctx.save();
@@ -961,6 +1478,21 @@ function drawFacility(f){
   }
   if(f.maxGlow>0){ ctx.save(); ctx.globalAlpha=(f.maxGlow/1600)*0.4*(0.6+Math.sin(S.time*0.02)*0.4); ctx.fillStyle="#ffe58f";
     ctx.beginPath(); ctx.arc(bx,by-h*0.4,h*0.7,0,6.28); ctx.fill(); ctx.restore(); }
+  if(f.type==="barracks" && (f.spawnPulse||0)>0){
+    const p=clamp((f.spawnPulse||0)/360,0,1);
+    ctx.save();
+    ctx.globalCompositeOperation="screen";
+    ctx.globalAlpha=0.14+0.2*p;
+    const grad=ctx.createRadialGradient(bx,by-h*0.25,4,bx,by-h*0.25,h*0.75);
+    grad.addColorStop(0,"rgba(255,255,255,0.9)");
+    grad.addColorStop(0.35,"rgba(210,240,255,0.45)");
+    grad.addColorStop(1,"rgba(210,240,255,0)");
+    ctx.fillStyle=grad;
+    ctx.beginPath(); ctx.arc(bx,by-h*0.18,h*0.58,0,6.28); ctx.fill();
+    ctx.restore();
+    ctx.save(); ctx.globalAlpha=0.24+0.22*p; ctx.strokeStyle="#d8efff"; ctx.lineWidth=2.2;
+    ctx.beginPath(); ctx.ellipse(bx,by+7,22+6*(1-p),10+3*(1-p),0,0,6.28); ctx.stroke(); ctx.restore();
+  }
   ctx.restore();
   // hp bar if damaged
   if(f.hp<f.maxHp-0.5){
@@ -972,10 +1504,20 @@ function drawFacility(f){
   for(let i=0;i<f.level;i++){ ctx.fillStyle=LVCOLOR[f.level]; ctx.beginPath(); ctx.arc(bx-6+i*4,by+10,1.6,0,6.28); ctx.fill(); }
 }
 
+function drawEnemySprite(e,bob,h,alpha){
+  const walkFrame=Math.floor(e.anim||0)%4;
+  const opt={flip:e.facing<0};
+  if(alpha!=null) opt.alpha=alpha;
+  if(e.attacking && ready(`e_attack_${e.type}`)){
+    return spriteFrame(`e_attack_${e.type}`,e.x,e.y+bob,h,4,e.atkFrame||0,opt);
+  }
+  if(spriteFrame(`e_walk_${e.type}`,e.x,e.y+bob,h,4,walkFrame,opt)) return true;
+  return sprite(`e_${e.type}`,e.x,e.y+bob,h,opt);
+}
 function drawEnemy(e){
   const bob=Math.sin(e.bob)*2;
   sprite("shadow",e.x,e.y+e.r*0.5,e.r*1.1,{alpha:0.26,ay:0.5,sx:1.1});
-  const h=e.r*2.0;
+  const h=e.r*2.05;
   // hp bar
   if(e.hp<e.max-0.5 || e.boss){
     const w=e.boss?44:Math.max(18,e.r*1.6), hx=e.x-w/2, hy=e.y-h-(e.boss?10:6);
@@ -983,51 +1525,108 @@ function drawEnemy(e){
     ctx.fillStyle=e.boss?"#ff7b6b":"#ffd06b"; ctx.fillRect(hx,hy,w*clamp(e.hp/e.max,0,1),e.boss?5:3);
   }
   const flash=e.hit>0;
-  if(!sprite(`e_${e.type}`,e.x,e.y+bob,h,{flip:e.facing<0})){
+  if(!drawEnemySprite(e,bob,h)){
     ctx.fillStyle=flash?"#fff":"#c0392b"; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,6.28); ctx.fill();
   }
-  if(flash){ ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=e.hit/130*0.7;
-    if(!sprite(`e_${e.type}`,e.x,e.y+bob,h,{flip:e.facing<0})){} ctx.restore(); }
+  if(flash){
+    const p=clamp(e.hit/180,0,1);
+    ctx.save();
+    ctx.globalCompositeOperation="lighter";
+    ctx.globalAlpha=0.32+0.4*p;
+    ctx.shadowColor="rgba(255,255,255,0.95)";
+    ctx.shadowBlur=10+20*p;
+    drawEnemySprite(e,bob,h);
+    ctx.restore();
+    ctx.save();
+    ctx.globalCompositeOperation="screen";
+    ctx.globalAlpha=0.2+0.28*p;
+    drawEnemySprite(e,bob,h);
+    ctx.restore();
+  }
   if(e.aura){ ctx.save(); ctx.globalAlpha=0.12; ctx.strokeStyle="#b06bff"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(e.x,e.y,e.aura,0,6.28); ctx.stroke(); ctx.restore(); }
 }
 
 function drawSoldier(s){
   sprite("shadow",s.x,s.y+8,16,{alpha:0.25,ay:0.5,sx:1.1});
-  const lunge=s.atk>300?(s.atk-300)/220*4:0;
-  const key = s.atk>0 ? `ally_a${1+Math.floor((520-s.atk)/130)%4}` : "ally1";
-  if(!sprite(key,s.x+ (s.facing>0?lunge:-lunge),s.y,30,{flip:s.facing<0})){
-    ctx.fillStyle="#5b7fb0"; ctx.beginPath(); ctx.arc(s.x,s.y,8,0,6.28); ctx.fill();
+  const isArcher=s.kind==="archer";
+  const lunge=!isArcher && s.atk>300?(s.atk-300)/220*4:0;
+  const attackSpan=isArcher?(s.cd||760):520;
+  const attackStep=isArcher?Math.max(1,attackSpan/4):130;
+  const attackFrame = 1+Math.floor((attackSpan-Math.max(0,s.atk))/attackStep)%4;
+  const walkFrame = 1+Math.floor((s.anim||0)%4);
+  const idleKey=isArcher?"ally_archer":"ally1";
+  const walkKey=isArcher?`ally_archer_w${walkFrame}`:`ally_w${walkFrame}`;
+  const atkKey=isArcher?`ally_archer_a${attackFrame}`:`ally_a${attackFrame}`;
+  const key = s.atk>0 ? atkKey : (s.moving && ready(walkKey) ? walkKey : idleKey);
+  const drawX=s.x + (s.facing>0?lunge:-lunge);
+  if(!isArcher && (s.thrust||0)>0){
+    const p=clamp((s.thrust||0)/180,0,1);
+    ctx.save();
+    ctx.globalAlpha=0.10+0.24*p;
+    ctx.strokeStyle="#fff0b8";
+    ctx.lineWidth=2.2+1.2*p;
+    ctx.lineCap="round";
+    ctx.beginPath();
+    const dir=s.facing<0?-1:1;
+    ctx.moveTo(drawX+dir*8,s.y-10);
+    ctx.lineTo(drawX+dir*(26+20*p),s.y-16);
+    ctx.stroke();
+    ctx.restore();
   }
-  if(s.hp<s.max-0.5){ const w=16,hx=s.x-8,hy=s.y-32; ctx.fillStyle="rgba(0,0,0,.4)"; ctx.fillRect(hx,hy,w,3); ctx.fillStyle="#7fd17f"; ctx.fillRect(hx,hy,w*clamp(s.hp/s.max,0,1),3); }
+  if(!sprite(key,drawX,s.y,30,{flip:s.facing<0})){
+    ctx.fillStyle=isArcher?"#5377a8":"#5b7fb0"; ctx.beginPath(); ctx.arc(s.x,s.y,8,0,6.28); ctx.fill();
+  }
+  if((s.hit||0)>0){
+    const p=clamp((s.hit||0)/120,0,1);
+    ctx.save();
+    ctx.globalCompositeOperation="lighter";
+    ctx.globalAlpha=0.16+0.26*p;
+    sprite(key,drawX,s.y,30,{flip:s.facing<0});
+    ctx.restore();
+  }
+  if(s.hp<s.max-0.5){ const w=16,hx=s.x-8,hy=s.y-32; ctx.fillStyle="rgba(0,0,0,.4)"; ctx.fillRect(hx,hy,w,3); ctx.fillStyle=isArcher?"#93d0ff":"#7fd17f"; ctx.fillRect(hx,hy,w*clamp(s.hp/s.max,0,1),3); }
 }
 
 function drawKing(k){
   sprite("shadow",k.x,k.y+6,24,{alpha:0.3,ay:0.5,sx:1.2});
   let key,h=50,sx=1,sy=1;
   const building=k.build>0;
-  const attackT=clamp((k.attackFlash||0)/190,0,1);
-  const lunge=attackT>0 ? Math.sin(attackT*Math.PI)*7 : 0;
-  if(building){ key=ready("king_idle2")?"king_idle2":"king_idle1"; sy=0.94; sx=1.06; }
-  else if(k.moving){ const fr=1+Math.floor(k.anim*4)%4; key=`king_run${fr}`; sy=k.squash; sx=2-k.squash; }
-  else { key=Math.floor(S.time/520)%2?"king_idle2":"king_idle1"; sy=1+Math.sin(S.time*0.004)*0.02; }
-  if(!ready(key)) key="king_idle1";
-  if(!sprite(key,k.x+lunge*k.facing,k.y,h,{flip:k.facing<0,sx:sx+attackT*0.04,sy:sy-attackT*0.02})){
-    ctx.fillStyle="#d9b54a"; ctx.beginPath(); ctx.arc(k.x,k.y-16,12,0,6.28); ctx.fill();
+  const hurtT=clamp((k.hurt||0)/BAL.kingHurtAnim,0,1);
+  const hurtProgress=1-hurtT;
+  const attackT=clamp((k.attackFlash||0)/BAL.kingAttackAnim,0,1);
+  const attackProgress=1-attackT;
+  if(building){ key=ready("king_idle3")?"king_idle3":(ready("king_idle2")?"king_idle2":"king_idle1"); sy=0.94; sx=1.06; }
+  else if(hurtT>0 && ready("king_hit")){
+    const frame=Math.min(3,Math.floor(hurtProgress*4));
+    spriteFrame("king_hit",k.x,k.y,h,4,frame,{flip:k.facing<0,sx:1.03,sy:0.99});
+    if((k.hurtFlash||0)>0){
+      ctx.save();
+      ctx.globalCompositeOperation='screen';
+      ctx.globalAlpha=0.18 + 0.30*(k.hurtFlash/BAL.kingHurtAnim);
+      ctx.fillStyle='#fff7c8';
+      ctx.beginPath(); ctx.ellipse(k.x,k.y-18,22,26,0,0,6.28); ctx.fill();
+      ctx.restore();
+    }
+    if(k.moving){ ctx.save(); ctx.globalAlpha=0.5; ctx.strokeStyle="#fff"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(k.tx,k.ty,10+Math.sin(S.time*0.01)*3,0,6.28); ctx.stroke(); ctx.restore(); }
+    return;
   }
-  if(attackT>0){
-    ctx.save();
-    ctx.globalAlpha=0.74*attackT;
-    ctx.strokeStyle="#fff2a8";
-    ctx.lineWidth=3;
-    ctx.lineCap="round";
-    const dir=k.facing||1;
-    const cx=k.x+dir*(22+lunge);
-    const cy=k.y-24;
-    ctx.beginPath();
-    if(dir>0) ctx.arc(cx,cy,20,-0.9,0.9);
-    else ctx.arc(cx,cy,20,Math.PI-0.9,Math.PI+0.9);
-    ctx.stroke();
-    ctx.restore();
+  else if(attackT>0 && ready("king_attack_bow")){
+    const frame=Math.min(3,Math.floor(attackProgress*4));
+    spriteFrame("king_attack_bow",k.x,k.y,h,4,frame,{flip:k.facing<0,sx:1.02,sy:1.0});
+    if(k.moving){ ctx.save(); ctx.globalAlpha=0.5; ctx.strokeStyle="#fff"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(k.tx,k.ty,10+Math.sin(S.time*0.01)*3,0,6.28); ctx.stroke(); ctx.restore(); }
+    return;
+  }
+  else if(k.moving){ const fr=1+Math.floor(k.anim*4)%4; key=`king_run${fr}`; sy=k.squash; sx=2-k.squash; }
+  else {
+    const idleFrame = 1 + (Math.floor(S.time/220) % 4);
+    key = `king_idle${idleFrame}`;
+    sy = 1 + Math.sin(S.time*0.004)*0.02;
+  }
+  if(!ready(key)) key="king_idle1";
+  if(!sprite(key,k.x,k.y,h,{flip:k.facing<0,sx:sx,sy:sy})){
+    ctx.fillStyle="#d9b54a"; ctx.beginPath(); ctx.arc(k.x,k.y-16,12,0,6.28); ctx.fill();
   }
   // build pose ring
   if(building){ ctx.save(); ctx.globalAlpha=0.5*(k.build/260); ctx.strokeStyle="#ffe79a"; ctx.lineWidth=3;
@@ -1039,12 +1638,37 @@ function drawKing(k){
 
 function drawProjectiles(){
   for(const p of S.projectiles){
-    if(p.cannon){ ctx.fillStyle=p.c; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.28); ctx.fill();
-      ctx.fillStyle="rgba(0,0,0,.3)"; ctx.beginPath(); ctx.arc(p.x-1,p.y+1,p.r*0.5,0,6.28); ctx.fill();
-    } else { // arrow streak
+    if(p.cannon){
+      if(p.px!=null){
+        const dx=p.x-p.px, dy=p.y-p.py;
+        for(let i=1;i<=3;i++){
+          const sx=p.x-dx*i*1.8, sy=p.y-dy*i*1.8;
+          ctx.fillStyle=`rgba(95,95,95,${0.20-0.045*i})`;
+          ctx.beginPath(); ctx.arc(sx,sy,p.r+1.6+i*1.1,0,6.28); ctx.fill();
+        }
+      }
+      ctx.fillStyle=p.c; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.28); ctx.fill();
+      ctx.fillStyle="rgba(255,226,160,.22)"; ctx.beginPath(); ctx.arc(p.x+1,p.y-1,p.r*1.45,0,6.28); ctx.fill();
+      ctx.fillStyle="rgba(0,0,0,.28)"; ctx.beginPath(); ctx.arc(p.x-1,p.y+1,p.r*0.55,0,6.28); ctx.fill();
+    } else {
       ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.ang||0);
-      ctx.strokeStyle=p.c; ctx.lineWidth=2.5; ctx.lineCap="round";
-      ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(4,0); ctx.stroke(); ctx.restore();
+      const isKing=!!p.king;
+      const isTower=p.source==="archerTower";
+      const alphaGlow=isKing?0.24:(isTower?0.26:0.18);
+      ctx.globalAlpha=alphaGlow;
+      ctx.strokeStyle=isKing?"#fff5c9":(isTower?"#fff0c2":"#fff1bc");
+      ctx.lineWidth=isKing?5.6:(isTower?4.8:4.0); ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(4,0); ctx.stroke();
+      ctx.globalAlpha=1;
+      ctx.strokeStyle=p.c || (isKing?"#ffe08a":"#f7f1cf");
+      ctx.lineWidth=2.2; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(-11,0); ctx.lineTo(4,0); ctx.stroke();
+      ctx.fillStyle=isKing?"#fff4c0":"#f3ead2";
+      ctx.beginPath(); ctx.moveTo(5,0); ctx.lineTo(0,-3); ctx.lineTo(0,3); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle="rgba(120,80,40,.85)"; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.moveTo(-11,0); ctx.lineTo(-2,0); ctx.stroke();
+      if(isTower){ ctx.globalAlpha=0.75; ctx.fillStyle="rgba(255,250,210,.9)"; ctx.beginPath(); ctx.arc(-12,0,1.3,0,6.28); ctx.fill(); }
+      ctx.restore();
     }
   }
 }
@@ -1070,8 +1694,16 @@ function drawRings(){
 }
 function drawSpriteFx(){
   if(!S.fx) return;
-  for(const f of S.fx){ const fr=1+Math.min(2,Math.floor(f.t/f.life*3)); const a=1-f.t/f.life;
-    sprite(`fx_${f.name}_${fr}`,f.x,f.y,f.size,{alpha:a,ay:0.5}); }
+  for(const f of S.fx){
+    const a=1-f.t/f.life;
+    if(f.name==="siege_destroy") {
+      const frame=Math.min(3,Math.floor(f.t/f.life*4));
+      spriteFrame("e_destroy_siege",f.x,f.y,f.size,4,frame,{alpha:a,ay:0.72});
+      continue;
+    }
+    const fr=1+Math.min(2,Math.floor(f.t/f.life*3));
+    sprite(`fx_${f.name}_${fr}`,f.x,f.y,f.size,{alpha:a,ay:0.5});
+  }
 }
 function drawFloaters(){
   ctx.textAlign="center"; ctx.font="bold 14px sans-serif";
@@ -1083,43 +1715,53 @@ function drawFloaters(){
 
 /* action menu (on-canvas), buttons stored for hit-test */
 let MENU_RECTS=[];
+let MENU_SAFE_RECTS=[];
+let lastMenuActionAt=0;
 function drawMenu(){
-  MENU_RECTS=[];
+  MENU_RECTS=[]; MENU_SAFE_RECTS=[];
   if(!S.menu) return;
   const s=S.menu.slot;
   if(S.menu.locked){
-    drawBubble(s.x,s.y-44,"建設/強化ずみ — 離れて戻ると再操作",null);
+    MENU_SAFE_RECTS.push({x:s.x-92,y:s.y-72,w:184,h:48});
+    drawBubble(s.x,s.y-44,"完了。離れて戻ると再操作",null);
     return;
   }
   if(!S.menu.buttons.length) return;
-  const bw=132, bh=30, gap=6;
+  const bw=190, bh=44, gap=8, pad=10;
   const n=S.menu.buttons.length;
-  let by=s.y-40-(n*(bh+gap));
-  if(by<60) by=s.y+30;            // flip below if no room above
-  let bx=clamp(s.x,bw/2+6,W-bw/2-6);
-  // title
-  const title = s.facilityId ? (S.facilities.find(f=>f.id===s.facilityId).name) : (s.kind==="road"?"道（柵）":s.kind==="ground"?"高所":"後方（金鉱）");
-  drawBubble(bx,by-8,title,null,true);
+  const panelW=bw+pad*2, panelH=30+n*bh+(n-1)*gap+pad;
+  let bx=clamp(s.x,panelW/2+8,W-panelW/2-8);
+  let top=s.y-48-panelH;
+  if(top<78) top=s.y+38;
+  if(top+panelH>H-12) top=H-12-panelH;
+  const left=bx-panelW/2;
+  MENU_SAFE_RECTS.push({x:left,y:top,w:panelW,h:panelH});
+
+  ctx.save();
+  ctx.fillStyle="rgba(44,32,22,.88)";
+  roundRect(left,top,panelW,panelH,14); ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle="rgba(255,231,154,.72)"; roundRect(left+1,top+1,panelW-2,panelH-2,13); ctx.stroke();
+  const title = s.facilityId ? (S.facilities.find(f=>f.id===s.facilityId)?.name||"施設") : (s.kind==="road"?"道スロット":s.kind==="ground"?"高所スロット":"後方スロット");
+  ctx.font="900 12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#f3e3bf";
+  ctx.fillText(title,bx,top+16);
   S.menu.buttons.forEach((btn,i)=>{
-    const y=by+i*(bh+gap);
+    const y=top+30+i*(bh+gap);
     const rect={x:bx-bw/2,y,w:bw,h:bh,btn};
     MENU_RECTS.push(rect);
-    // button bg
-    ctx.save();
     const en=btn.enabled;
-    ctx.fillStyle=en?(btn.color||"#f3e3bf"):"#cbbfa3"; 
-    roundRect(rect.x,rect.y,bw,bh,8); ctx.fill();
-    ctx.lineWidth=2; ctx.strokeStyle="#5e3c20"; roundRect(rect.x,rect.y,bw,bh,8); ctx.stroke();
+    const bg=en?(btn.color||"#f3e3bf"):"#cbbfa3";
+    ctx.fillStyle=bg; roundRect(rect.x,rect.y,bw,bh,12); ctx.fill();
+    ctx.lineWidth=2.5; ctx.strokeStyle=en?"#5e3c20":"#8b8067"; roundRect(rect.x,rect.y,bw,bh,12); ctx.stroke();
     ctx.fillStyle=en?(btn.color?"#23303f":"#2c2016"):"#7a6f55";
-    ctx.font="bold 12.5px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
-    ctx.fillText(btn.label, rect.x+8, y+bh/2);
+    ctx.font="900 15px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
+    ctx.fillText(btn.label, rect.x+13, y+bh/2);
     if(!btn.info){
-      ctx.textAlign="right";
+      ctx.textAlign="right"; ctx.font="900 14px sans-serif";
       ctx.fillStyle = en?"#3a2a16":"#9a3b2f";
-      ctx.fillText(btn.cost+"金", rect.x+bw-8, y+bh/2);
+      ctx.fillText(btn.cost+"金", rect.x+bw-13, y+bh/2);
     }
-    ctx.restore();
   });
+  ctx.restore();
   ctx.textBaseline="alphabetic";
 }
 function drawBubble(x,y,text,_c,small){
@@ -1146,36 +1788,198 @@ function drawBanner(){
  * INPUT
  * ===================================================================== */
 const cv=$("cv");
+let lastBoardInputAt=0, lastBoardInputX=-999, lastBoardInputY=-999;
 function canvasPoint(e){
   const r=cv.getBoundingClientRect();
-  const cx=(e.touches?e.touches[0].clientX:e.clientX), cy=(e.touches?e.touches[0].clientY:e.clientY);
+  const src=(e.touches&&e.touches[0]) || (e.changedTouches&&e.changedTouches[0]) || e;
+  const cx=src.clientX, cy=src.clientY;
   return { x:(cx-r.left)/r.width*W, y:(cy-r.top)/r.height*H };
 }
-cv.addEventListener("pointerdown",e=>{
+function handleBoardInput(e){
+  e.preventDefault();
   Audio2.init(); if(Audio2.ctx && Audio2.ctx.state==="suspended") Audio2.ctx.resume();
+  if(settingsOpen) return;
   if(!S || S.status!=="playing" || paused) return;
   const p=canvasPoint(e);
-  // hit-test menu buttons first
-  for(const r of MENU_RECTS){ if(p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h){ if(r.btn.enabled){ doMenuAction(r.btn); } else { if(!r.btn.info){ S.message="金が足りない。敵のドロップを拾うか、金鉱を育てよう。"; S.messageT=2200; } } return; } }
+  const now=performance.now();
+  if(now-lastBoardInputAt<80 && dist(p.x,p.y,lastBoardInputX,lastBoardInputY)<8) return;
+  lastBoardInputAt=now; lastBoardInputX=p.x; lastBoardInputY=p.y;
+  // hit-test menu buttons first. Menu-area taps never become movement taps.
+  for(const r of MENU_RECTS){
+    if(p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h){
+      if(r.btn.enabled){ doMenuAction(r.btn); lastMenuActionAt=now; }
+      else { if(!r.btn.info){ S.message="金不足"; S.messageT=1200; addFloater("金不足",p.x,p.y-12,"#ff9a7a"); } }
+      return;
+    }
+  }
+  for(const r of MENU_SAFE_RECTS){
+    if(p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h) return;
+  }
+  if(S.menu && S.menu.slot && dist(p.x,p.y,S.menu.slot.x,S.menu.slot.y)<74) return;
+  if(now-lastMenuActionAt<220) return;
   // otherwise move king
   S.king.tx=clamp(p.x,14,W-14); S.king.ty=clamp(p.y,96,H-14);
-});
+}
+cv.addEventListener("pointerdown",handleBoardInput,{passive:false});
+cv.addEventListener("mousedown",handleBoardInput,{passive:false});
+cv.addEventListener("touchstart",handleBoardInput,{passive:false});
 window.addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
+  if(k==="escape" && settingsOpen){ closeSettings(); e.preventDefault(); return; }
   if(k===" "||k==="p"){ togglePause(); e.preventDefault(); }
   if(k==="m") toggleMute();
   if(k==="f") toggleSpeed();
+  if(k==="o") openSettings();
 });
+
+/* =====================================================================
+ * STAGE SELECT / DIAGNOSTICS
+ * ===================================================================== */
+function stageDiagnostics(id){
+  const st=STAGE_DEFS[id]||STAGE_DEFS.meadow;
+  const routeCounts={}; let total=0;
+  for(const w of st.waves){
+    for(const g of w.groups){ routeCounts[g.route]=(routeCounts[g.route]||0)+g.count; total+=g.count; }
+  }
+  const slots=st.slots.length;
+  const road=st.slots.filter(s=>s.kind==="road").length;
+  const ground=st.slots.filter(s=>s.kind==="ground").length;
+  const mine=st.slots.filter(s=>s.kind==="economy").length;
+  const routeText=Object.entries(routeCounts).map(([k,v])=>`${st.routeLabels[k]||k}:${v}`).join(" / ");
+  return {total,slots,road,ground,mine,routeText,waves:st.waves.length};
+}
+function fillStageSelect(sel){
+  if(!sel) return;
+  const keep=sel.value||selectedStageId;
+  const progress=normalizeProgress(getSaveData());
+  sel.innerHTML="";
+  for(const id of STAGE_ORDER){
+    const st=STAGE_DEFS[id]; if(!st) continue;
+    const unlocked=progress.unlockedStages.includes(id);
+    const cleared=progress.clearedStages.includes(id);
+    const o=document.createElement("option");
+    o.value=st.id; o.disabled=!unlocked;
+    o.textContent=`${unlocked?"":"🔒 "}${cleared?"★ ":""}${st.name} / ${st.difficulty} / ${Object.keys(st.routes).length}ルート`;
+    sel.appendChild(o);
+  }
+  sel.value=STAGE_DEFS[keep] && isStageUnlocked(keep) ? keep : selectedStageId;
+}
+function renderStageMap(){
+  const map=$("stageMap"); if(!map) return;
+  const progress=normalizeProgress(getSaveData());
+  const unlocked=new Set(progress.unlockedStages);
+  const cleared=new Set(progress.clearedStages);
+  map.innerHTML="";
+  for(let i=0;i<STAGE_ORDER.length-1;i++){
+    const a=STAGE_NODE_POS[STAGE_ORDER[i]], b=STAGE_NODE_POS[STAGE_ORDER[i+1]];
+    if(!a||!b) continue;
+    const line=document.createElement("div");
+    const dx=b.x-a.x, dy=b.y-a.y;
+    line.className="stage-map-line"+(cleared.has(STAGE_ORDER[i])?" done":"");
+    line.style.left=a.x+"%"; line.style.top=a.y+"%";
+    line.style.width=Math.hypot(dx,dy)+"%";
+    line.style.transform=`rotate(${Math.atan2(dy,dx)}rad)`;
+    map.appendChild(line);
+  }
+  for(const id of STAGE_ORDER){
+    const st=STAGE_DEFS[id], pos=STAGE_NODE_POS[id]; if(!st||!pos) continue;
+    const btn=document.createElement("button");
+    const isUnlocked=unlocked.has(id), isCleared=cleared.has(id), isSelected=id===selectedStageId;
+    const nextCandidate=isUnlocked && !isCleared && STAGE_ORDER.indexOf(id)===Math.min(...STAGE_ORDER.filter(x=>unlocked.has(x)&&!cleared.has(x)).map(x=>STAGE_ORDER.indexOf(x)).concat([999]));
+    btn.type="button";
+    btn.className=`stage-node ${isUnlocked?"":"locked"} ${isCleared?"cleared":""} ${isSelected?"selected":""} ${nextCandidate?"next":""}`;
+    btn.style.left=pos.x+"%"; btn.style.top=pos.y+"%";
+    btn.innerHTML=`<span class="stage-node-mark">${isCleared?"👑":isUnlocked?pos.icon:"🔒"}</span><span class="stage-node-name">${pos.short}</span>`;
+    btn.title=isUnlocked?st.name:"前のステージをクリアすると解放";
+    btn.onclick=()=>{ if(isUnlocked) chooseStage(id); else showLockedStageMessage(id); };
+    map.appendChild(btn);
+  }
+}
+function updateProgressText(){
+  const el=$("progressText"); if(!el) return;
+  const progress=normalizeProgress(getSaveData());
+  el.textContent=`クリア ${progress.clearedStages.length}/${STAGE_ORDER.length} ・ 解放 ${progress.unlockedStages.length}/${STAGE_ORDER.length}`;
+}
+function updateStagePanel(){
+  const st=selectedStage();
+  const d=stageDiagnostics(st.id);
+  const select=$("stageSelect"); if(select && select.value!==st.id) select.value=st.id;
+  const sselect=$("sStageSelect"); if(sselect && sselect.value!==st.id) sselect.value=st.id;
+  const chips=$("stageChips");
+  if(chips){ chips.innerHTML=`<span class="stage-chip">${st.type}</span><span class="stage-chip">${Object.keys(st.routes).length}ルート</span><span class="stage-chip">${st.difficulty}</span><span class="stage-chip">推奨:${st.recommended}</span>`; }
+  const desc=$("stageDesc"); if(desc) desc.textContent=st.summary;
+  const diag=$("stageDiag"); if(diag) diag.textContent=`資金${st.startCoins} / 敵HPx${st.enemyMul.hp} / 床${d.slots}（柵${d.road}・火力${d.ground}・鉱${d.mine}） / 敵${d.total}: ${d.routeText}`;
+  const sv=$("sStageVal"); if(sv) sv.textContent=S?"再開始時に反映":"開始時に反映";
+  renderStageMap(); updateProgressText();
+}
+function showLockedStageMessage(id){
+  const st=STAGE_DEFS[id];
+  const desc=$("stageDesc"); if(desc) desc.textContent=`${st?st.name:"このステージ"} は未解放。前のステージをクリアすると進めます。`;
+}
+function chooseStage(id){
+  if(!STAGE_DEFS[id]) return;
+  if(!isStageUnlocked(id)){ showLockedStageMessage(id); return; }
+  selectedStageId=id;
+  saveGameData({selectedStageId:id});
+  updateStagePanel();
+  if(S && S.status==="playing"){
+    S.message="ステージ変更は再開始で反映"; S.messageT=1600;
+  }
+}
+function resetProgress(){
+  if(!confirm("ステージ進行をリセットしますか？")) return;
+  saveGameData({unlockedStages:["meadow"],clearedStages:[],selectedStageId:"meadow"});
+  selectedStageId="meadow";
+  fillStageSelect($("stageSelect")); fillStageSelect($("sStageSelect")); updateStagePanel();
+}
+function initStageSelectUi(){
+  fillStageSelect($("stageSelect")); fillStageSelect($("sStageSelect")); updateStagePanel();
+  const a=$("stageSelect"); if(a) a.onchange=()=>chooseStage(a.value);
+  const b=$("sStageSelect"); if(b) b.onchange=()=>chooseStage(b.value);
+  const r=$("bResetProgress"); if(r) r.onclick=resetProgress;
+}
 
 /* =====================================================================
  * LOOP / UI
  * ===================================================================== */
 function loop(t){
   const dt=Math.min(48,t-last); last=t;
-  if(S && !paused){ for(let i=0;i<speed;i++) update(dt); }
+  if(S && !paused && !settingsOpen){ for(let i=0;i<speed;i++) update(dt); }
   render();
   syncHud();
+  syncSettingsPanel();
   requestAnimationFrame(loop);
+}
+function syncSettingsPanel(){
+  const speedText=speed+"x";
+  const sp=$("sSpeedVal"); if(sp) sp.textContent=speedText;
+  const sb=$("sSpeed"); if(sb) sb.textContent="速度 "+speedText;
+  const pp=$("sPauseVal"); if(pp) pp.textContent=paused?"停止中":"進行中";
+  const pb=$("sPause"); if(pb) pb.textContent=paused?"再開":"一時停止";
+  const mv=$("sMuteVal"); if(mv) mv.textContent=Audio2.muted?"OFF":"ON";
+  const mb=$("sMute"); if(mb) mb.textContent=Audio2.muted?"音: OFF":"音: ON";
+  updateStagePanel();
+}
+function openSettings(){
+  if(!S || S.status!=="playing") return;
+  settingsPausedBefore=paused;
+  settingsOpen=true;
+  paused=true;
+  $("ovSettings").classList.add("show");
+  syncSettingsPanel();
+}
+function closeSettings(){
+  settingsOpen=false;
+  $("ovSettings").classList.remove("show");
+  paused=settingsPausedBefore;
+  syncSettingsPanel();
+}
+function restartGameFromSettings(){
+  $("ovSettings").classList.remove("show");
+  $("ovEnd").classList.remove("show");
+  settingsOpen=false; settingsPausedBefore=false;
+  S=newState(); paused=false;
+  syncSettingsPanel();
 }
 function syncHud(){
   if(!S) return;
@@ -1189,24 +1993,42 @@ function syncHud(){
   if(S.messageT>0 && S.message){ h.textContent=S.message; h.classList.add("show"); }
   else h.classList.remove("show");
 }
-function togglePause(){ paused=!paused; $("bPause").textContent=paused?"▶":"⏸"; }
-function toggleSpeed(){ speed=speed===1?2:1; $("bSpeed").textContent=speed+"x"; }
-function toggleMute(){ Audio2.muted=!Audio2.muted; $("bMute").textContent=Audio2.muted?"🔇":"🔊"; saveBest(); }
-$("bPause").onclick=togglePause; $("bSpeed").onclick=toggleSpeed; $("bMute").onclick=toggleMute;
+function togglePause(){ paused=!paused; syncSettingsPanel(); }
+function toggleSpeed(){ speed=speed===1?2:1; syncSettingsPanel(); }
+function toggleMute(){ Audio2.muted=!Audio2.muted; syncSettingsPanel(); if(S) saveBest(); else saveGameData({muted:Audio2.muted}); }
+$("bMenu").onclick=openSettings;
+$("sClose").onclick=closeSettings;
+$("sSpeed").onclick=toggleSpeed;
+$("sPause").onclick=togglePause;
+$("sMute").onclick=toggleMute;
+$("sRetry").onclick=restartGameFromSettings;
 
 function showEnd(won){
   $("endTitle").textContent=won?"防衛成功":"陥落";
-  $("endSub").textContent=won?"前線を守り抜いた":`ウェーブ ${S.waveIdx+1} で城が落ちた`;
-  let best=0; try{ best=(JSON.parse(localStorage.getItem(SAVE_KEY)||"{}").bestWave)||0; }catch(e){}
+  $("endSub").textContent=won?"次の前線が開いた":`ウェーブ ${S.waveIdx+1} で城が落ちた`;
+  let best=0; try{ best=(getSaveData().bestWave)||0; }catch(e){}
+  const next=S.nextStageId ? STAGE_DEFS[S.nextStageId] : null;
   $("endBody").innerHTML = won
-    ? `全 ${WAVES.length} ウェーブ突破。<br>柵で止め、塔で削り、金鉱で経済を回す——王の差配が勝った。`
-    : `到達ウェーブ <b>${S.waveIdx+1}</b> / ${WAVES.length}（最高記録 ${Math.max(best,S.waveIdx+1)}）。<br>道に柵を厚く、合流点に大砲、王は危険な側へ。`;
+    ? next
+      ? `${S.stageName} を突破。<br><b>${next.name}</b> が解放された。次の前線へ進める。`
+      : `${S.stageName} 全 ${WAVES.length} ウェーブ突破。<br>すべての前線を守り抜いた。`
+    : `到達ウェーブ <b>${S.waveIdx+1}</b> / ${WAVES.length}（最高記録 ${Math.max(best,S.waveIdx+1)}）。<br>柵・火力・金鉱の優先順位を見直す。`;
+  const bn=$("bNext"); if(bn){ bn.style.display=(won&&next)?"block":"none"; bn.textContent=next?`次へ: ${next.name}`:"次のステージへ"; }
+  const br=$("bRetry"); if(br) br.textContent=won?"同じステージをもう一度":"もう一度";
+  const bm=$("bMap"); if(bm) bm.style.display="block";
   $("ovEnd").classList.add("show");
 }
-$("bRetry").onclick=()=>{ $("ovEnd").classList.remove("show"); S=newState(); paused=false; $("bPause").textContent="⏸"; };
-$("bStart").onclick=()=>{
+function beginGame(id){
+  if(id) chooseStage(id);
   Audio2.init(); if(Audio2.ctx && Audio2.ctx.state==="suspended") Audio2.ctx.resume();
-  $("ovStart").classList.remove("show"); S=newState();
+  $("ovStart").classList.remove("show"); $("ovEnd").classList.remove("show");
+  S=newState(); paused=false; settingsOpen=false; settingsPausedBefore=false; syncSettingsPanel();
+}
+$("bRetry").onclick=()=>{ const id=(S&&S.stageId)||selectedStageId; beginGame(id); };
+$("bNext").onclick=()=>{ if(S&&S.nextStageId) beginGame(S.nextStageId); };
+$("bMap").onclick=()=>{ $("ovEnd").classList.remove("show"); S=null; paused=false; settingsOpen=false; settingsPausedBefore=false; $("ovStart").classList.add("show"); fillStageSelect($("stageSelect")); fillStageSelect($("sStageSelect")); updateStagePanel(); };
+$("bStart").onclick=()=>{
+  const ss=$("stageSelect"); beginGame(ss?ss.value:selectedStageId);
 };
 
 /* boot */
@@ -1215,8 +2037,10 @@ function boot(){
   // wire HUD icons
   if(ready("coin")) $("coinIcon").src=IMG_SRC.coin; else $("coinIcon").style.display="none";
   if(ready("wave")) $("waveIcon").src=IMG_SRC.wave; else $("waveIcon").style.display="none";
-  try{ const sv=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}"); if(sv.muted){ Audio2.muted=true; $("bMute").textContent="🔇"; } }catch(e){}
+  try{ const sv=getSaveData(); if(sv.muted){ Audio2.muted=true; } selectedStageId=normalizeSelectedStage(sv.selectedStageId||selectedStageId); }catch(e){}
   S=null;
+  initStageSelectUi();
+  syncSettingsPanel();
   requestAnimationFrame(loop);
 }
 ctx=cv.getContext("2d");

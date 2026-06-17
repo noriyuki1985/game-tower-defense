@@ -138,7 +138,7 @@
       <h1>設定</h1>
       <p class="sub">メニュー表示中はゲームを一時停止</p>
       <div class="settings-grid">
-        <div class="setting-row"><div><strong>ステージ</strong><br><span id="sStageVal">再開始時に反映</span></div><select class="stage-select-mini" id="sStageSelect" aria-label="ステージ選択"></select></div>
+        <div class="setting-row"><div><strong>ステージ</strong><br><span id="sStageVal">再開始時に反映</span></div><select class="stage-select-mini" id="sStageSelect" aria-label="ステージ選択"><option value="meadow" selected>草地の前線 / 標準 / 2ルート</option></select></div>
         <div class="setting-row"><div><strong>速度</strong><br><span id="sSpeedVal">1x</span></div><button class="mini-btn" id="sSpeed">速度 1x</button></div>
         <div class="setting-row"><div><strong>一時停止</strong><br><span id="sPauseVal">進行中</span></div><button class="mini-btn" id="sPause">一時停止</button></div>
         <div class="setting-row"><div><strong>音</strong><br><span id="sMuteVal">ON</span></div><button class="mini-btn" id="sMute">音: ON</button></div>
@@ -159,7 +159,7 @@
 
       <div class="stage-panel" id="stagePanel">
         <label for="stageSelect">選択中のステージ</label>
-        <select id="stageSelect" aria-label="ステージ選択"></select>
+        <select id="stageSelect" aria-label="ステージ選択"><option value="meadow" selected>草地の前線 / 標準 / 2ルート</option></select>
         <div class="stage-chips" id="stageChips"></div>
         <div class="stage-desc" id="stageDesc"></div>
         <div class="stage-diag" id="stageDiag"></div>
@@ -187,13 +187,13 @@
 "use strict";
 (function(){
 /* =====================================================================
- * King Builder Defense  v4.6.4  (king bow attack regen + final animation alignment)
+ * King Builder Defense  v4.6.5  (mobile stage select fallback)
  * 単一ファイル / vanilla JS / Canvas2D / localStorageのみ / 外部通信なし
  * ===================================================================== */
 
-const VERSION = "v4.6.4";
+const VERSION = "v4.6.5";
 const W = 480, H = 800;
-const SAVE_KEY = "kbd-v464-save";
+const SAVE_KEY = "kbd-v465-save";
 
 /* ---------------- assets ---------------- */
 const A = "assets/images/";
@@ -1946,9 +1946,22 @@ function stageDiagnostics(id){
   const routeText=Object.entries(routeCounts).map(([k,v])=>`${st.routeLabels[k]||k}:${v}`).join(" / ");
   return {total,slots,road,ground,mine,routeText,waves:st.waves.length};
 }
+function safeStageId(id){ return (STAGE_DEFS[id] && isStageUnlocked(id)) ? id : normalizeSelectedStage(selectedStageId||"meadow"); }
+function ensureStageSelectReady(sel){
+  if(!sel) return safeStageId(selectedStageId||"meadow");
+  if(!sel.options || sel.options.length===0) fillStageSelect(sel);
+  let id = sel.value || selectedStageId || "meadow";
+  id = safeStageId(id);
+  sel.value = id;
+  if(!sel.value && sel.options.length>0){
+    sel.selectedIndex = Math.max(0,[...sel.options].findIndex(o=>!o.disabled));
+    id = sel.value || safeStageId("meadow");
+  }
+  return id;
+}
 function fillStageSelect(sel){
   if(!sel) return;
-  const keep=sel.value||selectedStageId;
+  const keep=sel.value||selectedStageId||"meadow";
   const progress=normalizeProgress(getSaveData());
   sel.innerHTML="";
   for(const id of STAGE_ORDER){
@@ -1960,7 +1973,12 @@ function fillStageSelect(sel){
     o.textContent=`${unlocked?"":"🔒 "}${cleared?"★ ":""}${st.name} / ${st.difficulty} / ${Object.keys(st.routes).length}ルート`;
     sel.appendChild(o);
   }
-  sel.value=STAGE_DEFS[keep] && isStageUnlocked(keep) ? keep : selectedStageId;
+  const next = STAGE_DEFS[keep] && isStageUnlocked(keep) ? keep : safeStageId(selectedStageId||"meadow");
+  sel.value = next;
+  if(!sel.value && sel.options.length>0){
+    sel.selectedIndex = Math.max(0,[...sel.options].findIndex(o=>!o.disabled));
+    selectedStageId = sel.value || "meadow";
+  }
 }
 function renderStageMap(){
   const map=$("stageMap"); if(!map) return;
@@ -2001,8 +2019,8 @@ function updateProgressText(){
 function updateStagePanel(){
   const st=selectedStage();
   const d=stageDiagnostics(st.id);
-  const select=$("stageSelect"); if(select && select.value!==st.id) select.value=st.id;
-  const sselect=$("sStageSelect"); if(sselect && sselect.value!==st.id) sselect.value=st.id;
+  const select=$("stageSelect"); if(select){ ensureStageSelectReady(select); if(select.value!==st.id) select.value=st.id; }
+  const sselect=$("sStageSelect"); if(sselect){ ensureStageSelectReady(sselect); if(sselect.value!==st.id) sselect.value=st.id; }
   const chips=$("stageChips");
   if(chips){ chips.innerHTML=`<span class="stage-chip">${st.type}</span><span class="stage-chip">${Object.keys(st.routes).length}ルート</span><span class="stage-chip">${st.difficulty}</span><span class="stage-chip">推奨:${st.recommended}</span>`; }
   const desc=$("stageDesc"); if(desc) desc.textContent=st.summary;
@@ -2123,7 +2141,9 @@ function showEnd(won){
   $("ovEnd").classList.add("show");
 }
 function beginGame(id){
-  if(id) chooseStage(id);
+  const fallback = ensureStageSelectReady($("stageSelect"));
+  const startId = safeStageId(id || fallback || selectedStageId || "meadow");
+  chooseStage(startId);
   Audio2.init(); if(Audio2.ctx && Audio2.ctx.state==="suspended") Audio2.ctx.resume();
   $("ovStart").classList.remove("show"); $("ovEnd").classList.remove("show");
   S=newState(); paused=false; settingsOpen=false; settingsPausedBefore=false; syncSettingsPanel();
@@ -2132,7 +2152,9 @@ $("bRetry").onclick=()=>{ const id=(S&&S.stageId)||selectedStageId; beginGame(id
 $("bNext").onclick=()=>{ if(S&&S.nextStageId) beginGame(S.nextStageId); };
 $("bMap").onclick=()=>{ $("ovEnd").classList.remove("show"); S=null; paused=false; settingsOpen=false; settingsPausedBefore=false; $("ovStart").classList.add("show"); fillStageSelect($("stageSelect")); fillStageSelect($("sStageSelect")); updateStagePanel(); };
 $("bStart").onclick=()=>{
-  const ss=$("stageSelect"); beginGame(ss?ss.value:selectedStageId);
+  const ss=$("stageSelect");
+  const id=ensureStageSelectReady(ss) || selectedStageId || "meadow";
+  beginGame(id);
 };
 
 /* boot */
@@ -2149,6 +2171,7 @@ function boot(){
 }
 ctx=cv.getContext("2d");
 $("coinIcon").src=IMG_SRC.coin; $("waveIcon").src=IMG_SRC.wave;
+try{ initStageSelectUi(); }catch(e){ console.warn("stage select preinit failed",e); }
 loadAll(()=>{ const f=$("loadfill"); if(f) f.style.width="100%"; boot(); });
 
 })();

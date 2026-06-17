@@ -191,9 +191,9 @@
  * 単一ファイル / vanilla JS / Canvas2D / localStorageのみ / 外部通信なし
  * ===================================================================== */
 
-const VERSION = "v4.6.6";
+const VERSION = "v4.6.7";
 const W = 480, H = 800;
-const SAVE_KEY = "kbd-v466-save";
+const SAVE_KEY = "kbd-v467-save";
 
 /* ---------------- assets ---------------- */
 const A = "assets/images/";
@@ -1048,7 +1048,12 @@ function updateEnemies(dt){
   S.enemies=S.enemies.filter(e=>!e.dead);
 }
 function moveTo(e,tx,ty,dt){ const dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy)||1; const s=e.base*e.slow*dt/1000; if(Math.abs(dx)>1)e.facing=dx<0?-1:1; e.x+=dx/d*Math.min(s,d); e.y+=dy/d*Math.min(s,d); }
-function applyKnock(e){ e.x+=e.kx; e.y+=e.ky; }
+function applyKnock(e){
+  // Keep route position authoritative. Earlier builds added hit knockback directly to x/y,
+  // which could push enemies off the path and leave them unreachable by route-based combat.
+  // kx/ky are kept only as decaying hit-reaction values for future visual use.
+  return e;
+}
 function hitCastle(e){
   S.castleHp-=e.dmg; e.dead=true; S.shake=Math.max(S.shake,160); S.flash=Math.max(S.flash,0.4);
   burst(CASTLE.x,CASTLE.y+30,"#ff8b5e",14); addFloater(`-${e.dmg}`,CASTLE.x,CASTLE.y,"#ff7b6b");
@@ -1577,11 +1582,15 @@ function drawEnemySprite(e,bob,h,alpha){
   const walkFrame=Math.floor(e.anim||0)%4;
   const opt={flip:e.facing<0};
   if(alpha!=null) opt.alpha=alpha;
+  const vx=clamp(e.kx||0,-3.5,3.5);
+  const vy=clamp(e.ky||0,-3.5,3.5);
+  const dx=(e.hit||0)>0 ? vx : 0;
+  const dy=(e.hit||0)>0 ? vy : 0;
   if(e.attacking && ready(`e_attack_${e.type}`)){
-    return spriteFrameTrim(`e_attack_${e.type}`,e.x,e.y+bob,h,4,e.atkFrame||0,opt);
+    return spriteFrameTrim(`e_attack_${e.type}`,e.x+dx,e.y+dy+bob,h,4,e.atkFrame||0,opt);
   }
-  if(spriteFrameTrim(`e_walk_${e.type}`,e.x,e.y+bob,h,4,walkFrame,opt)) return true;
-  return spriteTrim(`e_${e.type}`,e.x,e.y+bob,h,opt);
+  if(spriteFrameTrim(`e_walk_${e.type}`,e.x+dx,e.y+dy+bob,h,4,walkFrame,opt)) return true;
+  return spriteTrim(`e_${e.type}`,e.x+dx,e.y+dy+bob,h,opt);
 }
 function drawEnemy(e){
   const bob=Math.sin(e.bob)*2;

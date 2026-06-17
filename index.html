@@ -98,10 +98,11 @@
   #hint.show{opacity:1;}
   /* overlays */
   .ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
-    text-align:center;padding:24px;background:rgba(20,26,16,.78);backdrop-filter:blur(3px);z-index:5;}
+    text-align:center;padding:24px;background:rgba(20,26,16,.78);backdrop-filter:blur(3px);z-index:5;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;}
   .ov.show{display:flex;}
   .card{background:linear-gradient(180deg,#f6e8c6,#e7d09f);border:3px solid var(--wood-d);border-radius:18px;
-    padding:22px 22px 20px;max-width:340px;width:100%;box-shadow:0 14px 0 rgba(94,60,32,.5),0 24px 50px rgba(0,0,0,.5);}
+    padding:22px 22px 20px;max-width:340px;width:100%;margin:auto;box-shadow:0 14px 0 rgba(94,60,32,.5),0 24px 50px rgba(0,0,0,.5);}
   .card h1{margin:0 0 4px;font-size:27px;letter-spacing:1px;color:var(--wood-d);text-shadow:0 2px 0 rgba(255,255,255,.4);}
   .card .sub{margin:0 0 14px;font-size:13px;color:#6b5436;font-weight:700;}
   .card p{font-size:13px;line-height:1.55;color:#4a3a26;margin:0 0 16px;text-align:left;font-weight:600;}
@@ -186,13 +187,13 @@
 "use strict";
 (function(){
 /* =====================================================================
- * King Builder Defense  v4.3.9  (ally spear move / attack / battle fx polish)
+ * King Builder Defense  v4.6.2  (king transparency fix + tower scale tune)
  * 単一ファイル / vanilla JS / Canvas2D / localStorageのみ / 外部通信なし
  * ===================================================================== */
 
-const VERSION = "v4.3.9";
+const VERSION = "v4.6.2";
 const W = 480, H = 800;
-const SAVE_KEY = "kbd-v439-save";
+const SAVE_KEY = "kbd-v462-save";
 
 /* ---------------- assets ---------------- */
 const A = "assets/images/";
@@ -280,6 +281,75 @@ function spriteFrame(k,x,y,h,frames,frame,o){
   ctx.drawImage(im, sw*frame, 0, sw, sh, -w*ax, -h*ay, w, h);
   ctx.restore();
   return true;
+}
+
+
+// Actor sprites are generated from different canvases. These helpers crop transparent padding
+// per image/frame before drawing so visible character height stays consistent across animations.
+const TRIM_CACHE = Object.create(null);
+const DRAW_SIZE = {
+  king: 52,
+  ally: 34,
+  enemy:{grunt:42,runner:39,brute:52,shield:46,saboteur:44,bomber:45,shaman:47,siege:58,warlord:64,overlord:70}
+};
+const BUILD_DRAW_HEIGHT = {palisade:54,archer:62,cannon:60,barracks:60,mine:54};
+const BUILD_RENDER_SCALE = {palisade:1.16,archer:1.24,cannon:1.24,barracks:1.26,mine:1.18};
+function trimBox(k,frames,frame){
+  const im=IMG[k]; if(!im||!im.naturalWidth) return null;
+  frames=frames||1; frame=((Math.floor(frame||0)%frames)+frames)%frames;
+  const cacheKey=`${k}:${frames}:${frame}`;
+  if(TRIM_CACHE[cacheKey]) return TRIM_CACHE[cacheKey];
+  const sw=Math.floor(im.naturalWidth/frames), sh=im.naturalHeight;
+  const srcX=Math.floor(sw*frame);
+  let box={sx:srcX,sy:0,sw,sh};
+  try{
+    const c=document.createElement('canvas'); c.width=sw; c.height=sh;
+    const g=c.getContext('2d',{willReadFrequently:true});
+    g.drawImage(im,srcX,0,sw,sh,0,0,sw,sh);
+    const data=g.getImageData(0,0,sw,sh).data;
+    let minX=sw,minY=sh,maxX=-1,maxY=-1;
+    for(let y=0;y<sh;y++){
+      for(let x=0;x<sw;x++){
+        if(data[(y*sw+x)*4+3]>10){
+          if(x<minX) minX=x; if(x>maxX) maxX=x;
+          if(y<minY) minY=y; if(y>maxY) maxY=y;
+        }
+      }
+    }
+    if(maxX>=0){
+      const pad=3;
+      minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad);
+      maxX=Math.min(sw-1,maxX+pad); maxY=Math.min(sh-1,maxY+pad);
+      box={sx:srcX+minX,sy:minY,sw:maxX-minX+1,sh:maxY-minY+1};
+    }
+  }catch(e){}
+  TRIM_CACHE[cacheKey]=box;
+  return box;
+}
+function spriteTrim(k,x,y,h,o){
+  o=o||{}; const im=IMG[k]; if(!im||!im.naturalWidth) return false;
+  const b=trimBox(k,1,0); if(!b) return sprite(k,x,y,h,o);
+  const w=b.sw/b.sh*h;
+  ctx.save(); ctx.translate(x,y);
+  if(o.rot) ctx.rotate(o.rot);
+  const sx=(o.flip?-1:1)*(o.sx||1), sy=(o.sy||1); ctx.scale(sx,sy);
+  if(o.alpha!=null) ctx.globalAlpha=o.alpha;
+  const ax=o.ax!=null?o.ax:0.5, ay=o.ay!=null?o.ay:1.0;
+  ctx.drawImage(im,b.sx,b.sy,b.sw,b.sh,-w*ax,-h*ay,w,h);
+  ctx.restore(); return true;
+}
+function spriteFrameTrim(k,x,y,h,frames,frame,o){
+  o=o||{}; const im=IMG[k]; if(!im||!im.naturalWidth) return false;
+  frames=frames||4; frame=((Math.floor(frame||0)%frames)+frames)%frames;
+  const b=trimBox(k,frames,frame); if(!b) return spriteFrame(k,x,y,h,frames,frame,o);
+  const w=b.sw/b.sh*h;
+  ctx.save(); ctx.translate(x,y);
+  if(o.rot) ctx.rotate(o.rot);
+  const sx=(o.flip?-1:1)*(o.sx||1), sy=(o.sy||1); ctx.scale(sx,sy);
+  if(o.alpha!=null) ctx.globalAlpha=o.alpha;
+  const ax=o.ax!=null?o.ax:0.5, ay=o.ay!=null?o.ay:1.0;
+  ctx.drawImage(im,b.sx,b.sy,b.sw,b.sh,-w*ax,-h*ay,w,h);
+  ctx.restore(); return true;
 }
 
 /* ---------------- audio (synth, no assets) ---------------- */
@@ -1434,93 +1504,92 @@ function drawSlots(){
 
 function drawFacility(f){
   const bx=f.x, by=f.y;
-  sprite("shadow",bx,by+8,26,{alpha:0.28,ay:0.5,sx:1.2});
+  const baseH = BUILD_DRAW_HEIGHT[f.type] || 56;
+  const renderScale = (BUILD_RENDER_SCALE[f.type] || 1) * (f.scale || 1);
+  const renderH = baseH * renderScale;
+  const shadowH = 26 * (BUILD_RENDER_SCALE[f.type] || 1) * 0.96;
+  sprite("shadow",bx,by+8,shadowH,{alpha:0.28,ay:0.5,sx:1.2});
   // range ring when king buffs it
   if((f.type==="archer"||f.type==="cannon") && dist(S.king.x,S.king.y,f.x,f.y)<BAL.kingRally){
     ctx.save(); ctx.globalAlpha=0.12; ctx.strokeStyle="#ffe79a"; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(f.x,f.y,f.range,0,6.28); ctx.stroke(); ctx.restore();
   }
-  const h=({palisade:46,archer:58,cannon:54,barracks:56,mine:50})[f.type];
   let xoff=0, yoff=0, sxMul=1, syMul=1;
   if(f.recoil>0){
     yoff=f.recoil*(f.type==="cannon"?4.8:3.4);
     if(f.type==="cannon"){ xoff-=f.recoil*2.2; sxMul=1+f.recoil*0.04; syMul=1-f.recoil*0.05; }
   }
   const key=`b_${f.type}_${f.level}`;
-  const sc=f.scale||1;
   const attackDur = f.type==="cannon" ? 380 : 300;
   const attackKey = f.type==="archer" ? "b_attack_archer" : (f.type==="cannon" ? "b_attack_cannon" : null);
   const attackFrame = attackKey ? Math.min(3, Math.floor((1-clamp((f.attackT||0)/attackDur,0,1))*4)) : 0;
-  // hit flash tint
   ctx.save();
-  const drewAttack = attackKey && f.attackT>0 && ready(attackKey) ? spriteFrame(attackKey,bx+xoff,by+yoff,h*sc,4,attackFrame,{sx:sxMul,sy:syMul}) : false;
-  if(!drewAttack) sprite(key,bx+xoff,by+yoff,h*sc,{sx:sxMul,sy:syMul});
+  const drewAttack = attackKey && f.attackT>0 && ready(attackKey) ? spriteFrame(attackKey,bx+xoff,by+yoff,renderH,4,attackFrame,{sx:sxMul,sy:syMul}) : false;
+  if(!drewAttack) sprite(key,bx+xoff,by+yoff,renderH,{sx:sxMul,sy:syMul});
   if(f.type==="cannon" && (f.attackT||0)>0){
     const p=clamp((f.attackT||0)/380,0,1);
     for(let i=0;i<3;i++){
       ctx.save();
       ctx.globalAlpha=(0.18+0.08*i)*p;
       ctx.fillStyle=i===0?"rgba(255,226,176,0.95)":"rgba(190,195,205,0.42)";
-      ctx.beginPath(); ctx.arc(bx+8+i*4,by-18-i*3,5+i*3+p*2,0,6.28); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx+8+i*4,by-renderH*0.32-i*3,5+i*3+p*2,0,6.28); ctx.fill();
       ctx.restore();
     }
   }
-  // sweep highlight on level up
   if(f.sweep>0){
     ctx.save();
     ctx.globalCompositeOperation="lighter";
     ctx.globalAlpha=f.sweep*0.6;
-    const yy=by - h + (h*1.4)*(1-f.sweep);
+    const yy=by - renderH + (renderH*1.4)*(1-f.sweep);
     const grad=ctx.createLinearGradient(0,yy-10,0,yy+10);
     grad.addColorStop(0,"rgba(255,255,255,0)"); grad.addColorStop(0.5,LVCOLOR[f.level]); grad.addColorStop(1,"rgba(255,255,255,0)");
-    ctx.fillStyle=grad; ctx.fillRect(bx-h*0.7,yy-10,h*1.4,20);
+    ctx.fillStyle=grad; ctx.fillRect(bx-renderH*0.7,yy-10,renderH*1.4,20);
     ctx.restore();
   }
   if(f.maxGlow>0){ ctx.save(); ctx.globalAlpha=(f.maxGlow/1600)*0.4*(0.6+Math.sin(S.time*0.02)*0.4); ctx.fillStyle="#ffe58f";
-    ctx.beginPath(); ctx.arc(bx,by-h*0.4,h*0.7,0,6.28); ctx.fill(); ctx.restore(); }
+    ctx.beginPath(); ctx.arc(bx,by-renderH*0.4,renderH*0.7,0,6.28); ctx.fill(); ctx.restore(); }
   if(f.type==="barracks" && (f.spawnPulse||0)>0){
     const p=clamp((f.spawnPulse||0)/360,0,1);
     ctx.save();
     ctx.globalCompositeOperation="screen";
     ctx.globalAlpha=0.14+0.2*p;
-    const grad=ctx.createRadialGradient(bx,by-h*0.25,4,bx,by-h*0.25,h*0.75);
+    const grad=ctx.createRadialGradient(bx,by-renderH*0.25,4,bx,by-renderH*0.25,renderH*0.75);
     grad.addColorStop(0,"rgba(255,255,255,0.9)");
     grad.addColorStop(0.35,"rgba(210,240,255,0.45)");
     grad.addColorStop(1,"rgba(210,240,255,0)");
     ctx.fillStyle=grad;
-    ctx.beginPath(); ctx.arc(bx,by-h*0.18,h*0.58,0,6.28); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx,by-renderH*0.18,renderH*0.58,0,6.28); ctx.fill();
     ctx.restore();
     ctx.save(); ctx.globalAlpha=0.24+0.22*p; ctx.strokeStyle="#d8efff"; ctx.lineWidth=2.2;
-    ctx.beginPath(); ctx.ellipse(bx,by+7,22+6*(1-p),10+3*(1-p),0,0,6.28); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.ellipse(bx,by+7,24+7*(1-p),11+4*(1-p),0,0,6.28); ctx.stroke(); ctx.restore();
   }
   ctx.restore();
-  // hp bar if damaged
   if(f.hp<f.maxHp-0.5){
-    const w=26, hx=bx-w/2, hy=by-h-6;
+    const w=28, hx=bx-w/2, hy=by-renderH-6;
     ctx.fillStyle="rgba(0,0,0,.4)"; ctx.fillRect(hx,hy,w,4);
     ctx.fillStyle=f.hp/f.maxHp>0.4?"#7fd17f":"#e06b5a"; ctx.fillRect(hx,hy,w*clamp(f.hp/f.maxHp,0,1),4);
   }
-  // tiny level pips
   for(let i=0;i<f.level;i++){ ctx.fillStyle=LVCOLOR[f.level]; ctx.beginPath(); ctx.arc(bx-6+i*4,by+10,1.6,0,6.28); ctx.fill(); }
 }
 
+function enemyDrawHeight(type){ return DRAW_SIZE.enemy[type] || 44; }
 function drawEnemySprite(e,bob,h,alpha){
   const walkFrame=Math.floor(e.anim||0)%4;
   const opt={flip:e.facing<0};
   if(alpha!=null) opt.alpha=alpha;
   if(e.attacking && ready(`e_attack_${e.type}`)){
-    return spriteFrame(`e_attack_${e.type}`,e.x,e.y+bob,h,4,e.atkFrame||0,opt);
+    return spriteFrameTrim(`e_attack_${e.type}`,e.x,e.y+bob,h,4,e.atkFrame||0,opt);
   }
-  if(spriteFrame(`e_walk_${e.type}`,e.x,e.y+bob,h,4,walkFrame,opt)) return true;
-  return sprite(`e_${e.type}`,e.x,e.y+bob,h,opt);
+  if(spriteFrameTrim(`e_walk_${e.type}`,e.x,e.y+bob,h,4,walkFrame,opt)) return true;
+  return spriteTrim(`e_${e.type}`,e.x,e.y+bob,h,opt);
 }
 function drawEnemy(e){
   const bob=Math.sin(e.bob)*2;
-  sprite("shadow",e.x,e.y+e.r*0.5,e.r*1.1,{alpha:0.26,ay:0.5,sx:1.1});
-  const h=e.r*2.05;
+  const h=enemyDrawHeight(e.type);
+  sprite("shadow",e.x,e.y+Math.max(7,h*0.22),Math.max(15,h*0.38),{alpha:0.26,ay:0.5,sx:1.12});
   // hp bar
   if(e.hp<e.max-0.5 || e.boss){
-    const w=e.boss?44:Math.max(18,e.r*1.6), hx=e.x-w/2, hy=e.y-h-(e.boss?10:6);
+    const w=e.boss?48:Math.max(22,h*0.58), hx=e.x-w/2, hy=e.y-h-(e.boss?10:6);
     ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(hx,hy,w,e.boss?5:3);
     ctx.fillStyle=e.boss?"#ff7b6b":"#ffd06b"; ctx.fillRect(hx,hy,w*clamp(e.hp/e.max,0,1),e.boss?5:3);
   }
@@ -1547,6 +1616,7 @@ function drawEnemy(e){
 }
 
 function drawSoldier(s){
+  const h=DRAW_SIZE.ally;
   sprite("shadow",s.x,s.y+8,16,{alpha:0.25,ay:0.5,sx:1.1});
   const isArcher=s.kind==="archer";
   const lunge=!isArcher && s.atk>300?(s.atk-300)/220*4:0;
@@ -1573,23 +1643,47 @@ function drawSoldier(s){
     ctx.stroke();
     ctx.restore();
   }
-  if(!sprite(key,drawX,s.y,30,{flip:s.facing<0})){
+  const drew = s.atk>0 && ready(atkKey)
+    ? spriteTrim(atkKey,drawX,s.y,h,{flip:s.facing<0})
+    : spriteTrim(key,drawX,s.y,h,{flip:s.facing<0});
+  if(!drew){
     ctx.fillStyle=isArcher?"#5377a8":"#5b7fb0"; ctx.beginPath(); ctx.arc(s.x,s.y,8,0,6.28); ctx.fill();
   }
   if((s.hit||0)>0){
     const p=clamp((s.hit||0)/120,0,1);
     ctx.save();
-    ctx.globalCompositeOperation="lighter";
-    ctx.globalAlpha=0.16+0.26*p;
-    sprite(key,drawX,s.y,30,{flip:s.facing<0});
+    ctx.globalAlpha=0.18+0.22*p;
+    ctx.strokeStyle=isArcher?"#d7ecff":"#fff0b8";
+    ctx.lineWidth=1.5+1.5*p;
+    ctx.beginPath(); ctx.ellipse(s.x,s.y-h*0.42,12+4*p,15+5*p,0,0,6.28); ctx.stroke();
     ctx.restore();
   }
-  if(s.hp<s.max-0.5){ const w=16,hx=s.x-8,hy=s.y-32; ctx.fillStyle="rgba(0,0,0,.4)"; ctx.fillRect(hx,hy,w,3); ctx.fillStyle=isArcher?"#93d0ff":"#7fd17f"; ctx.fillRect(hx,hy,w*clamp(s.hp/s.max,0,1),3); }
+  if(s.hp<s.max-0.5){ const w=16,hx=s.x-8,hy=s.y-h-4; ctx.fillStyle="rgba(0,0,0,.4)"; ctx.fillRect(hx,hy,w,3); ctx.fillStyle=isArcher?"#93d0ff":"#7fd17f"; ctx.fillRect(hx,hy,w*clamp(s.hp/s.max,0,1),3); }
+}
+
+function drawKingAttackStable(k,h,attackProgress){
+  const pulse = Math.sin(attackProgress*Math.PI);
+  const frame = Math.min(3, Math.floor(attackProgress*4));
+  const drawX = k.x - (k.facing||1)*pulse*1.2;
+  const ok = ready("king_attack_bow")
+    ? spriteFrame("king_attack_bow",drawX,k.y,h,4,frame,{flip:k.facing<0,sx:1+0.015*pulse,sy:1-0.012*pulse})
+    : sprite(ready("king_idle3") ? "king_idle3" : (ready("king_idle2") ? "king_idle2" : "king_idle1"),drawX,k.y,h,{flip:k.facing<0,sx:1+0.02*pulse,sy:1-0.015*pulse});
+  if(!ok){ ctx.fillStyle="#d9b54a"; ctx.beginPath(); ctx.arc(k.x,k.y-16,12,0,6.28); ctx.fill(); }
+  const dir=k.facing<0?-1:1;
+  const aimY=k.y-31;
+  if(attackProgress>0.62 && attackProgress<0.92){
+    ctx.save();
+    ctx.globalCompositeOperation="screen";
+    ctx.globalAlpha=0.14+0.25*pulse;
+    ctx.fillStyle="#fff5c7";
+    ctx.beginPath(); ctx.ellipse(k.x+dir*18,aimY,10+5*pulse,7+3*pulse,0,0,6.28); ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawKing(k){
   sprite("shadow",k.x,k.y+6,24,{alpha:0.3,ay:0.5,sx:1.2});
-  let key,h=50,sx=1,sy=1;
+  let key,h=DRAW_SIZE.king,sx=1,sy=1;
   const building=k.build>0;
   const hurtT=clamp((k.hurt||0)/BAL.kingHurtAnim,0,1);
   const hurtProgress=1-hurtT;
@@ -1611,9 +1705,8 @@ function drawKing(k){
       ctx.beginPath(); ctx.arc(k.tx,k.ty,10+Math.sin(S.time*0.01)*3,0,6.28); ctx.stroke(); ctx.restore(); }
     return;
   }
-  else if(attackT>0 && ready("king_attack_bow")){
-    const frame=Math.min(3,Math.floor(attackProgress*4));
-    spriteFrame("king_attack_bow",k.x,k.y,h,4,frame,{flip:k.facing<0,sx:1.02,sy:1.0});
+  else if(attackT>0){
+    drawKingAttackStable(k,h,attackProgress);
     if(k.moving){ ctx.save(); ctx.globalAlpha=0.5; ctx.strokeStyle="#fff"; ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(k.tx,k.ty,10+Math.sin(S.time*0.01)*3,0,6.28); ctx.stroke(); ctx.restore(); }
     return;
@@ -1820,9 +1913,14 @@ function handleBoardInput(e){
   // otherwise move king
   S.king.tx=clamp(p.x,14,W-14); S.king.ty=clamp(p.y,96,H-14);
 }
-cv.addEventListener("pointerdown",handleBoardInput,{passive:false});
-cv.addEventListener("mousedown",handleBoardInput,{passive:false});
-cv.addEventListener("touchstart",handleBoardInput,{passive:false});
+if(window.PointerEvent){
+  // pointerdown はマウス・タッチ・ペンを一本化して拾うため、これだけ登録すれば多重発火しない
+  cv.addEventListener("pointerdown",handleBoardInput,{passive:false});
+}else{
+  // 旧ブラウザ向けフォールバック
+  cv.addEventListener("mousedown",handleBoardInput,{passive:false});
+  cv.addEventListener("touchstart",handleBoardInput,{passive:false});
+}
 window.addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(k==="escape" && settingsOpen){ closeSettings(); e.preventDefault(); return; }
@@ -1942,12 +2040,18 @@ function initStageSelectUi(){
 /* =====================================================================
  * LOOP / UI
  * ===================================================================== */
+let _loopErrAt=0;
 function loop(t){
-  const dt=Math.min(48,t-last); last=t;
-  if(S && !paused && !settingsOpen){ for(let i=0;i<speed;i++) update(dt); }
-  render();
-  syncHud();
-  syncSettingsPanel();
+  try{
+    const dt=Math.min(48,t-last); last=t;
+    if(S && !paused && !settingsOpen){ for(let i=0;i<speed;i++) update(dt); }
+    render();
+    syncHud();
+    if(settingsOpen) syncSettingsPanel();
+  }catch(err){
+    // 1フレームの例外でループ全体が止まらないようにする（無音握りつぶしはせず間引いてログ）
+    const n=performance.now(); if(n-_loopErrAt>1000){ _loopErrAt=n; console.error("[loop] uncaught error (game continues):",err); }
+  }
   requestAnimationFrame(loop);
 }
 function syncSettingsPanel(){

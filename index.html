@@ -187,13 +187,13 @@
 "use strict";
 (function(){
 /* =====================================================================
- * King Builder Defense  v4.6.5  (mobile stage select fallback)
+ * King Builder Defense  v4.6.6  (mobile early-start boot preserve fix)
  * 単一ファイル / vanilla JS / Canvas2D / localStorageのみ / 外部通信なし
  * ===================================================================== */
 
-const VERSION = "v4.6.5";
+const VERSION = "v4.6.6";
 const W = 480, H = 800;
-const SAVE_KEY = "kbd-v465-save";
+const SAVE_KEY = "kbd-v466-save";
 
 /* ---------------- assets ---------------- */
 const A = "assets/images/";
@@ -2164,7 +2164,11 @@ function boot(){
   if(ready("coin")) $("coinIcon").src=IMG_SRC.coin; else $("coinIcon").style.display="none";
   if(ready("wave")) $("waveIcon").src=IMG_SRC.wave; else $("waveIcon").style.display="none";
   try{ const sv=getSaveData(); if(sv.muted){ Audio2.muted=true; } selectedStageId=normalizeSelectedStage(sv.selectedStageId||selectedStageId); }catch(e){}
-  S=null;
+  // Do not clear S here. On slow mobile connections the player may press start
+  // before all image assets finish loading; beginGame() already creates S.
+  // The previous boot path reset S to null after hiding the start overlay, leaving
+  // only the map/background visible and no characters.
+  if(!S) S=null;
   initStageSelectUi();
   syncSettingsPanel();
   requestAnimationFrame(loop);

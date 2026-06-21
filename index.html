@@ -13,12 +13,14 @@
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;background:#1d2417;overflow:hidden;
     font-family:"Yu Gothic","YuGothic","Hiragino Maru Gothic ProN","Hiragino Sans","Trebuchet MS",system-ui,sans-serif;
-    color:var(--ink); user-select:none; touch-action:none;}
-  #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    color:var(--ink); user-select:none; touch-action:none;overscroll-behavior:none;}
+  #stage{position:fixed;inset:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;
     background:radial-gradient(120% 80% at 50% 0%,#33402a,#161d12 70%);}
-  #frame{position:relative;height:100%;aspect-ratio:480/800;max-width:100%;}
-  canvas{display:block;width:100%;height:100%;image-rendering:auto;cursor:crosshair;
+  #frame{position:relative;height:100dvh;max-height:100dvh;aspect-ratio:480/800;max-width:100%;}
+  canvas{display:block;width:100%;height:100%;image-rendering:auto;cursor:crosshair;touch-action:none;-webkit-touch-callout:none;
     border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 0 0 3px rgba(0,0,0,.25);}
+  button,select{font:inherit;}
+  .btn,.cta,.mini-btn,.stage-node,.link-btn,.stage-panel select,.stage-select-mini{touch-action:manipulation;}
   /* top HUD */
   #hud{position:absolute;left:0;right:0;top:0;padding:8px 10px;display:flex;gap:8px;align-items:center;
     pointer-events:none;}
@@ -82,7 +84,7 @@
   .progress-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;font-size:11px;font-weight:900;color:#5e3c20;}
   .link-btn{border:none;background:transparent;color:#5e3c20;text-decoration:underline;font-weight:900;cursor:pointer;padding:2px 0;font-size:11px;}
   @media (max-width:520px){
-    .card{padding:18px 16px 16px;max-width:332px;}
+    .card{padding:18px 16px 16px;max-width:min(332px,calc(100vw - 24px));}
     .stage-panel{padding:8px;margin:8px 0 12px;}
     .stage-map{height:232px;margin:8px 0 10px;border-radius:20px;}
     .stage-node{min-width:64px;max-width:70px;font-size:10px;padding:6px 4px;border-radius:15px;}
@@ -90,19 +92,61 @@
     .stage-desc{display:none;}
     .stage-diag{-webkit-line-clamp:1;}
     .stage-chip{font-size:10.5px;padding:2px 6px;}
+    .cta,.mini-btn{min-height:44px;}
+  }
+  @media (max-height:720px){
+    .card{padding:14px 12px 12px;max-width:min(336px,calc(100vw - 18px));}
+    .card h1{font-size:22px;}
+    .card .sub{margin-bottom:8px;}
+    .stage-map{height:178px;margin:6px 0 7px;border-radius:18px;}
+    .stage-map-note{display:none;}
+    .stage-panel{margin:6px 0 9px;padding:7px;}
+    .stage-chips{gap:4px;margin-top:6px;}
+    .progress-row{margin-top:5px;}
+    .cta{padding:10px 12px;min-height:44px;font-size:15px;}
+    .settings-grid{gap:7px;margin-top:8px;}
+    .setting-row{padding:7px 8px;}
+    .menu-note{display:none;}
+  }
+  @media (max-height:620px){
+    #hud{padding:6px 7px;gap:5px;}
+    .pill{font-size:12px;padding:3px 7px;border-width:1.5px;}
+    .pill img{width:15px;height:15px;}
+    #hpbar{height:14px;}
+    #hptext{font-size:10px;}
+    .btn{width:38px;height:38px;border-radius:10px;}
+    .ov{justify-content:flex-start;padding:10px max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));}
+    .card{margin:0 auto;padding:12px 11px 11px;box-shadow:0 8px 0 rgba(94,60,32,.48),0 14px 32px rgba(0,0,0,.48);}
+    .card h1{font-size:19px;margin-bottom:2px;}
+    .card .sub{font-size:11px;margin-bottom:6px;}
+    .stage-map{height:142px;margin:5px 0 6px;}
+    .stage-node{min-width:56px;max-width:62px;font-size:9px;padding:5px 3px;border-width:2px;border-radius:13px;}
+    .stage-node .stage-node-mark{font-size:14px;margin-bottom:1px;}
+    .stage-panel label,.stage-desc{display:none;}
+    .stage-panel select,.stage-select-mini{font-size:12px;padding:7px 8px;}
+    .stage-chip{font-size:9.5px;padding:2px 5px;}
+    .stage-diag{display:none;}
+    .progress-row{font-size:10px;}
+    .settings-card .setting-row{display:grid;grid-template-columns:1fr auto;gap:6px;padding:6px 7px;}
+  }
+  @media (max-width:380px){
+    .stage-node{min-width:54px;max-width:60px;}
+    .card{max-width:calc(100vw - 14px);}
+    .mini-btn{min-width:82px;padding-left:7px;padding-right:7px;}
   }
   /* wave banner / hint */
-  #hint{position:absolute;left:10px;right:60px;bottom:12px;pointer-events:none;
+  #hint{position:absolute;left:10px;right:60px;bottom:max(12px,env(safe-area-inset-bottom));pointer-events:none;
     background:rgba(44,32,22,.82);color:#f3e3bf;border-radius:10px;padding:7px 11px;font-size:12.5px;
-    font-weight:600;line-height:1.35;opacity:0;transition:opacity .25s;backdrop-filter:blur(2px);}
+    font-weight:600;line-height:1.35;max-height:112px;overflow:hidden;opacity:0;transition:opacity .25s;backdrop-filter:blur(2px);}
   #hint.show{opacity:1;}
   /* overlays */
   .ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
-    text-align:center;padding:24px;background:rgba(20,26,16,.78);backdrop-filter:blur(3px);z-index:5;
-    overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;}
+    text-align:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:rgba(20,26,16,.78);backdrop-filter:blur(3px);z-index:5;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;}
   .ov.show{display:flex;}
   .card{background:linear-gradient(180deg,#f6e8c6,#e7d09f);border:3px solid var(--wood-d);border-radius:18px;
     padding:22px 22px 20px;max-width:340px;width:100%;margin:auto;box-shadow:0 14px 0 rgba(94,60,32,.5),0 24px 50px rgba(0,0,0,.5);}
+  .stage-select-card,.settings-card{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain;}
   .card h1{margin:0 0 4px;font-size:27px;letter-spacing:1px;color:var(--wood-d);text-shadow:0 2px 0 rgba(255,255,255,.4);}
   .card .sub{margin:0 0 14px;font-size:13px;color:#6b5436;font-weight:700;}
   .card p{font-size:13px;line-height:1.55;color:#4a3a26;margin:0 0 16px;text-align:left;font-weight:600;}
@@ -117,6 +161,59 @@
   .dot{width:11px;height:11px;border-radius:3px;display:inline-block;border:1.5px solid rgba(0,0,0,.3);}
   #loadbar{margin-top:10px;height:10px;border-radius:999px;background:rgba(0,0,0,.2);overflow:hidden;border:2px solid var(--wood-d);}
   #loadfill{height:100%;width:0;background:var(--green);transition:width .15s;}
+
+  /* v4.8.0 mobile override pass: placed after base card rules so it wins in cascade. */
+  @media (max-width:520px){
+    .card{padding:18px 16px 16px;max-width:min(332px,calc(100vw - 24px));}
+    .stage-panel{padding:8px;margin:8px 0 12px;}
+    .stage-map{height:232px;margin:8px 0 10px;border-radius:20px;}
+    .stage-node{min-width:64px;max-width:70px;font-size:10px;padding:6px 4px;border-radius:15px;}
+    .stage-node .stage-node-mark{font-size:16px;}
+    .stage-desc{display:none;}
+    .stage-diag{-webkit-line-clamp:1;}
+    .stage-chip{font-size:10.5px;padding:2px 6px;}
+    .cta,.mini-btn{min-height:44px;}
+  }
+  @media (max-height:720px){
+    .card{padding:14px 12px 12px;max-width:min(336px,calc(100vw - 18px));}
+    .card h1{font-size:22px;}
+    .card .sub{margin-bottom:8px;}
+    .stage-map{height:178px;margin:6px 0 7px;border-radius:18px;}
+    .stage-map-note{display:none;}
+    .stage-panel{margin:6px 0 9px;padding:7px;}
+    .stage-chips{gap:4px;margin-top:6px;}
+    .progress-row{margin-top:5px;}
+    .cta{padding:10px 12px;min-height:44px;font-size:15px;}
+    .settings-grid{gap:7px;margin-top:8px;}
+    .setting-row{padding:7px 8px;}
+    .menu-note{display:none;}
+  }
+  @media (max-height:620px){
+    #hud{padding:6px 7px;gap:5px;}
+    .pill{font-size:12px;padding:3px 7px;border-width:1.5px;}
+    .pill img{width:15px;height:15px;}
+    #hpbar{height:14px;}
+    #hptext{font-size:10px;}
+    .btn{width:38px;height:38px;border-radius:10px;}
+    .ov{justify-content:flex-start;padding:10px max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));}
+    .card{margin:0 auto;padding:12px 11px 11px;box-shadow:0 8px 0 rgba(94,60,32,.48),0 14px 32px rgba(0,0,0,.48);}
+    .card h1{font-size:19px;margin-bottom:2px;}
+    .card .sub{font-size:11px;margin-bottom:6px;}
+    .stage-map{height:142px;margin:5px 0 6px;}
+    .stage-node{min-width:56px;max-width:62px;font-size:9px;padding:5px 3px;border-width:2px;border-radius:13px;}
+    .stage-node .stage-node-mark{font-size:14px;margin-bottom:1px;}
+    .stage-panel label,.stage-desc{display:none;}
+    .stage-panel select,.stage-select-mini{font-size:12px;padding:7px 8px;}
+    .stage-chip{font-size:9.5px;padding:2px 5px;}
+    .stage-diag{display:none;}
+    .progress-row{font-size:10px;}
+    .settings-card .setting-row{display:grid;grid-template-columns:1fr auto;gap:6px;padding:6px 7px;}
+  }
+  @media (max-width:380px){
+    .stage-node{min-width:54px;max-width:60px;}
+    .card{max-width:calc(100vw - 14px);}
+    .mini-btn{min-width:82px;padding-left:7px;padding-right:7px;}
+  }
 </style>
 </head>
 <body>
@@ -138,7 +235,7 @@
       <h1>設定</h1>
       <p class="sub">メニュー表示中はゲームを一時停止</p>
       <div class="settings-grid">
-        <div class="setting-row"><div><strong>ステージ</strong><br><span id="sStageVal">再開始時に反映</span></div><select class="stage-select-mini" id="sStageSelect" aria-label="ステージ選択"><option value="meadow" selected>草地の前線 / 標準 / 2ルート</option></select></div>
+        <div class="setting-row"><div><strong>ステージ</strong><br><span id="sStageVal">再開始時に反映</span></div><select class="stage-select-mini" id="sStageSelect" aria-label="ステージ選択"><option value="tutorial" selected>王立訓練場 / チュートリアル / 2ルート</option></select></div>
         <div class="setting-row"><div><strong>速度</strong><br><span id="sSpeedVal">1x</span></div><button class="mini-btn" id="sSpeed">速度 1x</button></div>
         <div class="setting-row"><div><strong>一時停止</strong><br><span id="sPauseVal">進行中</span></div><button class="mini-btn" id="sPause">一時停止</button></div>
         <div class="setting-row"><div><strong>音</strong><br><span id="sMuteVal">ON</span></div><button class="mini-btn" id="sMute">音: ON</button></div>
@@ -155,11 +252,11 @@
       <h1>ステージ選択</h1>
       <p class="sub">クリアすると次の前線が解放される</p>
       <div class="stage-map" id="stageMap" aria-label="ステージマップ"></div>
-      <p class="stage-map-note">王冠はクリア済み、鍵は未解放。ステージを選び、出陣すると防衛戦が始まる。</p>
+      <p class="stage-map-note">説明が必要なら王立訓練場へ。通常マップは説明を抑え、実戦だけに集中する。</p>
 
       <div class="stage-panel" id="stagePanel">
         <label for="stageSelect">選択中のステージ</label>
-        <select id="stageSelect" aria-label="ステージ選択"><option value="meadow" selected>草地の前線 / 標準 / 2ルート</option></select>
+        <select id="stageSelect" aria-label="ステージ選択"><option value="tutorial" selected>王立訓練場 / チュートリアル / 2ルート</option></select>
         <div class="stage-chips" id="stageChips"></div>
         <div class="stage-desc" id="stageDesc"></div>
         <div class="stage-diag" id="stageDiag"></div>
@@ -187,13 +284,14 @@
 "use strict";
 (function(){
 /* =====================================================================
- * King Builder Defense  v4.6.6  (mobile early-start boot preserve fix)
+ * King Builder Defense  v4.8.3  (fixed right action menu / level-color attacks)
  * 単一ファイル / vanilla JS / Canvas2D / localStorageのみ / 外部通信なし
  * ===================================================================== */
 
-const VERSION = "v4.6.7";
+const VERSION = "v4.8.3";
 const W = 480, H = 800;
-const SAVE_KEY = "kbd-v467-save";
+const SAVE_KEY = "kbd-v483-save";
+const LEGACY_SAVE_KEYS = ["kbd-v482-save","kbd-v481-save","kbd-v480-save","kbd-v471-save","kbd-v468-save","kbd-v467-save","kbd-v466-save","kbd-v465-save"];
 
 /* ---------------- assets ---------------- */
 const A = "assets/images/";
@@ -294,6 +392,37 @@ const DRAW_SIZE = {
 };
 const BUILD_DRAW_HEIGHT = {palisade:54,archer:62,cannon:60,barracks:60,mine:54};
 const BUILD_RENDER_SCALE = {palisade:1.16,archer:1.24,cannon:1.24,barracks:1.26,mine:1.18};
+const BUILD_ANCHORS = {
+  palisade:{hpW:44,hpY:-0.92,levelY:0.24},
+  archer:{muzzleX:0.16,muzzleY:-0.82,hpW:44,hpY:-1.08,levelY:0.20},
+  cannon:{muzzleX:0.24,muzzleY:-0.47,hpW:46,hpY:-0.99,levelY:0.22},
+  barracks:{spawnX:0.19,spawnY:0.17,fxX:0.18,fxY:-0.02,hpW:48,hpY:-1.02,levelY:0.22},
+  mine:{incomeX:0.10,incomeY:-0.72,hpW:42,hpY:-0.98,levelY:0.22}
+};
+function buildVisual(f){
+  const baseH = BUILD_DRAW_HEIGHT[f.type] || 56;
+  const typeScale = BUILD_RENDER_SCALE[f.type] || 1;
+  const renderScale = typeScale * (f.scale || 1);
+  return {baseH,typeScale,renderScale,renderH:baseH*renderScale,anchor:BUILD_ANCHORS[f.type]||{}};
+}
+function buildPoint(f,name){
+  const v=buildVisual(f), a=v.anchor;
+  if(name==="muzzle") return {x:f.x+(a.muzzleX||0)*v.renderH,y:f.y+(a.muzzleY||-0.55)*v.renderH};
+  if(name==="spawn") return {x:f.x+(a.spawnX||0)*v.renderH,y:f.y+(a.spawnY||0.12)*v.renderH};
+  if(name==="spawnFx") return {x:f.x+(a.fxX||a.spawnX||0)*v.renderH,y:f.y+(a.fxY||-0.02)*v.renderH};
+  if(name==="income") return {x:f.x+(a.incomeX||0)*v.renderH,y:f.y+(a.incomeY||-0.60)*v.renderH};
+  if(name==="top") return {x:f.x,y:f.y-v.renderH};
+  return {x:f.x,y:f.y};
+}
+function buildMuzzlePoint(f,tgt){
+  const p=buildPoint(f,"muzzle");
+  if(!tgt) return p;
+  const dir=tgt.x>=f.x?1:-1;
+  const v=buildVisual(f);
+  if(f.type==="archer") return {x:p.x+dir*v.renderH*0.05,y:p.y-2};
+  if(f.type==="cannon") return {x:p.x+dir*v.renderH*0.04,y:p.y+1};
+  return p;
+}
 function trimBox(k,frames,frame){
   const im=IMG[k]; if(!im||!im.naturalWidth) return null;
   frames=frames||1; frame=((Math.floor(frame||0)%frames)+frames)%frames;
@@ -603,42 +732,65 @@ const BASTION_WAVES = [
   {note:"廃砦の最終防衛。将軍と破城槌の同時圧力。",boss:true,groups:[{type:"siege",count:2,gap:1300,route:"breach"},{type:"brute",count:4,gap:820,route:"court",delay:1200},{type:"bomber",count:4,gap:700,route:"court",delay:2400},{type:"warlord",count:1,gap:0,route:"breach",delay:5600}]},
 ];
 
+const TUTORIAL_WAVES = [
+  {note:"訓練1: まず王を道の柵スロットへ移動。下部パネルから柵を建てる。柵は敵を止め、塔が攻撃する時間を作る。",groups:[{type:"grunt",count:5,gap:700,route:"main"}]},
+  {note:"訓練2: 道の横の高所スロットへ移動し、弓塔を建てる。弓塔は長射程の単体火力。柵で止めた敵を遠くから削る。",groups:[{type:"grunt",count:7,gap:620,route:"main"},{type:"runner",count:3,gap:760,route:"side",delay:1800}]},
+  {note:"訓練3: 金鉱スロットへ移動して金鉱を建てる。金鉱は戦闘中は攻撃しないが、ウェーブ突破後に収入を生む。早く建てるほど後半が楽になる。",groups:[{type:"grunt",count:8,gap:560,route:"main"},{type:"runner",count:4,gap:660,route:"side",delay:1200}]},
+  {note:"訓練4: 王を弓塔や大砲の近くに置くと、王の采配ボーナスで発射が速くなる。前線に立つか、建築へ走るかを選ぶゲーム。",groups:[{type:"shield",count:3,gap:800,route:"main"},{type:"grunt",count:8,gap:500,route:"side",delay:900}]},
+  {note:"訓練5: 建てた施設は強化・修理できる。柵で止め、弓塔で削り、金鉱で次の投資を作る。この流れが通常マップの基本。",groups:[{type:"grunt",count:10,gap:430,route:"main"},{type:"runner",count:6,gap:430,route:"side"},{type:"shield",count:3,gap:760,route:"main",delay:2200}]}
+];
+
 const STAGE_DEFS = {
-  meadow:{id:"meadow",name:"草地の前線",type:"本番候補",difficulty:"標準",recommended:"柵・弓塔",summary:"2ルートの基準ステージ。柵で足止めし、脇の火力で削る基本を確認する。",startCoins:120,enemyMul:{hp:1,damage:1,speed:1},merge:{x:240,y:452},routes:MEADOW_ROUTES,routeLabels:{main:"主街道",side:"左側道"},slots:MEADOW_SLOTS,waves:MEADOW_WAVES},
-  crossroads:{id:"crossroads",name:"分岐路の前線",type:"検証用",difficulty:"やや難",recommended:"大砲・兵舎",summary:"中央・左右の3ルートが合流する。分岐の見落としと誤配置を検証するステージ。",startCoins:132,enemyMul:{hp:1.04,damage:1,speed:1.02},merge:{x:238,y:464},routes:CROSS_ROUTES,routeLabels:{main:"中央路",left:"左分岐",right:"右分岐"},slots:CROSS_SLOTS,waves:CROSS_WAVES},
-  ridge:{id:"ridge",name:"高台の前線",type:"本番候補",difficulty:"難",recommended:"柵・大砲・兵舎",summary:"高台の3ルート。合流前に削り、中央坂道の柵を維持することが重要。",startCoins:140,enemyMul:{hp:1.10,damage:1.03,speed:0.98},merge:{x:242,y:526},routes:RIDGE_ROUTES,routeLabels:{main:"中央坂道",left:"左崖道",right:"右斜面路"},slots:RIDGE_SLOTS,waves:RIDGE_WAVES},
-  rivergate:{id:"rivergate",name:"橋門の前線",type:"本番候補",difficulty:"難",recommended:"柵・大砲",summary:"橋に敵が集中する3ルート。橋上で止めて範囲攻撃を当てるステージ。",startCoins:146,enemyMul:{hp:1.08,damage:1.03,speed:0.99},merge:{x:238,y:520},routes:RIVERGATE_ROUTES,routeLabels:{main:"中央橋",west:"西渡河路",east:"東渡河路"},slots:RIVERGATE_SLOTS,waves:RIVERGATE_WAVES},
-  forest:{id:"forest",name:"森陰の前線",type:"本番候補",difficulty:"やや難",recommended:"弓塔・兵舎",summary:"曲がり道が多く走り兵が抜けやすい。王の移動と兵舎配置を試すステージ。",startCoins:128,enemyMul:{hp:1.02,damage:1.0,speed:1.08},merge:{x:236,y:498},routes:FOREST_ROUTES,routeLabels:{main:"東森道",shade:"木陰道",grove:"奥小道"},slots:FOREST_SLOTS,waves:FOREST_WAVES},
-  bastion:{id:"bastion",name:"廃砦の前線",type:"本番候補",difficulty:"高難度",recommended:"大砲・兵舎・柵",summary:"ルート数は少ないが重兵と破城槌が多い。火力不足を診断しやすいステージ。",startCoins:158,enemyMul:{hp:1.16,damage:1.08,speed:0.94},merge:{x:222,y:430},routes:BASTION_ROUTES,routeLabels:{breach:"裂け門",court:"中庭路"},slots:BASTION_SLOTS,waves:BASTION_WAVES},
+  tutorial:{id:"tutorial",name:"王立訓練場",type:"チュートリアル",difficulty:"入門",recommended:"柵・弓塔・金鉱",summary:"説明多めの訓練ステージ。柵、弓塔、金鉱、王の采配ボーナスだけを順番に確認する。",startCoins:190,enemyMul:{hp:0.70,damage:0.70,speed:0.92},pressure:{count:0.88,gap:1.18,lateHp:0.80},merge:{x:240,y:452},routes:MEADOW_ROUTES,routeLabels:{main:"訓練主道",side:"訓練側道"},slots:MEADOW_SLOTS,waves:TUTORIAL_WAVES,tutorial:true},
+  meadow:{id:"meadow",name:"草地の前線",type:"通常",difficulty:"標準",recommended:"柵・弓塔",summary:"2ルートの基準ステージ。説明なしで実戦を始める通常マップ。",startCoins:136,enemyMul:{hp:0.94,damage:0.94,speed:1.00},pressure:{count:0.94,gap:1.05,lateHp:0.90},merge:{x:240,y:452},routes:MEADOW_ROUTES,routeLabels:{main:"主街道",side:"左側道"},slots:MEADOW_SLOTS,waves:MEADOW_WAVES},
+  crossroads:{id:"crossroads",name:"分岐路の前線",type:"本番固定",difficulty:"やや難",recommended:"大砲・兵舎",summary:"中央・左右の3ルートが合流する。分岐対応の練習として、敵数と間隔を本番用に固定。",startCoins:148,enemyMul:{hp:0.99,damage:0.98,speed:1.00},pressure:{count:0.96,gap:1.04,lateHp:0.94},merge:{x:238,y:464},routes:CROSS_ROUTES,routeLabels:{main:"中央路",left:"左分岐",right:"右分岐"},slots:CROSS_SLOTS,waves:CROSS_WAVES},
+  ridge:{id:"ridge",name:"高台の前線",type:"本番固定",difficulty:"難",recommended:"柵・大砲・兵舎",summary:"高台の3ルート。中央坂道の柵維持と範囲火力が必要だが、後半HP上昇を少し抑えた。",startCoins:154,enemyMul:{hp:1.05,damage:1.00,speed:0.98},pressure:{count:0.98,gap:1.03,lateHp:0.96},merge:{x:242,y:526},routes:RIDGE_ROUTES,routeLabels:{main:"中央坂道",left:"左崖道",right:"右斜面路"},slots:RIDGE_SLOTS,waves:RIDGE_WAVES},
+  rivergate:{id:"rivergate",name:"橋門の前線",type:"本番固定",difficulty:"難",recommended:"柵・大砲",summary:"橋に敵が集中する3ルート。橋上の圧力を固定し、柵と大砲の連携を検証しやすくした。",startCoins:158,enemyMul:{hp:1.04,damage:1.00,speed:0.98},pressure:{count:0.99,gap:1.02,lateHp:0.96},merge:{x:238,y:520},routes:RIVERGATE_ROUTES,routeLabels:{main:"中央橋",west:"西渡河路",east:"東渡河路"},slots:RIVERGATE_SLOTS,waves:RIVERGATE_WAVES},
+  forest:{id:"forest",name:"森陰の前線",type:"本番固定",difficulty:"やや難",recommended:"弓塔・兵舎",summary:"曲がり道と走り兵の抜けを診断するステージ。速度圧を少し残して役割を固定。",startCoins:132,enemyMul:{hp:1.01,damage:1.00,speed:1.06},pressure:{count:1.00,gap:1.01,lateHp:0.98},merge:{x:236,y:498},routes:FOREST_ROUTES,routeLabels:{main:"東森道",shade:"木陰道",grove:"奥小道"},slots:FOREST_SLOTS,waves:FOREST_WAVES},
+  bastion:{id:"bastion",name:"廃砦の前線",type:"本番固定",difficulty:"高難度",recommended:"大砲・兵舎・柵",summary:"高難度の火力診断ステージ。重兵と破城槌の圧は残しつつ、極端な耐久跳ねを抑えた。",startCoins:162,enemyMul:{hp:1.13,damage:1.06,speed:0.94},pressure:{count:1.02,gap:1.00,lateHp:1.00},merge:{x:222,y:430},routes:BASTION_ROUTES,routeLabels:{breach:"裂け門",court:"中庭路"},slots:BASTION_SLOTS,waves:BASTION_WAVES},
 };
-const STAGE_ORDER=["meadow","crossroads","ridge","rivergate","forest","bastion"];
+const STAGE_ORDER=["tutorial","meadow","crossroads","ridge","rivergate","forest","bastion"];
 const STAGE_NODE_POS={
-  meadow:{x:19,y:69,icon:"🏕️",short:"草地"},
-  crossroads:{x:34,y:47,icon:"⭐",short:"分岐"},
-  ridge:{x:51,y:29,icon:"⛰️",short:"高台"},
-  rivergate:{x:68,y:48,icon:"🌉",short:"橋門"},
-  forest:{x:78,y:72,icon:"🌲",short:"森陰"},
-  bastion:{x:55,y:82,icon:"🏰",short:"廃砦"}
+  tutorial:{x:13,y:82,icon:"📘",short:"訓練"},
+  meadow:{x:24,y:66,icon:"🏕️",short:"草地"},
+  crossroads:{x:38,y:46,icon:"⭐",short:"分岐"},
+  ridge:{x:54,y:28,icon:"⛰️",short:"高台"},
+  rivergate:{x:70,y:47,icon:"🌉",short:"橋門"},
+  forest:{x:79,y:70,icon:"🌲",short:"森陰"},
+  bastion:{x:56,y:84,icon:"🏰",short:"廃砦"}
 };
+function readSaveKey(key){
+  try{ const raw=localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+}
 function getSaveData(){
-  try{ return JSON.parse(localStorage.getItem(SAVE_KEY)||"{}"); }catch(e){ return {}; }
+  const current=readSaveKey(SAVE_KEY);
+  if(current) return current;
+  for(const key of LEGACY_SAVE_KEYS){
+    const legacy=readSaveKey(key);
+    if(legacy){
+      try{ localStorage.setItem(SAVE_KEY,JSON.stringify({...legacy,migratedFrom:key})); }catch(e){}
+      return legacy;
+    }
+  }
+  return {};
 }
 function saveGameData(patch){
   try{ const prev=getSaveData(); localStorage.setItem(SAVE_KEY,JSON.stringify({...prev,...patch})); }catch(e){}
 }
 function normalizeProgress(data){
-  const unlocked=new Set(Array.isArray(data.unlockedStages)?data.unlockedStages:["meadow"]);
+  const unlocked=new Set(Array.isArray(data.unlockedStages)?data.unlockedStages:["tutorial","meadow"]);
   const cleared=new Set(Array.isArray(data.clearedStages)?data.clearedStages:[]);
+  unlocked.add("tutorial");
   unlocked.add("meadow");
   for(const id of [...cleared]){ const i=STAGE_ORDER.indexOf(id); if(i>=0){ unlocked.add(id); if(STAGE_ORDER[i+1]) unlocked.add(STAGE_ORDER[i+1]); } }
   return {unlockedStages:[...unlocked].filter(id=>STAGE_DEFS[id]), clearedStages:[...cleared].filter(id=>STAGE_DEFS[id])};
 }
 function isStageUnlocked(id){ return normalizeProgress(getSaveData()).unlockedStages.includes(id); }
-function firstUnlockedStage(){ return normalizeProgress(getSaveData()).unlockedStages.find(id=>STAGE_DEFS[id])||"meadow"; }
+function firstUnlockedStage(){ return normalizeProgress(getSaveData()).unlockedStages.find(id=>STAGE_DEFS[id])||"tutorial"; }
 function normalizeSelectedStage(id){ return (STAGE_DEFS[id] && isStageUnlocked(id)) ? id : firstUnlockedStage(); }
 function getNextStageId(id){ const i=STAGE_ORDER.indexOf(id); return i>=0 ? (STAGE_ORDER[i+1]||null) : null; }
 const bootSaveData=getSaveData();
-let selectedStageId=normalizeSelectedStage(bootSaveData.selectedStageId||"meadow"), activeStageId="meadow", ROUTE={}, SLOTS=[], WAVES=[], ROUTE_LABELS={};
+let selectedStageId=normalizeSelectedStage(bootSaveData.selectedStageId||"tutorial"), activeStageId="tutorial", ROUTE={}, SLOTS=[], WAVES=[], ROUTE_LABELS={};
 function clone(v){ return JSON.parse(JSON.stringify(v)); }
 function setActiveStage(id){
   const st=STAGE_DEFS[id]||STAGE_DEFS.meadow;
@@ -647,8 +799,9 @@ function setActiveStage(id){
   BAL.startCoins=st.startCoins||120;
   return st;
 }
-function currentStage(){ return STAGE_DEFS[activeStageId]||STAGE_DEFS.meadow; }
-function selectedStage(){ return STAGE_DEFS[selectedStageId]||STAGE_DEFS.meadow; }
+function currentStage(){ return STAGE_DEFS[activeStageId]||STAGE_DEFS.tutorial||STAGE_DEFS.meadow; }
+function selectedStage(){ return STAGE_DEFS[selectedStageId]||STAGE_DEFS.tutorial||STAGE_DEFS.meadow; }
+function isTutorialStage(){ return !!(currentStage() && currentStage().tutorial); }
 setActiveStage(selectedStageId);
 const ALLOWED = { road:["palisade"], ground:["archer","cannon","barracks"], economy:["mine"] };
 
@@ -673,7 +826,7 @@ function newState(){
     particles:[], rings:[], floaters:[], slots:SLOTS.map(s=>({...s,facilityId:null,acted:false,inRange:false,pulse:Math.random()*1000})),
     menu:null, hitstop:0, shake:0, flash:0, banner:null, time:0,
     props:buildProps(), mist:[{x:120,y:540,s:1},{x:330,y:360,s:0.8},{x:240,y:680,s:1.2}],
-    nextId:1, message:"", messageT:0, killsThisWave:0,
+    nextId:1, message:st.tutorial?"訓練場: 盤面をタップして王を移動。スロットに近づくと下部パネルで建築できる。":"", messageT:st.tutorial?6200:0, killsThisWave:0,
   };
 }
 function buildProps(){
@@ -901,7 +1054,7 @@ function placeFacility(slot,type){
   S.facilities.push(f); slot.facilityId=f.id;
   burst(f.x,f.y,"#ffe087",22); ring(f.x,f.y,"#ffe087",60,560);
   addFloater(`${d.name} 完成`,f.x,f.y-34,"#ffe087");
-  Audio2.build(); S.message=facHint(type); S.messageT=2600;
+  Audio2.build(); const hint=facHint(type); if(hint){ S.message=hint; S.messageT=isTutorialStage()?5200:1800; }
 }
 function applyLevel(f){
   const d=DEF[f.type], L=f.level;
@@ -928,7 +1081,17 @@ function upgradeFacility(f){
   Audio2.up(f.level);
   S.banner={text:f.level>=4?"MAX LEVEL!":"LEVEL UP!",sub:`${f.name}  Lv.${f.level}`,color:c,t:0,life:f.level>=4?1500:1100};
 }
-function facHint(t){ const m={palisade:"敵を止めている間に、脇の塔で削る。",archer:"走り兵や抜けた敵を遠くから処理。",cannon:"敵がまとまる合流点で本領を発揮。",barracks:"兵士が前線を埋める。側道に有効。",mine:"ウェーブ後に収入。守りを薄くしすぎないこと。"}; return m[t]||""; }
+function facHint(t){
+  if(!isTutorialStage()) return "";
+  const m={
+    palisade:"柵: 道スロット専用。敵を倒す施設ではなく、敵を止めて弓塔や王に攻撃時間を渡すための施設。壊れたら修理か強化を考える。",
+    archer:"弓塔: 高所スロットの基本火力。長射程の単体攻撃で、柵に止まった敵や走り兵を削る。王が近くにいると発射が速くなる。",
+    cannon:"大砲: 範囲火力。敵が重なる合流点や柵の後ろで強い。連射は遅いので、弓塔や柵と組み合わせる。",
+    barracks:"兵舎: 兵士で道を埋める。複数ルートや抜けやすい側道に置くと、王の移動負担を減らせる。",
+    mine:"金鉱: 攻撃しない経済施設。ウェーブ突破後に収入を出す。早く建てるほど得だが、防衛を薄くしすぎると負ける。"
+  };
+  return m[t]||"";
+}
 
 /* waves */
 function updateWaves(dt){
@@ -952,28 +1115,59 @@ function updateWaves(dt){
     endWave();
   }
 }
+function stagePressure(){
+  const st=currentStage();
+  return st.pressure || {count:1,gap:1,lateHp:1};
+}
+function scaledGroup(g,p){
+  const bossType=!!(E[g.type]&&E[g.type].boss);
+  const count=bossType ? g.count : Math.max(1,Math.round(g.count*(p.count||1)));
+  const gap=Math.max(180,Math.round(g.gap*(p.gap||1)));
+  return {type:g.type,route:g.route,left:count,gap,t:(g.delay||0)+200};
+}
 function startWave(){
   S.waveIdx++; S.between=false; S.spawning=true; S.killsThisWave=0;
-  const w=WAVES[S.waveIdx]; S.spawnQueue=[];
-  for(const g of w.groups) S.spawnQueue.push({type:g.type,route:g.route,left:g.count,gap:g.gap,t:(g.delay||0)+200});
-  S.message=`ウェーブ ${S.waveIdx+1}: ${w.note}`; S.messageT=5200;
-  if(w.boss){ S.banner={text:"最終決戦",sub:WAVES[S.waveIdx].note?"":"",color:"#e45858",t:0,life:1400}; }
+  const w=WAVES[S.waveIdx], pressure=stagePressure(); S.spawnQueue=[];
+  for(const g of w.groups) S.spawnQueue.push(scaledGroup(g,pressure));
+  if(isTutorialStage()){
+    S.message=`${w.note}`;
+    S.messageT=8200;
+  }else{
+    S.message=`ウェーブ ${S.waveIdx+1} 開始`;
+    S.messageT=1400;
+  }
+  if(w.boss){ S.banner={text:"最終決戦",sub:"",color:"#e45858",t:0,life:1400}; }
   syncHud();
 }
 function endWave(){
   // mine income paid here -> rewards early economy investment
-  let inc=0; for(const f of S.facilities) if(f.type==="mine"){ inc+=f.income; }
-  if(inc>0){ S.coins+=inc; addFloater(`金鉱収入 +${inc}`,CASTLE.x+30,CASTLE.y+30,"#ffd35b"); }
+  let inc=0;
+  for(const f of S.facilities){
+    if(f.type!=="mine") continue;
+    inc+=f.income;
+    const ip=buildPoint(f,"income");
+    addFloater(`+${f.income}`,ip.x,ip.y,"#ffd35b",1250,16);
+    spriteFx("coin_pickup",ip.x,ip.y+8,30,300);
+    ring(ip.x,ip.y+10,"rgba(255,211,91,0.76)",32,320);
+    burst(ip.x,ip.y+8,"rgba(255,226,120,0.95)",5);
+  }
+  if(inc>0){ S.coins+=inc; addFloater(`金鉱収入 +${inc}`,CASTLE.x+30,CASTLE.y+30,"#ffd35b",1500,18); ring(CASTLE.x+30,CASTLE.y+30,"rgba(255,211,91,0.55)",42,420); }
   if(S.waveIdx>=WAVES.length-1){ win(); return; }
   S.between=true; S.waveTimer=BAL.waveRest;
-  S.message=inc>0?`ウェーブ突破。金鉱収入 +${inc}。次の手を選べ。`:"ウェーブ突破。柵・塔・金鉱、どれに投資する？";
-  S.messageT=4200;
+  if(isTutorialStage()){
+    S.message=inc>0?`訓練: ウェーブ突破。金鉱収入 +${inc}。金鉱は次の投資を作る。強化・修理・追加建築を選ぶ。`:"訓練: ウェーブ突破。次は柵で止めるか、弓塔で削るか、金鉱で後半を伸ばすかを選ぶ。";
+    S.messageT=7200;
+  }else{
+    S.message=inc>0?`ウェーブ突破 +${inc}`:"ウェーブ突破";
+    S.messageT=1400;
+  }
   syncHud();
 }
 
 function spawnEnemy(type,routeKey){
   const e=E[type], r=ROUTE[routeKey]||ROUTE.main||Object.values(ROUTE)[0];
-  const mul=S.waveIdx>=4?1+(S.waveIdx-4)*0.06:1;  // gentle ramp late
+  const pressure=stagePressure();
+  const mul=S.waveIdx>=4?1+(S.waveIdx-4)*0.045*(pressure.lateHp||1):1;  // locked late-wave ramp
   const st=currentStage(), em=st.enemyMul||{hp:1,damage:1,speed:1};
   const hp=e.hp*mul*(em.hp||1), spd=e.spd*(em.speed||1), dmg=e.dmg*(em.damage||1);
   S.enemies.push({ id:S.nextId++, type, route:routeKey, seg:0, t:0,
@@ -1051,7 +1245,7 @@ function moveTo(e,tx,ty,dt){ const dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy)||1; c
 function applyKnock(e){
   // Keep route position authoritative. Earlier builds added hit knockback directly to x/y,
   // which could push enemies off the path and leave them unreachable by route-based combat.
-  // kx/ky are kept only as decaying hit-reaction values for future visual use.
+  // kx/ky are decaying visual-only hit-reaction values. Never apply them to x/y.
   return e;
 }
 function hitCastle(e){
@@ -1064,8 +1258,15 @@ function hitCastle(e){
 function damageEnemy(e,dmg,sourceX,source){
   const armor = source==="king" ? 0 : (e.armor||0);
   const real=dmg*(1-armor);
-  e.hp-=real; e.hit=Math.max(e.hit||0,180); e.stun=Math.max(e.stun||0,90);
-  if(sourceX!=null){ const dir=e.x<sourceX?-1:1; e.kx+=dir*1.6; }
+  e.hp-=real; e.hit=Math.max(e.hit||0,220); e.stun=Math.max(e.stun||0,90);
+  if(sourceX!=null){
+    const dir=e.x<sourceX?-1:1;
+    e.kx=clamp((e.kx||0)+dir*5.8,-8,8);
+    e.ky=clamp((e.ky||0)-2.2,-5,5);
+  } else {
+    e.kx=clamp((e.kx||0)+rand(-3.2,3.2),-7,7);
+    e.ky=clamp((e.ky||0)-1.4,-4,4);
+  }
   if(e.hp<=0 && !e.dead){ killEnemy(e); }
 }
 function killEnemy(e){
@@ -1092,13 +1293,14 @@ function spawnBarracksUnit(f){
   const homeUnits=S.soldiers.filter(s=>s.home===f.id && !s.dead);
   const archerCount=homeUnits.filter(s=>s.kind==="archer").length;
   const makeArcher=f.level>=2 && archerCount<1;
+  const sp=buildPoint(f,"spawn");
   if(makeArcher){
     const hp=Math.round(f.sHp*0.72);
     const dmg=Math.max(7,Math.round(f.sDmg*0.88));
-    return {id:S.nextId++,home:f.id,x:f.x+rand(-8,8),y:f.y+10,hp,max:hp,dmg,
+    return {id:S.nextId++,home:f.id,x:sp.x+rand(-7,7),y:sp.y+rand(-2,4),hp,max:hp,dmg,
       facing:1,anim:0,atk:0,dead:false,kx:0,hit:0,thrust:0,moving:false,kind:"archer",range:112+(f.level-1)*8,cd:760-(f.level-1)*40,speed:58};
   }
-  return {id:S.nextId++,home:f.id,x:f.x+rand(-8,8),y:f.y+12,hp:f.sHp,max:f.sHp,dmg:f.sDmg,
+  return {id:S.nextId++,home:f.id,x:sp.x+rand(-8,8),y:sp.y+rand(0,6),hp:f.sHp,max:f.sHp,dmg:f.sDmg,
     facing:1,anim:0,atk:0,dead:false,kx:0,hit:0,thrust:0,moving:false,kind:"spear",speed:64};
 }
 
@@ -1109,6 +1311,7 @@ function updateFacilities(dt){
     if(f.sweep>0) f.sweep=Math.max(0,f.sweep-dt*0.0016);
     if(f.maxGlow>0) f.maxGlow-=dt;
     if(f.attackT>0) f.attackT=Math.max(0,f.attackT-dt);
+    if(f.lastMuzzle) f.lastMuzzle.t=Math.max(0,(f.lastMuzzle.t||0)-dt);
     if(f.spawnPulse>0) f.spawnPulse=Math.max(0,f.spawnPulse-dt);
     f.scale+=(1-f.scale)*0.16;
     if(f.type==="archer"||f.type==="cannon"){
@@ -1118,11 +1321,16 @@ function updateFacilities(dt){
         const tgt=acquire(f);
         if(tgt){
           f.fire=f.cd*rally;
-          S.projectiles.push({x:f.x,y:f.y-18,tx:tgt.x,ty:tgt.y,target:tgt,spd:f.type==="cannon"?300:440,
+          const muzzle=buildMuzzlePoint(f,tgt);
+          f.lastMuzzle={x:muzzle.x,y:muzzle.y,t:260};
+          S.projectiles.push({x:muzzle.x,y:muzzle.y,tx:tgt.x,ty:tgt.y,target:tgt,spd:f.type==="cannon"?300:440,
             dmg:f.dmg,splash:f.splash||0,c:DEF[f.type].proj,cannon:f.type==="cannon",r:f.type==="cannon"?5:3,
-            source:f.type==="cannon"?"cannonTower":"archerTower",originX:f.x,originY:f.y-18});
-          if(f.type==="cannon"){ Audio2.cannon(); smokeBurst(f.x,f.y-20,8,26,460,"rgba(205,210,220,0.34)"); ring(f.x,f.y-18,"rgba(255,214,148,0.38)",26,200); }
-          else { Audio2.shoot(); }
+            source:f.type==="cannon"?"cannonTower":"archerTower",originX:muzzle.x,originY:muzzle.y});
+          if(f.type==="cannon"){
+            Audio2.cannon(); smokeBurst(muzzle.x,muzzle.y,11,34,540,"rgba(205,210,220,0.42)"); ring(muzzle.x,muzzle.y,"rgba(255,214,148,0.58)",34,240); burst(muzzle.x,muzzle.y,"rgba(255,232,176,0.95)",5);
+          } else {
+            Audio2.shoot(); burst(muzzle.x,muzzle.y,"rgba(255,244,194,0.9)",3); ring(muzzle.x,muzzle.y,"rgba(255,241,188,0.45)",16,150);
+          }
           f.attackT = f.type==="cannon" ? 380 : 300;
           f.recoil=1;
         }
@@ -1135,9 +1343,11 @@ function updateFacilities(dt){
       if(f.spawnT<=0 && alive<f.cap){
         f.spawnT=f.spawn;
         f.spawnPulse=360;
-        spriteFx("build",f.x,f.y-4,44,260);
-        ring(f.x,f.y-2,"#d8efff",34,260);
-        burst(f.x,f.y-2,"#e6f4ff",6);
+        const sp=buildPoint(f,"spawnFx");
+        spriteFx("build",sp.x,sp.y,52,320);
+        ring(sp.x,sp.y+2,"rgba(216,239,255,0.82)",42,340);
+        ring(sp.x,sp.y+10,"rgba(126,206,255,0.48)",30,260);
+        burst(sp.x,sp.y+2,"#e6f4ff",9);
         S.soldiers.push(spawnBarracksUnit(f));
       }
     }
@@ -1205,7 +1415,8 @@ function updateSoldiers(dt){
         }
       }
     } else if(home){
-      const targetX=home.x + (isArcher?16:0), targetY=home.y + (isArcher?4:12);
+      const homePt=buildPoint(home,"spawn");
+      const targetX=homePt.x + (isArcher?10:-2), targetY=homePt.y + (isArcher?-3:4);
       const dx=targetX-s.x,dy=targetY-s.y,d=Math.hypot(dx,dy);
       if(d>10){
         const rt=isArcher?52:48;
@@ -1285,7 +1496,7 @@ function updateParticles(dt){
 /* fx helpers */
 function burst(x,y,c,n){ for(let i=0;i<n;i++){ const a=Math.random()*6.28,sp=rand(20,160); S.particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-30,life:rand(300,700),t:0,r:rand(1.5,3.5),c,grav:0.18}); } }
 function ring(x,y,c,rad,life){ S.rings.push({x,y,c,rad,life,t:0}); }
-function addFloater(text,x,y,c){ S.floaters.push({text,x,y,c,t:0,life:1000}); }
+function addFloater(text,x,y,c,life=1000,size=14){ S.floaters.push({text,x,y,c,t:0,life,size}); }
 function spriteFx(name,x,y,size,life){ if(!S.fx)S.fx=[]; S.fx.push({name,x,y,size,life,t:0}); }
 function smokeBurst(x,y,n,spread,life,c="rgba(190,195,205,0.42)"){
   for(let i=0;i<n;i++){
@@ -1304,11 +1515,12 @@ function arrowImpactFx(x,y,power,c){
 }
 function cannonImpactFx(x,y,rad){
   spriteFx("explosion",x,y,rad*1.45,360);
-  ring(x,y,"#ffd197",rad*0.95,320);
-  ring(x,y,"rgba(90,70,55,0.45)",rad*1.35,480);
-  burst(x,y,"#ffcb8a",12);
-  burst(x,y,"rgba(120,88,52,0.85)",7);
-  smokeBurst(x,y,14,rad*0.75,520,"rgba(120,120,120,0.32)");
+  ring(x,y,"#ffd197",rad*1.05,340);
+  ring(x,y,"rgba(255,241,190,0.42)",rad*0.62,220);
+  ring(x,y,"rgba(90,70,55,0.50)",rad*1.48,520);
+  burst(x,y,"#ffcb8a",16);
+  burst(x,y,"rgba(120,88,52,0.9)",10);
+  smokeBurst(x,y,18,rad*0.86,620,"rgba(120,120,120,0.38)");
 }
 
 /* end states */
@@ -1509,10 +1721,9 @@ function drawSlots(){
 
 function drawFacility(f){
   const bx=f.x, by=f.y;
-  const baseH = BUILD_DRAW_HEIGHT[f.type] || 56;
-  const renderScale = (BUILD_RENDER_SCALE[f.type] || 1) * (f.scale || 1);
-  const renderH = baseH * renderScale;
-  const shadowH = 26 * (BUILD_RENDER_SCALE[f.type] || 1) * 0.96;
+  const visual=buildVisual(f);
+  const renderH = visual.renderH;
+  const shadowH = 26 * visual.typeScale * 0.96;
   sprite("shadow",bx,by+8,shadowH,{alpha:0.28,ay:0.5,sx:1.2});
   // range ring when king buffs it
   if((f.type==="archer"||f.type==="cannon") && dist(S.king.x,S.king.y,f.x,f.y)<BAL.kingRally){
@@ -1526,18 +1737,31 @@ function drawFacility(f){
   }
   const key=`b_${f.type}_${f.level}`;
   const attackDur = f.type==="cannon" ? 380 : 300;
-  const attackKey = f.type==="archer" ? "b_attack_archer" : (f.type==="cannon" ? "b_attack_cannon" : null);
-  const attackFrame = attackKey ? Math.min(3, Math.floor((1-clamp((f.attackT||0)/attackDur,0,1))*4)) : 0;
+  const attackP = (f.type==="archer"||f.type==="cannon") ? clamp((f.attackT||0)/attackDur,0,1) : 0;
   ctx.save();
-  const drewAttack = attackKey && f.attackT>0 && ready(attackKey) ? spriteFrame(attackKey,bx+xoff,by+yoff,renderH,4,attackFrame,{sx:sxMul,sy:syMul}) : false;
-  if(!drewAttack) sprite(key,bx+xoff,by+yoff,renderH,{sx:sxMul,sy:syMul});
+  // Keep the level-specific building sprite during attacks. The old attack sheets are not level-colored,
+  // so using them made upgraded towers visually revert to the base color while firing.
+  sprite(key,bx+xoff,by+yoff,renderH,{sx:sxMul,sy:syMul});
+  if(f.type==="archer" && attackP>0){
+    const muzzle=(f.lastMuzzle&&f.lastMuzzle.t>0)?f.lastMuzzle:buildPoint(f,"muzzle");
+    ctx.save();
+    ctx.globalCompositeOperation="lighter";
+    ctx.globalAlpha=0.16+0.20*attackP;
+    ctx.strokeStyle=LVCOLOR[f.level]||"#ffe79a";
+    ctx.lineWidth=2.2;
+    ctx.beginPath(); ctx.arc(muzzle.x,muzzle.y,8+10*(1-attackP),0,6.28); ctx.stroke();
+    ctx.fillStyle="rgba(255,247,183,0.85)";
+    ctx.beginPath(); ctx.arc(muzzle.x,muzzle.y,3+2*attackP,0,6.28); ctx.fill();
+    ctx.restore();
+  }
   if(f.type==="cannon" && (f.attackT||0)>0){
     const p=clamp((f.attackT||0)/380,0,1);
+    const muzzle=(f.lastMuzzle&&f.lastMuzzle.t>0)?f.lastMuzzle:buildPoint(f,"muzzle");
     for(let i=0;i<3;i++){
       ctx.save();
       ctx.globalAlpha=(0.18+0.08*i)*p;
       ctx.fillStyle=i===0?"rgba(255,226,176,0.95)":"rgba(190,195,205,0.42)";
-      ctx.beginPath(); ctx.arc(bx+8+i*4,by-renderH*0.32-i*3,5+i*3+p*2,0,6.28); ctx.fill();
+      ctx.beginPath(); ctx.arc(muzzle.x+i*3,muzzle.y-i*3,6+i*4+p*3,0,6.28); ctx.fill();
       ctx.restore();
     }
   }
@@ -1558,39 +1782,53 @@ function drawFacility(f){
     ctx.save();
     ctx.globalCompositeOperation="screen";
     ctx.globalAlpha=0.14+0.2*p;
-    const grad=ctx.createRadialGradient(bx,by-renderH*0.25,4,bx,by-renderH*0.25,renderH*0.75);
+    const sp=buildPoint(f,"spawnFx");
+    const grad=ctx.createRadialGradient(sp.x,sp.y,4,sp.x,sp.y,renderH*0.75);
     grad.addColorStop(0,"rgba(255,255,255,0.9)");
     grad.addColorStop(0.35,"rgba(210,240,255,0.45)");
     grad.addColorStop(1,"rgba(210,240,255,0)");
     ctx.fillStyle=grad;
-    ctx.beginPath(); ctx.arc(bx,by-renderH*0.18,renderH*0.58,0,6.28); ctx.fill();
+    ctx.beginPath(); ctx.arc(sp.x,sp.y,renderH*0.58,0,6.28); ctx.fill();
     ctx.restore();
-    ctx.save(); ctx.globalAlpha=0.24+0.22*p; ctx.strokeStyle="#d8efff"; ctx.lineWidth=2.2;
-    ctx.beginPath(); ctx.ellipse(bx,by+7,24+7*(1-p),11+4*(1-p),0,0,6.28); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.globalAlpha=0.32+0.26*p; ctx.strokeStyle="#d8efff"; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.ellipse(sp.x,sp.y+10,28+9*(1-p),13+5*(1-p),0,0,6.28); ctx.stroke(); ctx.restore();
   }
   ctx.restore();
   if(f.hp<f.maxHp-0.5){
-    const w=28, hx=bx-w/2, hy=by-renderH-6;
-    ctx.fillStyle="rgba(0,0,0,.4)"; ctx.fillRect(hx,hy,w,4);
-    ctx.fillStyle=f.hp/f.maxHp>0.4?"#7fd17f":"#e06b5a"; ctx.fillRect(hx,hy,w*clamp(f.hp/f.maxHp,0,1),4);
+    const a=visual.anchor;
+    const w=a.hpW||42, hbar=6, hx=bx-w/2, hy=by+renderH*(a.hpY??-1.0);
+    ctx.save();
+    ctx.fillStyle="rgba(0,0,0,.62)"; ctx.fillRect(hx-1,hy-1,w+2,hbar+2);
+    ctx.fillStyle="rgba(255,245,215,.85)"; ctx.fillRect(hx,hy,w,hbar);
+    ctx.fillStyle=f.hp/f.maxHp>0.4?"#72dc74":"#ff6d5f"; ctx.fillRect(hx,hy,w*clamp(f.hp/f.maxHp,0,1),hbar);
+    ctx.restore();
   }
-  for(let i=0;i<f.level;i++){ ctx.fillStyle=LVCOLOR[f.level]; ctx.beginPath(); ctx.arc(bx-6+i*4,by+10,1.6,0,6.28); ctx.fill(); }
+  const levelY=by+renderH*((visual.anchor.levelY??0.20));
+  for(let i=0;i<f.level;i++){ ctx.fillStyle=LVCOLOR[f.level]; ctx.beginPath(); ctx.arc(bx-6+i*4,levelY,1.6,0,6.28); ctx.fill(); }
 }
 
 function enemyDrawHeight(type){ return DRAW_SIZE.enemy[type] || 44; }
+function enemyHitVisualOffset(e){
+  const p=clamp((e.hit||0)/220,0,1);
+  if(p<=0) return {x:0,y:0};
+  const seed=(e.id||1)*12.9898;
+  const t=1-p;
+  const recoilX=clamp(e.kx||0,-8,8)*p;
+  const recoilY=clamp(e.ky||0,-5,5)*p;
+  const shakeX=Math.sin(S.time*0.11+seed)*2.2*p;
+  const shakeY=Math.cos(S.time*0.15+seed)*1.2*p - Math.sin(t*Math.PI)*2.0;
+  return {x:recoilX+shakeX,y:recoilY+shakeY};
+}
 function drawEnemySprite(e,bob,h,alpha){
   const walkFrame=Math.floor(e.anim||0)%4;
   const opt={flip:e.facing<0};
   if(alpha!=null) opt.alpha=alpha;
-  const vx=clamp(e.kx||0,-3.5,3.5);
-  const vy=clamp(e.ky||0,-3.5,3.5);
-  const dx=(e.hit||0)>0 ? vx : 0;
-  const dy=(e.hit||0)>0 ? vy : 0;
+  const off=enemyHitVisualOffset(e);
   if(e.attacking && ready(`e_attack_${e.type}`)){
-    return spriteFrameTrim(`e_attack_${e.type}`,e.x+dx,e.y+dy+bob,h,4,e.atkFrame||0,opt);
+    return spriteFrameTrim(`e_attack_${e.type}`,e.x+off.x,e.y+off.y+bob,h,4,e.atkFrame||0,opt);
   }
-  if(spriteFrameTrim(`e_walk_${e.type}`,e.x+dx,e.y+dy+bob,h,4,walkFrame,opt)) return true;
-  return spriteTrim(`e_${e.type}`,e.x+dx,e.y+dy+bob,h,opt);
+  if(spriteFrameTrim(`e_walk_${e.type}`,e.x+off.x,e.y+off.y+bob,h,4,walkFrame,opt)) return true;
+  return spriteTrim(`e_${e.type}`,e.x+off.x,e.y+off.y+bob,h,opt);
 }
 function drawEnemy(e){
   const bob=Math.sin(e.bob)*2;
@@ -1598,16 +1836,17 @@ function drawEnemy(e){
   sprite("shadow",e.x,e.y+Math.max(7,h*0.22),Math.max(15,h*0.38),{alpha:0.26,ay:0.5,sx:1.12});
   // hp bar
   if(e.hp<e.max-0.5 || e.boss){
-    const w=e.boss?48:Math.max(22,h*0.58), hx=e.x-w/2, hy=e.y-h-(e.boss?10:6);
-    ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(hx,hy,w,e.boss?5:3);
-    ctx.fillStyle=e.boss?"#ff7b6b":"#ffd06b"; ctx.fillRect(hx,hy,w*clamp(e.hp/e.max,0,1),e.boss?5:3);
+    const w=e.boss?58:Math.max(28,h*0.66), bh=e.boss?7:5, hx=e.x-w/2, hy=e.y-h-(e.boss?12:8);
+    ctx.fillStyle="rgba(0,0,0,.62)"; ctx.fillRect(hx-1,hy-1,w+2,bh+2);
+    ctx.fillStyle="rgba(255,245,215,.82)"; ctx.fillRect(hx,hy,w,bh);
+    ctx.fillStyle=e.boss?"#ff6d5f":"#ffd45c"; ctx.fillRect(hx,hy,w*clamp(e.hp/e.max,0,1),bh);
   }
   const flash=e.hit>0;
   if(!drawEnemySprite(e,bob,h)){
     ctx.fillStyle=flash?"#fff":"#c0392b"; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,6.28); ctx.fill();
   }
   if(flash){
-    const p=clamp(e.hit/180,0,1);
+    const p=clamp(e.hit/220,0,1);
     ctx.save();
     ctx.globalCompositeOperation="lighter";
     ctx.globalAlpha=0.32+0.4*p;
@@ -1808,59 +2047,75 @@ function drawSpriteFx(){
   }
 }
 function drawFloaters(){
-  ctx.textAlign="center"; ctx.font="bold 14px sans-serif";
+  ctx.textAlign="center";
   for(const f of S.floaters){ const a=1-f.t/f.life; ctx.globalAlpha=a;
-    ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,.55)"; ctx.strokeText(f.text,f.x,f.y);
+    ctx.font=`900 ${f.size||14}px sans-serif`;
+    ctx.lineWidth=Math.max(3,Math.round((f.size||14)/4)); ctx.strokeStyle="rgba(0,0,0,.62)"; ctx.strokeText(f.text,f.x,f.y);
     ctx.fillStyle=f.c; ctx.fillText(f.text,f.x,f.y); }
   ctx.globalAlpha=1;
 }
 
-/* action menu (on-canvas), buttons stored for hit-test */
+/* action menu (fixed on-canvas panel), buttons stored for hit-test */
 let MENU_RECTS=[];
 let MENU_SAFE_RECTS=[];
 let lastMenuActionAt=0;
+function menuSlotTitle(s){
+  return s.facilityId ? (S.facilities.find(f=>f.id===s.facilityId)?.name||"施設") : (s.kind==="road"?"道スロット":s.kind==="ground"?"高所スロット":"後方スロット");
+}
+function menuPanelLayout(buttonCount){
+  const n=Math.max(1,buttonCount||1);
+  const gap=7, pad=8;
+  const bw=148;
+  const bh=buttonCount>=3?42:44;
+  const panelW=bw+pad*2;
+  const panelH=48+n*bh+Math.max(0,n-1)*gap+pad;
+  const left=W-panelW-10;
+  const top=88;
+  return {left,top,bw,bh,gap,pad,panelW,panelH,cx:left+panelW/2};
+}
 function drawMenu(){
   MENU_RECTS=[]; MENU_SAFE_RECTS=[];
   if(!S.menu) return;
   const s=S.menu.slot;
-  if(S.menu.locked){
-    MENU_SAFE_RECTS.push({x:s.x-92,y:s.y-72,w:184,h:48});
-    drawBubble(s.x,s.y-44,"完了。離れて戻ると再操作",null);
-    return;
-  }
-  if(!S.menu.buttons.length) return;
-  const bw=190, bh=44, gap=8, pad=10;
-  const n=S.menu.buttons.length;
-  const panelW=bw+pad*2, panelH=30+n*bh+(n-1)*gap+pad;
-  let bx=clamp(s.x,panelW/2+8,W-panelW/2-8);
-  let top=s.y-48-panelH;
-  if(top<78) top=s.y+38;
-  if(top+panelH>H-12) top=H-12-panelH;
-  const left=bx-panelW/2;
-  MENU_SAFE_RECTS.push({x:left,y:top,w:panelW,h:panelH});
+  const buttons=S.menu.buttons||[];
+  const L=menuPanelLayout(buttons.length || 1);
+  MENU_SAFE_RECTS.push({x:L.left-6,y:L.top-8,w:L.panelW+12,h:L.panelH+16});
 
   ctx.save();
-  ctx.fillStyle="rgba(44,32,22,.88)";
-  roundRect(left,top,panelW,panelH,14); ctx.fill();
-  ctx.lineWidth=2; ctx.strokeStyle="rgba(255,231,154,.72)"; roundRect(left+1,top+1,panelW-2,panelH-2,13); ctx.stroke();
-  const title = s.facilityId ? (S.facilities.find(f=>f.id===s.facilityId)?.name||"施設") : (s.kind==="road"?"道スロット":s.kind==="ground"?"高所スロット":"後方スロット");
+  ctx.fillStyle="rgba(44,32,22,.92)";
+  roundRect(L.left,L.top,L.panelW,L.panelH,16); ctx.fill();
+  ctx.lineWidth=2.5; ctx.strokeStyle="rgba(255,231,154,.78)"; roundRect(L.left+1,L.top+1,L.panelW-2,L.panelH-2,15); ctx.stroke();
   ctx.font="900 12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#f3e3bf";
-  ctx.fillText(title,bx,top+16);
-  S.menu.buttons.forEach((btn,i)=>{
-    const y=top+30+i*(bh+gap);
-    const rect={x:bx-bw/2,y,w:bw,h:bh,btn};
+  const title=menuSlotTitle(s);
+  ctx.fillText(S.menu.locked ? `${title} / 操作完了` : `操作パネル / ${title}`, L.cx, L.top+17);
+  ctx.font="800 10px sans-serif"; ctx.fillStyle="rgba(243,227,191,.75)";
+  ctx.fillText("右上固定。ここは移動入力になりません", L.cx, L.top+33);
+
+  if(S.menu.locked || !buttons.length){
+    const y=L.top+46;
+    ctx.fillStyle="#d9c69b"; roundRect(L.left+L.pad,y,L.bw,L.bh,12); ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle="#5e3c20"; roundRect(L.left+L.pad,y,L.bw,L.bh,12); ctx.stroke();
+    ctx.fillStyle="#2c2016"; ctx.font="900 14px sans-serif";
+    ctx.font="900 13px sans-serif";
+    ctx.fillText("完了。離れて再操作", L.cx, y+L.bh/2);
+    ctx.restore(); ctx.textBaseline="alphabetic"; return;
+  }
+
+  buttons.forEach((btn,i)=>{
+    const y=L.top+44+i*(L.bh+L.gap);
+    const rect={x:L.left+L.pad,y,w:L.bw,h:L.bh,btn};
     MENU_RECTS.push(rect);
     const en=btn.enabled;
     const bg=en?(btn.color||"#f3e3bf"):"#cbbfa3";
-    ctx.fillStyle=bg; roundRect(rect.x,rect.y,bw,bh,12); ctx.fill();
-    ctx.lineWidth=2.5; ctx.strokeStyle=en?"#5e3c20":"#8b8067"; roundRect(rect.x,rect.y,bw,bh,12); ctx.stroke();
+    ctx.fillStyle=bg; roundRect(rect.x,rect.y,L.bw,L.bh,12); ctx.fill();
+    ctx.lineWidth=2.5; ctx.strokeStyle=en?"#5e3c20":"#8b8067"; roundRect(rect.x,rect.y,L.bw,L.bh,12); ctx.stroke();
     ctx.fillStyle=en?(btn.color?"#23303f":"#2c2016"):"#7a6f55";
-    ctx.font="900 15px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
-    ctx.fillText(btn.label, rect.x+13, y+bh/2);
+    ctx.font="900 13px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
+    ctx.fillText(btn.label, rect.x+13, y+L.bh/2);
     if(!btn.info){
-      ctx.textAlign="right"; ctx.font="900 14px sans-serif";
+      ctx.textAlign="right"; ctx.font="900 12px sans-serif";
       ctx.fillStyle = en?"#3a2a16":"#9a3b2f";
-      ctx.fillText(btn.cost+"金", rect.x+bw-13, y+bh/2);
+      ctx.fillText(btn.cost+"金", rect.x+L.bw-9, y+L.bh/2);
     }
   });
   ctx.restore();
@@ -1890,7 +2145,7 @@ function drawBanner(){
  * INPUT
  * ===================================================================== */
 const cv=$("cv");
-let lastBoardInputAt=0, lastBoardInputX=-999, lastBoardInputY=-999;
+let lastBoardInputAt=0, lastBoardInputX=-999, lastBoardInputY=-999, activePointerId=null;
 function canvasPoint(e){
   const r=cv.getBoundingClientRect();
   const src=(e.touches&&e.touches[0]) || (e.changedTouches&&e.changedTouches[0]) || e;
@@ -1898,13 +2153,18 @@ function canvasPoint(e){
   return { x:(cx-r.left)/r.width*W, y:(cy-r.top)/r.height*H };
 }
 function handleBoardInput(e){
+  if(e.pointerType==="touch" && e.isPrimary===false) return;
+  if(e.pointerId!=null){
+    if(activePointerId!=null && activePointerId!==e.pointerId) return;
+    activePointerId=e.pointerId;
+  }
   e.preventDefault();
   Audio2.init(); if(Audio2.ctx && Audio2.ctx.state==="suspended") Audio2.ctx.resume();
   if(settingsOpen) return;
   if(!S || S.status!=="playing" || paused) return;
   const p=canvasPoint(e);
   const now=performance.now();
-  if(now-lastBoardInputAt<80 && dist(p.x,p.y,lastBoardInputX,lastBoardInputY)<8) return;
+  if(now-lastBoardInputAt<110 && dist(p.x,p.y,lastBoardInputX,lastBoardInputY)<10) return;
   lastBoardInputAt=now; lastBoardInputX=p.x; lastBoardInputY=p.y;
   // hit-test menu buttons first. Menu-area taps never become movement taps.
   for(const r of MENU_RECTS){
@@ -1917,19 +2177,26 @@ function handleBoardInput(e){
   for(const r of MENU_SAFE_RECTS){
     if(p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h) return;
   }
-  if(S.menu && S.menu.slot && dist(p.x,p.y,S.menu.slot.x,S.menu.slot.y)<74) return;
-  if(now-lastMenuActionAt<220) return;
+  if(S.menu && S.menu.slot && dist(p.x,p.y,S.menu.slot.x,S.menu.slot.y)<86) return;
+  if(now-lastMenuActionAt<420) return;
   // otherwise move king
   S.king.tx=clamp(p.x,14,W-14); S.king.ty=clamp(p.y,96,H-14);
 }
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+cv.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
+cv.addEventListener("touchend",e=>e.preventDefault(),{passive:false});
+function releaseBoardPointer(e){ if(e.pointerId==null || activePointerId===e.pointerId) activePointerId=null; e.preventDefault(); }
 if(window.PointerEvent){
   // pointerdown はマウス・タッチ・ペンを一本化して拾うため、これだけ登録すれば多重発火しない
   cv.addEventListener("pointerdown",handleBoardInput,{passive:false});
+  cv.addEventListener("pointerup",releaseBoardPointer,{passive:false});
+  cv.addEventListener("pointercancel",releaseBoardPointer,{passive:false});
 }else{
   // 旧ブラウザ向けフォールバック
   cv.addEventListener("mousedown",handleBoardInput,{passive:false});
   cv.addEventListener("touchstart",handleBoardInput,{passive:false});
 }
+function guardedClick(fn,delay=360){ let last=0; return e=>{ const now=performance.now(); if(now-last<delay){ e&&e.preventDefault&&e.preventDefault(); return; } last=now; fn(e); }; }
 window.addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(k==="escape" && settingsOpen){ closeSettings(); e.preventDefault(); return; }
@@ -1955,11 +2222,11 @@ function stageDiagnostics(id){
   const routeText=Object.entries(routeCounts).map(([k,v])=>`${st.routeLabels[k]||k}:${v}`).join(" / ");
   return {total,slots,road,ground,mine,routeText,waves:st.waves.length};
 }
-function safeStageId(id){ return (STAGE_DEFS[id] && isStageUnlocked(id)) ? id : normalizeSelectedStage(selectedStageId||"meadow"); }
+function safeStageId(id){ return (STAGE_DEFS[id] && isStageUnlocked(id)) ? id : normalizeSelectedStage(selectedStageId||"tutorial"); }
 function ensureStageSelectReady(sel){
-  if(!sel) return safeStageId(selectedStageId||"meadow");
+  if(!sel) return safeStageId(selectedStageId||"tutorial");
   if(!sel.options || sel.options.length===0) fillStageSelect(sel);
-  let id = sel.value || selectedStageId || "meadow";
+  let id = sel.value || selectedStageId || "tutorial";
   id = safeStageId(id);
   sel.value = id;
   if(!sel.value && sel.options.length>0){
@@ -1970,7 +2237,7 @@ function ensureStageSelectReady(sel){
 }
 function fillStageSelect(sel){
   if(!sel) return;
-  const keep=sel.value||selectedStageId||"meadow";
+  const keep=sel.value||selectedStageId||"tutorial";
   const progress=normalizeProgress(getSaveData());
   sel.innerHTML="";
   for(const id of STAGE_ORDER){
@@ -1982,11 +2249,11 @@ function fillStageSelect(sel){
     o.textContent=`${unlocked?"":"🔒 "}${cleared?"★ ":""}${st.name} / ${st.difficulty} / ${Object.keys(st.routes).length}ルート`;
     sel.appendChild(o);
   }
-  const next = STAGE_DEFS[keep] && isStageUnlocked(keep) ? keep : safeStageId(selectedStageId||"meadow");
+  const next = STAGE_DEFS[keep] && isStageUnlocked(keep) ? keep : safeStageId(selectedStageId||"tutorial");
   sel.value = next;
   if(!sel.value && sel.options.length>0){
     sel.selectedIndex = Math.max(0,[...sel.options].findIndex(o=>!o.disabled));
-    selectedStageId = sel.value || "meadow";
+    selectedStageId = sel.value || "tutorial";
   }
 }
 function renderStageMap(){
@@ -2033,7 +2300,7 @@ function updateStagePanel(){
   const chips=$("stageChips");
   if(chips){ chips.innerHTML=`<span class="stage-chip">${st.type}</span><span class="stage-chip">${Object.keys(st.routes).length}ルート</span><span class="stage-chip">${st.difficulty}</span><span class="stage-chip">推奨:${st.recommended}</span>`; }
   const desc=$("stageDesc"); if(desc) desc.textContent=st.summary;
-  const diag=$("stageDiag"); if(diag) diag.textContent=`資金${st.startCoins} / 敵HPx${st.enemyMul.hp} / 床${d.slots}（柵${d.road}・火力${d.ground}・鉱${d.mine}） / 敵${d.total}: ${d.routeText}`;
+  const diag=$("stageDiag"); if(diag){ const pr=st.pressure||{count:1,gap:1}; diag.textContent=st.tutorial?`訓練内容: 柵で止める / 弓塔で削る / 金鉱で収入 / 王の近接ボーナス。資金${st.startCoins}。`:`${st.waves.length}ウェーブ / ${Object.keys(st.routes).length}ルート / 資金${st.startCoins}`; }
   const sv=$("sStageVal"); if(sv) sv.textContent=S?"再開始時に反映":"開始時に反映";
   renderStageMap(); updateProgressText();
 }
@@ -2053,8 +2320,8 @@ function chooseStage(id){
 }
 function resetProgress(){
   if(!confirm("ステージ進行をリセットしますか？")) return;
-  saveGameData({unlockedStages:["meadow"],clearedStages:[],selectedStageId:"meadow"});
-  selectedStageId="meadow";
+  saveGameData({unlockedStages:["tutorial","meadow"],clearedStages:[],selectedStageId:"tutorial"});
+  selectedStageId="tutorial";
   fillStageSelect($("stageSelect")); fillStageSelect($("sStageSelect")); updateStagePanel();
 }
 function initStageSelectUi(){
@@ -2127,12 +2394,12 @@ function syncHud(){
 function togglePause(){ paused=!paused; syncSettingsPanel(); }
 function toggleSpeed(){ speed=speed===1?2:1; syncSettingsPanel(); }
 function toggleMute(){ Audio2.muted=!Audio2.muted; syncSettingsPanel(); if(S) saveBest(); else saveGameData({muted:Audio2.muted}); }
-$("bMenu").onclick=openSettings;
-$("sClose").onclick=closeSettings;
-$("sSpeed").onclick=toggleSpeed;
-$("sPause").onclick=togglePause;
-$("sMute").onclick=toggleMute;
-$("sRetry").onclick=restartGameFromSettings;
+$("bMenu").onclick=guardedClick(openSettings,280);
+$("sClose").onclick=guardedClick(closeSettings,280);
+$("sSpeed").onclick=guardedClick(toggleSpeed,220);
+$("sPause").onclick=guardedClick(togglePause,220);
+$("sMute").onclick=guardedClick(toggleMute,220);
+$("sRetry").onclick=guardedClick(restartGameFromSettings,520);
 
 function showEnd(won){
   $("endTitle").textContent=won?"防衛成功":"陥落";
@@ -2143,28 +2410,32 @@ function showEnd(won){
     ? next
       ? `${S.stageName} を突破。<br><b>${next.name}</b> が解放された。次の前線へ進める。`
       : `${S.stageName} 全 ${WAVES.length} ウェーブ突破。<br>すべての前線を守り抜いた。`
-    : `到達ウェーブ <b>${S.waveIdx+1}</b> / ${WAVES.length}（最高記録 ${Math.max(best,S.waveIdx+1)}）。<br>柵・火力・金鉱の優先順位を見直す。`;
+    : `到達ウェーブ <b>${S.waveIdx+1}</b> / ${WAVES.length}（最高記録 ${Math.max(best,S.waveIdx+1)}）。`;
   const bn=$("bNext"); if(bn){ bn.style.display=(won&&next)?"block":"none"; bn.textContent=next?`次へ: ${next.name}`:"次のステージへ"; }
   const br=$("bRetry"); if(br) br.textContent=won?"同じステージをもう一度":"もう一度";
   const bm=$("bMap"); if(bm) bm.style.display="block";
   $("ovEnd").classList.add("show");
 }
+let lastBeginGameAt=0;
 function beginGame(id){
+  const now=performance.now();
+  if(now-lastBeginGameAt<350) return;
+  lastBeginGameAt=now;
   const fallback = ensureStageSelectReady($("stageSelect"));
-  const startId = safeStageId(id || fallback || selectedStageId || "meadow");
+  const startId = safeStageId(id || fallback || selectedStageId || "tutorial");
   chooseStage(startId);
   Audio2.init(); if(Audio2.ctx && Audio2.ctx.state==="suspended") Audio2.ctx.resume();
   $("ovStart").classList.remove("show"); $("ovEnd").classList.remove("show");
   S=newState(); paused=false; settingsOpen=false; settingsPausedBefore=false; syncSettingsPanel();
 }
-$("bRetry").onclick=()=>{ const id=(S&&S.stageId)||selectedStageId; beginGame(id); };
-$("bNext").onclick=()=>{ if(S&&S.nextStageId) beginGame(S.nextStageId); };
-$("bMap").onclick=()=>{ $("ovEnd").classList.remove("show"); S=null; paused=false; settingsOpen=false; settingsPausedBefore=false; $("ovStart").classList.add("show"); fillStageSelect($("stageSelect")); fillStageSelect($("sStageSelect")); updateStagePanel(); };
-$("bStart").onclick=()=>{
+$("bRetry").onclick=guardedClick(()=>{ const id=(S&&S.stageId)||selectedStageId; beginGame(id); },520);
+$("bNext").onclick=guardedClick(()=>{ if(S&&S.nextStageId) beginGame(S.nextStageId); },520);
+$("bMap").onclick=guardedClick(()=>{ $("ovEnd").classList.remove("show"); S=null; paused=false; settingsOpen=false; settingsPausedBefore=false; $("ovStart").classList.add("show"); fillStageSelect($("stageSelect")); fillStageSelect($("sStageSelect")); updateStagePanel(); },420);
+$("bStart").onclick=guardedClick(()=>{
   const ss=$("stageSelect");
   const id=ensureStageSelectReady(ss) || selectedStageId || "meadow";
   beginGame(id);
-};
+},520);
 
 /* boot */
 function boot(){
@@ -2172,7 +2443,7 @@ function boot(){
   // wire HUD icons
   if(ready("coin")) $("coinIcon").src=IMG_SRC.coin; else $("coinIcon").style.display="none";
   if(ready("wave")) $("waveIcon").src=IMG_SRC.wave; else $("waveIcon").style.display="none";
-  try{ const sv=getSaveData(); if(sv.muted){ Audio2.muted=true; } selectedStageId=normalizeSelectedStage(sv.selectedStageId||selectedStageId); }catch(e){}
+  try{ const sv=getSaveData(); if(sv.muted){ Audio2.muted=true; } selectedStageId=normalizeSelectedStage(sv.selectedStageId||selectedStageId||"tutorial"); }catch(e){}
   // Do not clear S here. On slow mobile connections the player may press start
   // before all image assets finish loading; beginGame() already creates S.
   // The previous boot path reset S to null after hiding the start overlay, leaving
